@@ -1,0 +1,12 @@
+* [33mb05f059[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m Add CORS debugging
+* [33m1e5e080[m Fix CORS for Touchwood frontend
+* [33m18967e5[m Trigger Railway redeploy
+* [33mf64a9af[m Fix favorite controller
+* [33mfe70c42[m Initial backend setup
+* [33m6aeaacb[m[33m ([m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m touchwood
+* [33m01b159d[m touchwood
+* [33maf1edab[m Update CORS for Touchwood frontend
+* [33m69e321d[m touchwood
+* [33m0f04952[m touchwood
+* [33ma7f3fdf[m Initial backend setup
+* [33m65f2c94[m Initial commit from Create Next App

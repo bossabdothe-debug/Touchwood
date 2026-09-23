@@ -1,0 +1,393 @@
+.card {
+  width: 100%;
+  min-width: 0;
+  background: var(--background-white);
+  border: 1px solid var(--border-light);
+  border-radius: 14px;
+  overflow: hidden;
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    border-color 0.25s ease;
+}
+
+.card:hover {
+  transform: translateY(-3px);
+  border-color: #dfe4e1;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.08);
+}
+
+.imageContainer {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  background: #f7f7f7;
+}
+
+.imageLink {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  transition: transform 0.45s ease;
+}
+
+.card:hover .image {
+  transform: scale(1.04);
+}
+
+.sideActions {
+  position: absolute;
+  top: 14px;
+  inset-inline-start: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  opacity: 0;
+  transform: translateX(-10px);
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
+  z-index: 2;
+}
+
+.card:hover .sideActions {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.actionButton {
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 50%;
+  background: var(--background-white);
+  color: var(--text-primary);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  cursor: pointer;
+  transition:
+    color 0.2s ease,
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.actionButton svg {
+  width: 17px;
+  height: 17px;
+  stroke-width: 1.8;
+}
+
+.actionButton:hover {
+  color: #ffffff;
+  background: var(--primary);
+  transform: scale(1.08);
+}
+
+.cartButton {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translate(-50%, 15px);
+  height: 42px;
+  min-width: 145px;
+  padding: 0 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 22px;
+  background: var(--primary);
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 5px 16px rgba(35, 138, 55, 0.25);
+  opacity: 0;
+  visibility: hidden;
+  cursor: pointer;
+  transition:
+    opacity 0.25s ease,
+    visibility 0.25s ease,
+    transform 0.25s ease,
+    background 0.2s ease;
+  z-index: 2;
+}
+
+.card:hover .cartButton {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, 0);
+}
+
+.cartButton svg {
+  width: 17px;
+  height: 17px;
+  stroke-width: 2;
+}
+
+.cartButton:hover {
+  background: var(--primary-dark);
+}
+
+.content {
+  padding: 13px 14px 15px;
+}
+
+.productName {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.7;
+  text-decoration: none;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  transition: color 0.2s ease;
+}
+
+.productName:hover {
+  color: var(--primary);
+}
+
+.category {
+  display: block;
+  width: 100%;
+  margin-top: 2px;
+  overflow: hidden;
+  color: var(--text-light);
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 1.7;
+  text-decoration: none;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  transition: color 0.2s ease;
+}
+
+.category:hover {
+  color: var(--primary);
+}
+
+.rating {
+  min-height: 22px;
+  margin-top: 5px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  direction: ltr;
+}
+
+.stars {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+}
+
+.stars svg {
+  width: 13px;
+  height: 13px;
+  stroke-width: 1.8;
+}
+
+.starActive {
+  color: #f5a623;
+  fill: #f5a623;
+}
+
+.starInactive {
+  color: #d7d9dc;
+  fill: transparent;
+}
+
+.ratingValue {
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 500;
+  margin-inline-start: 2px;
+}
+
+.reviewsCount {
+  color: var(--text-light);
+  font-size: 9px;
+  font-weight: 400;
+}
+
+.prices {
+  margin-top: 5px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.currentPrice {
+  color: #e53935;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.oldPrice {
+  color: #9a9a9a;
+  font-size: 10px;
+  font-weight: 400;
+  line-height: 1.5;
+  text-decoration: line-through;
+  white-space: nowrap;
+}
+
+@media (max-width: 850px) {
+  .card {
+    border-radius: 12px;
+  }
+
+  .card:hover {
+    transform: none;
+    box-shadow: none;
+  }
+
+  .imageContainer {
+    aspect-ratio: 1 / 1;
+  }
+
+  .sideActions {
+    top: 10px;
+    inset-inline-start: 10px;
+    gap: 6px;
+    opacity: 1;
+    transform: none;
+  }
+
+  .actionButton {
+    width: 34px;
+    height: 34px;
+  }
+
+  .actionButton svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .cartButton {
+    bottom: 10px;
+    min-width: 130px;
+    height: 38px;
+    padding: 0 14px;
+    font-size: 10px;
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, 0);
+  }
+
+  .cartButton svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .content {
+    padding: 11px 11px 13px;
+  }
+
+  .productName {
+    font-size: 12px;
+  }
+
+  .category {
+    font-size: 9px;
+  }
+
+  .rating {
+    margin-top: 4px;
+  }
+
+  .stars svg {
+    width: 12px;
+    height: 12px;
+  }
+
+  .ratingValue {
+    font-size: 9px;
+  }
+
+  .reviewsCount {
+    font-size: 8px;
+  }
+
+  .prices {
+    margin-top: 4px;
+    gap: 6px;
+  }
+
+  .currentPrice {
+    font-size: 12px;
+  }
+
+  .oldPrice {
+    font-size: 9px;
+  }
+}
+
+@media (max-width: 480px) {
+  .sideActions {
+    top: 8px;
+    inset-inline-start: 8px;
+  }
+
+  .actionButton {
+    width: 31px;
+    height: 31px;
+  }
+
+  .actionButton svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .cartButton {
+    min-width: 118px;
+    height: 35px;
+    bottom: 8px;
+    font-size: 9px;
+    gap: 6px;
+  }
+
+  .cartButton svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .content {
+    padding: 9px 9px 11px;
+  }
+
+  .productName {
+    font-size: 11px;
+  }
+
+  .category {
+    font-size: 8px;
+  }
+
+  .currentPrice {
+    font-size: 11px;
+  }
+
+  .oldPrice {
+    font-size: 8px;
+  }
+}

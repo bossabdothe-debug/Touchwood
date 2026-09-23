@@ -1,0 +1,295 @@
+.topbar {
+  width: 100%;
+  min-height: 92px;
+  padding: 10px 32px;
+  background: #f6f6f6;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  direction: ltr;
+  border-bottom: 1px solid #e5e5e5;
+  font-family: "Alexandria", sans-serif;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.leftSection {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.logoWrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 150px;
+  line-height: 1;
+  position: relative;
+  padding-bottom: 7px;
+}
+
+.logo {
+  width: 115px;
+  height: 44px;
+  object-fit: contain;
+}
+
+.brandName {
+  margin-top: 3px;
+  color: #238a37;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.logoWrapper::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 8px;
+  right: 8px;
+  height: 3px;
+  background: #f07e1b;
+  border-radius: 3px;
+}
+
+.menuButton {
+  display: none;
+  width: 42px;
+  height: 42px;
+  border: 0;
+  background: transparent;
+  color: #238a37;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 8px;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.menuButton:hover {
+  background: #eaf4ec;
+  color: #1d732f;
+}
+
+.rightSection {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.iconButton {
+  position: relative;
+  min-width: 48px;
+  height: 44px;
+  padding: 0 10px;
+  border: 1px solid #e2e2e2;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #238a37;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  transition:
+    border-color 0.2s ease,
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.iconButton:hover {
+  border-color: #238a37;
+  background: #f3faf4;
+}
+
+.notificationBadge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 50px;
+  background: #e53935;
+  color: #ffffff;
+  font-size: 9px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #f6f6f6;
+}
+
+.separator {
+  width: 1px;
+  height: 42px;
+  background: #dedede;
+}
+
+.profile {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  direction: rtl;
+}
+
+.profileAvatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #238a37;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  font-weight: 700;
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
+
+.profileInfo {
+  min-width: 100px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+}
+
+.profileName {
+  color: #171717;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.profileRole {
+  color: #777777;
+  font-size: 10px;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+@media (max-width: 768px) {
+  .topbar {
+    min-height: 76px;
+    padding: 8px 16px;
+  }
+
+  .leftSection {
+    gap: 8px;
+  }
+
+  .menuButton {
+    display: flex;
+  }
+
+  .logoWrapper {
+    min-width: 120px;
+    padding-bottom: 6px;
+  }
+
+  .logo {
+    width: 95px;
+    height: 36px;
+  }
+
+  .brandName {
+    font-size: 11px;
+  }
+
+  .logoWrapper::after {
+    left: 5px;
+    right: 5px;
+    height: 2px;
+  }
+
+  .rightSection {
+    gap: 8px;
+  }
+
+  .iconButton {
+    min-width: 40px;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+  }
+
+  .iconButton span:not(.notificationBadge) {
+    display: none;
+  }
+
+  .separator {
+    height: 34px;
+  }
+
+  .profile {
+    gap: 7px;
+  }
+
+  .profileAvatar {
+    width: 38px;
+    height: 38px;
+    font-size: 15px;
+  }
+
+  .profileInfo {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .topbar {
+    padding: 8px 12px;
+  }
+
+  .logoWrapper {
+    min-width: 100px;
+    padding-bottom: 5px;
+  }
+
+  .logo {
+    width: 82px;
+    height: 32px;
+  }
+
+  .brandName {
+    font-size: 10px;
+  }
+
+  .logoWrapper::after {
+    left: 3px;
+    right: 3px;
+    height: 2px;
+  }
+
+  .rightSection {
+    gap: 5px;
+  }
+
+  .separator {
+    display: none;
+  }
+
+  .profileAvatar {
+    width: 36px;
+    height: 36px;
+  }
+
+  .menuButton {
+    width: 38px;
+    height: 38px;
+  }
+}

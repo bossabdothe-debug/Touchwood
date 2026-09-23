@@ -1,0 +1,72 @@
+:root {
+  --primary: #238a37;
+  --primary-dark: #1c702d;
+  --primary-light: #e9f5eb;
+
+  --secondary: #f07e1b;
+  --secondary-dark: #d96d12;
+  --secondary-light: #fff1e4;
+
+  --background: #fdfdff;
+  --background-white: #ffffff;
+
+  --text-primary: #111111;
+  --text-secondary: #5f6368;
+  --text-light: #8a8f94;
+
+  --border: #e5e7eb;
+  --border-light: #f0f1f2;
+
+  --success: #238a37;
+  --danger: #dc3545;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  direction: rtl;
+  scroll-behavior: smooth;
+}
+
+html[dir="ltr"] {
+  direction: ltr;
+}
+
+body {
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--text-primary);
+}
+
+button,
+input,
+textarea,
+select {
+  font-family: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}

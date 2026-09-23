@@ -1,0 +1,150 @@
+.hero {
+  width: 100%;
+  padding: 34px 32px 40px;
+  background: var(--background);
+  overflow: hidden;
+}
+
+.desktopCategories {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  align-items: start;
+  gap: 20px;
+}
+
+.category {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  color: var(--text-primary);
+  text-decoration: none;
+  text-align: center;
+  min-width: 0;
+}
+
+.imageWrapper {
+  width: clamp(105px, 11vw, 155px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--background-white);
+  border: 3px solid var(--primary-light);
+  box-shadow: 0 5px 18px rgba(0, 0, 0, 0.08);
+  transition:
+    transform 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.imageWrapper img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+}
+
+.category span {
+  max-width: 160px;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.7;
+  transition: color 0.25s ease;
+}
+
+.category:hover .imageWrapper {
+  transform: translateY(-5px);
+  border-color: var(--primary);
+  box-shadow: 0 10px 24px rgba(35, 138, 55, 0.16);
+}
+
+.category:hover span {
+  color: var(--primary);
+}
+
+.mobileCategories {
+  display: none;
+}
+
+@media (max-width: 850px) {
+  .hero {
+    padding: 24px 0 30px;
+  }
+
+  .desktopCategories {
+    display: none;
+  }
+
+  .mobileCategories {
+    display: block;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .mobileCategories :global(.swiper) {
+    width: 100%;
+    overflow: visible;
+  }
+
+  .mobileCategories :global(.swiper-wrapper) {
+    align-items: flex-start;
+  }
+
+  .mobileCategories :global(.swiper-slide) {
+    height: auto;
+    display: flex;
+    justify-content: center;
+  }
+
+  .category {
+    width: 120px;
+    gap: 9px;
+  }
+
+  .imageWrapper {
+    width: 104px;
+    height: 104px;
+    border-width: 2px;
+  }
+
+  .category span {
+    width: 120px;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  .category:hover .imageWrapper {
+    transform: none;
+  }
+
+  .category:hover span {
+    color: var(--text-primary);
+  }
+}
+
+@media (max-width: 480px) {
+  .hero {
+    padding: 20px 0 26px;
+  }
+
+  .mobileCategories :global(.swiper) {
+    padding-inline: 8px;
+  }
+
+  .category {
+    width: 110px;
+  }
+
+  .imageWrapper {
+    width: 94px;
+    height: 94px;
+  }
+
+  .category span {
+    width: 110px;
+    font-size: 11px;
+  }
+}
