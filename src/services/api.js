@@ -1,5 +1,5 @@
 const API_URL =
-  "https://touchwood2-production-1733.up.railway.app/api";
+  "https://touchwood-production-70f9.up.railway.app/api";
 
 const apiRequest = async (
   path,
