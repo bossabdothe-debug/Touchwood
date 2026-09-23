@@ -114,7 +114,7 @@ export const createUploadUrl = async (
   contentType,
   folder = "products/gallery"
 ) => {
-  return apiRequest("api/uploads/presign", {
+  return apiRequest("/uploads/presign", {
     method: "POST",
     token,
     body: {
