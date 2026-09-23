@@ -1,582 +1,452 @@
+
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import Product from "./models/Product.js";
 
 dotenv.config();
 
-const imagePool = {
-  office: [
-    "https://images.unsplash.com/photo-1497366754035-f200968a6e72",
-    "https://images.unsplash.com/photo-1497366811353-6870744d04b2",
-    "https://images.unsplash.com/photo-1497366216548-37526070297c",
-    "https://images.unsplash.com/photo-1497366858526-0766cadbe8fa",
-  ],
-
-  desk: [
-    "https://images.unsplash.com/photo-1518455027359-f3f8164ba6b2",
-    "https://images.unsplash.com/photo-1497215728101-856f4ea42174",
-    "https://images.unsplash.com/photo-1524758631624-e2822e304c36",
-    "https://images.unsplash.com/photo-1497366754035-f200968a6e72",
-  ],
-
-  chair: [
-    "https://images.unsplash.com/photo-1580480055273-228ff5388ef8",
-    "https://images.unsplash.com/photo-1592078615290-033ee584e267",
-    "https://images.unsplash.com/photo-1586023492125-27b2c045efd7",
-    "https://images.unsplash.com/photo-1555041469-a586c61ea9bc",
-  ],
-
-  meeting: [
-    "https://images.unsplash.com/photo-1517502884422-41eaead166d4",
-    "https://images.unsplash.com/photo-1497366811353-6870744d04b2",
-    "https://images.unsplash.com/photo-1497366216548-37526070297c",
-  ],
-
-  reception: [
-    "https://images.unsplash.com/photo-1556761175-b413da4baf72",
-    "https://images.unsplash.com/photo-1497366754035-f200968a6e72",
-    "https://images.unsplash.com/photo-1497366858526-0766cadbe8fa",
-  ],
-
-  accessories: [
-    "https://images.unsplash.com/photo-1586953208448-b95a79798f07",
-    "https://images.unsplash.com/photo-1586023492125-27b2c045efd7",
-    "https://images.unsplash.com/photo-1524758631624-e2822e304c36",
-  ],
-};
-
 const categories = [
   {
-    key: "computer-tables",
-    ar: "مكاتب وطاولات كمبيوتر",
-    en: "Computer Tables",
-    imageType: "desk",
-    count: 16,
-    products: [
-      ["مكتب كمبيوتر مودرن", "Modern Computer Desk"],
-      ["مكتب كمبيوتر خشبي", "Wooden Computer Desk"],
+    key: "computer-desks",
+    names: [
+      ["مكتب مدير كلاسيك", "Classic Executive Desk"],
+      ["مكتب مدير مودرن", "Modern Executive Desk"],
+      ["مكتب مدير خشبي", "Wooden Executive Desk"],
+      ["مكتب عمل احترافي", "Professional Work Desk"],
       ["مكتب كمبيوتر إداري", "Executive Computer Desk"],
-      ["مكتب كمبيوتر عملي", "Practical Computer Desk"],
-      ["مكتب كمبيوتر صغير", "Compact Computer Desk"],
-      ["مكتب كمبيوتر كبير", "Large Computer Desk"],
-      ["مكتب كمبيوتر بملحق جانبي", "Computer Desk With Side Extension"],
-      ["مكتب كمبيوتر بدرجين", "Computer Desk With Drawers"],
-      ["مكتب كمبيوتر بثلاثة أدراج", "Computer Desk With Three Drawers"],
-      ["مكتب كمبيوتر زاوية", "Corner Computer Desk"],
-      ["مكتب كمبيوتر للمساحات الصغيرة", "Small Space Computer Desk"],
-      ["مكتب كمبيوتر احترافي", "Professional Computer Desk"],
-      ["مكتب كمبيوتر إداري فاخر", "Premium Executive Computer Desk"],
-      ["مكتب كمبيوتر أبيض", "White Computer Desk"],
-      ["مكتب كمبيوتر خشب ومعدن", "Wood And Metal Computer Desk"],
-      ["مكتب كمبيوتر متعدد الاستخدامات", "Multi Purpose Computer Desk"],
+      ["مكتب موظف مفرد", "Single Employee Desk"],
+      ["مكتب موظفين مزدوج", "Double Employee Desk"],
+      ["مكتب زاوية إداري", "Executive Corner Desk"],
+      ["مكتب كمبيوتر مودرن", "Modern Computer Desk"],
+      ["مكتب عمل بسيط", "Simple Work Desk"],
+      ["مكتب مدير فاخر", "Luxury Executive Desk"],
+      ["مكتب موظف عملي", "Practical Employee Desk"],
+      ["مكتب استقبال مكتبي", "Office Reception Desk"],
+      ["مكتب عمل خشبي", "Wooden Work Desk"],
+      ["مكتب إداري كبير", "Large Administrative Desk"],
     ],
   },
-
   {
-    key: "mesh-chairs",
-    ar: "كراسي شبك",
-    en: "Mesh Chairs",
-    imageType: "chair",
-    count: 14,
-    products: [
-      ["كرسي مكتب شبك مودرن", "Modern Mesh Office Chair"],
-      ["كرسي مدير شبك", "Mesh Executive Chair"],
-      ["كرسي موظف شبك", "Mesh Staff Chair"],
-      ["كرسي مكتب شبك مريح", "Comfort Mesh Office Chair"],
-      ["كرسي شبك ظهر عالي", "High Back Mesh Chair"],
-      ["كرسي شبك طبي", "Ergonomic Mesh Chair"],
-      ["كرسي شبك مع مسند رأس", "Mesh Chair With Headrest"],
-      ["كرسي شبك قابل للتعديل", "Adjustable Mesh Chair"],
-      ["كرسي شبك أسود", "Black Mesh Office Chair"],
-      ["كرسي شبك احترافي", "Professional Mesh Chair"],
-      ["كرسي شبك للأعمال", "Business Mesh Chair"],
-      ["كرسي شبك ظهر متوسط", "Mid Back Mesh Chair"],
-      ["كرسي شبك فاخر", "Premium Mesh Chair"],
-      ["كرسي شبك متعدد الاستخدام", "Multi Purpose Mesh Chair"],
-    ],
-  },
-
-  {
-    key: "leather-chairs",
-    ar: "كراسي جلد",
-    en: "Leather Chairs",
-    imageType: "chair",
-    count: 12,
-    products: [
-      ["كرسي مدير جلد فاخر", "Premium Leather Executive Chair"],
+    key: "chairs",
+    names: [
+      ["كرسي مكتب تنفيذي", "Executive Office Chair"],
+      ["كرسي مدير فاخر", "Luxury Manager Chair"],
+      ["كرسي موظف مودرن", "Modern Employee Chair"],
+      ["كرسي مكتب شبكي", "Mesh Office Chair"],
       ["كرسي مكتب جلد", "Leather Office Chair"],
-      ["كرسي مدير جلد عالي الظهر", "High Back Leather Executive Chair"],
-      ["كرسي موظف جلد", "Leather Staff Chair"],
-      ["كرسي مكتب جلد مريح", "Comfort Leather Office Chair"],
-      ["كرسي مدير كلاسيك", "Classic Executive Chair"],
-      ["كرسي جلد أسود", "Black Leather Office Chair"],
-      ["كرسي جلد بني", "Brown Leather Office Chair"],
-      ["كرسي مدير احترافي", "Professional Executive Chair"],
-      ["كرسي جلد مبطن", "Padded Leather Office Chair"],
-      ["كرسي جلد دوار", "Swivel Leather Office Chair"],
-      ["كرسي جلد فاخر", "Luxury Leather Office Chair"],
+      ["كرسي اجتماعات", "Meeting Chair"],
+      ["كرسي انتظار", "Waiting Chair"],
+      ["كرسي مدير عالي الظهر", "High Back Manager Chair"],
+      ["كرسي موظف مريح", "Comfort Employee Chair"],
+      ["كرسي مكتب متحرك", "Mobile Office Chair"],
+      ["كرسي اجتماعات فاخر", "Luxury Meeting Chair"],
+      ["كرسي مكتب اقتصادي", "Economy Office Chair"],
+      ["كرسي زائر", "Visitor Chair"],
+      ["كرسي مكتب احترافي", "Professional Office Chair"],
+      ["كرسي مدير مودرن", "Modern Manager Chair"],
     ],
   },
-
   {
-    key: "bar-chairs",
-    ar: "كراسي بار",
-    en: "Bar Chairs",
-    imageType: "chair",
-    count: 8,
-    products: [
-      ["كرسي بار مودرن", "Modern Bar Chair"],
-      ["كرسي بار خشبي", "Wooden Bar Chair"],
-      ["كرسي بار معدني", "Metal Bar Chair"],
-      ["كرسي بار مرتفع", "High Bar Chair"],
-      ["كرسي بار للمكاتب", "Office Bar Chair"],
-      ["كرسي بار مبطن", "Padded Bar Chair"],
-      ["كرسي بار فاخر", "Premium Bar Chair"],
-      ["كرسي بار دوار", "Swivel Bar Chair"],
+    key: "office-sofas",
+    names: [
+      ["انتريه مكتبي فاخر", "Luxury Office Sofa"],
+      ["انتريه مكتبي مودرن", "Modern Office Sofa"],
+      ["كنبة مكتب ثلاثية", "Three Seat Office Sofa"],
+      ["كنبة مكتب ثنائية", "Two Seat Office Sofa"],
+      ["كرسي استقبال فاخر", "Luxury Reception Sofa"],
+      ["انتريه استقبال", "Reception Sofa Set"],
+      ["كنبة جلد مكتبية", "Leather Office Sofa"],
+      ["انتريه رمادي مودرن", "Modern Gray Sofa Set"],
+      ["انتريه بيج مكتبي", "Beige Office Sofa Set"],
+      ["كنبة انتظار مكتبية", "Office Waiting Sofa"],
+      ["انتريه مديرين", "Executive Sofa Set"],
+      ["كنبة اجتماعات", "Meeting Room Sofa"],
+      ["انتريه استقبال فاخر", "Luxury Reception Set"],
+      ["كنبة مكتبية عصرية", "Contemporary Office Sofa"],
+      ["انتريه شركات", "Corporate Office Sofa Set"],
     ],
   },
-
   {
-    key: "laboratory-chairs",
-    ar: "كراسي المعمل",
-    en: "Laboratory Chairs",
-    imageType: "chair",
-    count: 6,
-    products: [
-      ["كرسي معمل عالي", "High Laboratory Chair"],
-      ["كرسي معمل قابل للتعديل", "Adjustable Laboratory Chair"],
-      ["كرسي معمل دوار", "Swivel Laboratory Chair"],
-      ["كرسي معمل بظهر", "Laboratory Chair With Backrest"],
-      ["كرسي معمل صناعي", "Industrial Laboratory Chair"],
-      ["كرسي معمل احترافي", "Professional Laboratory Chair"],
+    key: "work-cells",
+    names: [
+      ["خلية عمل مكتبية", "Office Work Cell"],
+      ["خلية عمل فردية", "Single Work Cell"],
+      ["خلية عمل مزدوجة", "Double Work Cell"],
+      ["خلية عمل رباعية", "Four Person Work Cell"],
+      ["خلية موظفين مودرن", "Modern Employee Work Cell"],
+      ["خلية عمل مفتوحة", "Open Work Cell"],
+      ["خلية عمل مغلقة", "Closed Work Cell"],
+      ["خلية عمل خشبية", "Wooden Work Cell"],
+      ["خلية عمل إدارية", "Administrative Work Cell"],
+      ["خلية عمل احترافية", "Professional Work Cell"],
+      ["خلية عمل للشركات", "Corporate Work Cell"],
+      ["خلية عمل اقتصادية", "Economy Work Cell"],
+      ["خلية عمل كبيرة", "Large Work Cell"],
+      ["خلية عمل مودرن", "Modern Work Cell"],
     ],
   },
-
   {
-    key: "office-seating-sets",
-    ar: "انتريهات مكتبية",
-    en: "Office Seating Sets",
-    imageType: "office",
-    count: 10,
-    products: [
-      ["انتريه مكتب ثلاثي", "Three Seater Office Sofa"],
-      ["انتريه مكتب ثنائي", "Two Seater Office Sofa"],
-      ["انتريه استقبال مودرن", "Modern Reception Sofa"],
-      ["انتريه مكتب فاخر", "Premium Office Sofa"],
-      ["انتريه جلد مكتبي", "Leather Office Sofa"],
-      ["انتريه انتظار", "Waiting Area Sofa"],
-      ["انتريه مدير", "Executive Office Sofa"],
-      ["انتريه مكتب كلاسيك", "Classic Office Sofa"],
-      ["انتريه مكتب مريح", "Comfort Office Sofa"],
-      ["طقم انتريه مكتبي", "Complete Office Sofa Set"],
+    key: "reception-counters",
+    names: [
+      ["كاونتر استقبال مودرن", "Modern Reception Counter"],
+      ["كاونتر استقبال فاخر", "Luxury Reception Counter"],
+      ["كاونتر استقبال خشبي", "Wooden Reception Counter"],
+      ["كاونتر استقبال شركات", "Corporate Reception Counter"],
+      ["كاونتر استقبال عيادات", "Clinic Reception Counter"],
+      ["كاونتر استقبال صغير", "Small Reception Counter"],
+      ["كاونتر استقبال كبير", "Large Reception Counter"],
+      ["كاونتر استقبال حرف L", "L Shape Reception Counter"],
+      ["كاونتر استقبال مزدوج", "Double Reception Counter"],
+      ["كاونتر استقبال إداري", "Administrative Reception Counter"],
+      ["كاونتر استقبال أبيض", "White Reception Counter"],
+      ["كاونتر استقبال أسود", "Black Reception Counter"],
+      ["كاونتر استقبال خشب ومعدن", "Wood and Metal Reception Counter"],
+      ["كاونتر استقبال احترافي", "Professional Reception Counter"],
     ],
   },
-
-  {
-    key: "working-stations",
-    ar: "خلايا العمل",
-    en: "Working Stations",
-    imageType: "office",
-    count: 10,
-    products: [
-      ["خلية عمل فردية", "Single Workstation"],
-      ["خلية عمل ثنائية", "Double Workstation"],
-      ["خلية عمل رباعية", "Four Person Workstation"],
-      ["خلية عمل سداسية", "Six Person Workstation"],
-      ["خلية عمل مودرن", "Modern Workstation"],
-      ["خلية عمل إدارية", "Executive Workstation"],
-      ["خلية عمل مفتوحة", "Open Workstation"],
-      ["خلية عمل مع فاصل", "Workstation With Divider"],
-      ["خلية عمل خشبية", "Wooden Workstation"],
-      ["خلية عمل احترافية", "Professional Workstation"],
-    ],
-  },
-
-  {
-    key: "reception-desks",
-    ar: "كاونتر استقبال",
-    en: "Reception Desks",
-    imageType: "reception",
-    count: 8,
-    products: [
-      ["كاونتر استقبال مودرن", "Modern Reception Desk"],
-      ["كاونتر استقبال خشبي", "Wooden Reception Desk"],
-      ["كاونتر استقبال كبير", "Large Reception Desk"],
-      ["كاونتر استقبال صغير", "Compact Reception Desk"],
-      ["كاونتر استقبال فاخر", "Premium Reception Desk"],
-      ["كاونتر استقبال مضيء", "LED Reception Desk"],
-      ["كاونتر استقبال إداري", "Executive Reception Desk"],
-      ["كاونتر استقبال حرف L", "L Shape Reception Desk"],
-    ],
-  },
-
   {
     key: "meeting-tables",
-    ar: "ترابيزات اجتماعات",
-    en: "Meeting Tables",
-    imageType: "meeting",
-    count: 8,
-    products: [
-      ["ترابيزة اجتماعات 6 أفراد", "6 Person Meeting Table"],
-      ["ترابيزة اجتماعات 8 أفراد", "8 Person Meeting Table"],
-      ["ترابيزة اجتماعات 10 أفراد", "10 Person Meeting Table"],
-      ["ترابيزة اجتماعات 12 فرد", "12 Person Meeting Table"],
+    names: [
+      ["ترابيزة اجتماعات كبيرة", "Large Meeting Table"],
       ["ترابيزة اجتماعات مودرن", "Modern Meeting Table"],
       ["ترابيزة اجتماعات خشبية", "Wooden Meeting Table"],
+      ["ترابيزة اجتماعات صغيرة", "Small Meeting Table"],
+      ["ترابيزة اجتماعات مستطيلة", "Rectangular Meeting Table"],
       ["ترابيزة اجتماعات بيضاوية", "Oval Meeting Table"],
-      ["ترابيزة اجتماعات فاخرة", "Premium Meeting Table"],
+      ["ترابيزة اجتماعات دائرية", "Round Meeting Table"],
+      ["ترابيزة اجتماعات تنفيذية", "Executive Meeting Table"],
+      ["ترابيزة اجتماعات للشركات", "Corporate Meeting Table"],
+      ["ترابيزة اجتماعات فاخرة", "Luxury Meeting Table"],
+      ["ترابيزة اجتماعات عملية", "Practical Meeting Table"],
+      ["ترابيزة اجتماعات مودرن كبيرة", "Large Modern Meeting Table"],
+      ["ترابيزة اجتماعات خشب طبيعي", "Natural Wood Meeting Table"],
+      ["ترابيزة اجتماعات احترافية", "Professional Meeting Table"],
     ],
   },
-
   {
-    key: "office-furniture-accessories",
-    ar: "إكسسوارات الأثاث المكتبي",
-    en: "Office Furniture Accessories",
-    imageType: "accessories",
-    count: 8,
-    products: [
-      ["وحدة أدراج مكتبية", "Office Drawer Unit"],
+    key: "office-accessories",
+    names: [
+      ["وحدة إكسسوارات مكتبية", "Office Accessories Unit"],
       ["وحدة تخزين مكتبية", "Office Storage Unit"],
-      ["رف مكتبي خشبي", "Wooden Office Shelf"],
-      ["حامل ملفات مكتبي", "Office File Holder"],
-      ["وحدة ملفات متحركة", "Mobile Filing Cabinet"],
+      ["وحدة أدراج مكتبية", "Office Drawer Unit"],
       ["دولاب ملفات مكتبي", "Office Filing Cabinet"],
-      ["طاولة جانبية مكتبية", "Office Side Table"],
-      ["وحدة تخزين جانبية", "Side Storage Cabinet"],
+      ["وحدة رفوف مكتبية", "Office Shelving Unit"],
+      ["حامل ملفات مكتبي", "Office File Holder"],
+      ["وحدة تنظيم المكتب", "Office Organizer Unit"],
+      ["دولاب جانبي مكتبي", "Office Side Cabinet"],
+      ["وحدة تخزين جانبية", "Side Storage Unit"],
+      ["حامل طابعة مكتبي", "Office Printer Stand"],
+      ["وحدة مستلزمات مكتبية", "Office Supplies Unit"],
+      ["دولاب مستندات", "Document Cabinet"],
+      ["وحدة تنظيم ملفات", "File Organization Unit"],
     ],
   },
-];
-
-const adjectives = [
-  ["مودرن", "Modern"],
-  ["احترافي", "Professional"],
-  ["فاخر", "Premium"],
-  ["عملي", "Practical"],
-  ["متطور", "Advanced"],
 ];
 
 const colors = [
   {
-    ar: "أسود",
-    en: "Black",
-    hex: "#111111",
+    name: { ar: "أسود", en: "Black" },
+    hex: "#181818",
   },
   {
-    ar: "أبيض",
-    en: "White",
-    hex: "#FFFFFF",
+    name: { ar: "بني", en: "Brown" },
+    hex: "#6B4532",
   },
   {
-    ar: "رمادي",
-    en: "Gray",
-    hex: "#808080",
+    name: { ar: "رمادي", en: "Gray" },
+    hex: "#777777",
   },
   {
-    ar: "بني",
-    en: "Brown",
-    hex: "#6B4423",
+    name: { ar: "أبيض", en: "White" },
+    hex: "#F5F5F5",
   },
   {
-    ar: "بيج",
-    en: "Beige",
-    hex: "#D8C3A5",
+    name: { ar: "بيج", en: "Beige" },
+    hex: "#C8B99A",
   },
 ];
 
-const brands = [
-  ["Touch Wood", "تاتش وود"],
-  ["Touch Wood Pro", "تاتش وود برو"],
-  ["Touch Wood Office", "تاتش وود أوفيس"],
-];
-
-function slugify(value) {
-  return value
-    .toLowerCase()
-    .replace(/[^\u0600-\u06FFa-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
-function getImage(type, index) {
-  const pool = imagePool[type] || imagePool.office;
-  return `${pool[index % pool.length]}?auto=format&fit=crop&w=1200&q=80`;
-}
-
-function createMedia(type, index, arName, enName) {
-  const url = getImage(type, index);
-
-  return [
+const specifications = {
+  "computer-desks": [
     {
-      type: "image",
-      url,
-      storageKey: "",
-      thumbnail: url,
-      alt: {
-        ar: arName,
-        en: enName,
-      },
-      sortOrder: 0,
-      isPrimary: true,
-    },
-  ];
-}
-
-function createSpecifications(categoryKey, index) {
-  const base = [
-    {
-      label: {
-        ar: "الخامة",
-        en: "Material",
-      },
+      label: { ar: "الخامة", en: "Material" },
       value: {
-        ar: index % 2 === 0 ? "خشب MDF ومعدن" : "خشب عالي الجودة",
-        en: index % 2 === 0 ? "MDF Wood And Metal" : "High Quality Wood",
+        ar: "خشب MDF عالي الجودة",
+        en: "High-quality MDF wood",
       },
     },
     {
-      label: {
-        ar: "اللون",
-        en: "Color",
-      },
+      label: { ar: "الاستخدام", en: "Usage" },
       value: {
-        ar: colors[index % colors.length].ar,
-        en: colors[index % colors.length].en,
+        ar: "المكاتب الإدارية",
+        en: "Administrative offices",
+      },
+    },
+  ],
+
+  chairs: [
+    {
+      label: { ar: "الخامة", en: "Material" },
+      value: {
+        ar: "خامات مكتبية عالية الجودة",
+        en: "High-quality office materials",
       },
     },
     {
-      label: {
-        ar: "الاستخدام",
-        en: "Usage",
-      },
+      label: { ar: "الاستخدام", en: "Usage" },
       value: {
-        ar: "مكاتب وشركات",
-        en: "Offices And Companies",
+        ar: "المكاتب والشركات",
+        en: "Offices and companies",
       },
     },
-  ];
+  ],
 
-  if (
-    categoryKey.includes("chair")
-  ) {
-    base.push({
-      label: {
-        ar: "الارتفاع",
-        en: "Height",
-      },
+  "office-sofas": [
+    {
+      label: { ar: "الخامة", en: "Material" },
       value: {
-        ar: "قابل للتعديل",
-        en: "Adjustable",
+        ar: "جلد صناعي عالي الجودة",
+        en: "High-quality artificial leather",
       },
-    });
-  }
-
-  return base;
-}
-
-function createProduct(category, productInfo, index, globalIndex) {
-  const [baseAr, baseEn] = productInfo;
-
-  const adjective = adjectives[globalIndex % adjectives.length];
-
-  const arName =
-    globalIndex % 3 === 0
-      ? `${baseAr} ${adjective[0]}`
-      : baseAr;
-
-  const enName =
-    globalIndex % 3 === 0
-      ? `${adjective[1]} ${baseEn}`
-      : baseEn;
-
-  const priceRanges = {
-    "computer-tables": [2500, 7500],
-    "mesh-chairs": [1800, 6500],
-    "leather-chairs": [2800, 8500],
-    "bar-chairs": [1400, 4200],
-    "laboratory-chairs": [1200, 3500],
-    "office-seating-sets": [6500, 18000],
-    "working-stations": [4500, 14000],
-    "reception-desks": [6500, 22000],
-    "meeting-tables": [5500, 18000],
-    "office-furniture-accessories": [900, 5500],
-  };
-
-  const [minPrice, maxPrice] =
-    priceRanges[category.key] || [1500, 7000];
-
-  const steps = Math.max(
-    1,
-    Math.floor((maxPrice - minPrice) / 12)
-  );
-
-  const price =
-    Math.round(
-      (minPrice + ((globalIndex * 7) % 12) * steps) / 50
-    ) * 50;
-
-  const oldPrice =
-    Math.round((price * (1.15 + (index % 4) * 0.05)) / 50) * 50;
-
-  const color = colors[globalIndex % colors.length];
-
-  const badgeIndex = globalIndex % 7;
-
-  let badge = {
-    ar: "",
-    en: "",
-  };
-
-  if (badgeIndex === 0) {
-    badge = {
-      ar: "الأكثر مبيعًا",
-      en: "Best Seller",
-    };
-  }
-
-  if (badgeIndex === 1) {
-    badge = {
-      ar: "جديد",
-      en: "New",
-    };
-  }
-
-  if (badgeIndex === 2) {
-    badge = {
-      ar: "عرض خاص",
-      en: "Special Offer",
-    };
-  }
-
-  const brand = brands[globalIndex % brands.length];
-
-  const slug = `${slugify(enName)}-${category.key}-${globalIndex + 1}`;
-
-  return {
-    name: {
-      ar: arName,
-      en: enName,
     },
-
-    description: {
-      ar: `${arName} من منتجات تاتش وود للأثاث المكتبي، تصميم عملي وأنيق مناسب للمكاتب والشركات ومساحات العمل الحديثة.`,
-      en: `${enName} from Touch Wood office furniture, featuring a practical and elegant design suitable for offices, companies and modern workspaces.`,
+    {
+      label: { ar: "الاستخدام", en: "Usage" },
+      value: {
+        ar: "الاستقبال والمكاتب",
+        en: "Reception areas and offices",
+      },
     },
+  ],
 
-    slug,
+  "work-cells": [
+    {
+      label: { ar: "التصميم", en: "Design" },
+      value: {
+        ar: "تصميم عملي للمساحات المكتبية",
+        en: "Practical office workspace design",
+      },
+    },
+    {
+      label: { ar: "الاستخدام", en: "Usage" },
+      value: {
+        ar: "الشركات والمكاتب",
+        en: "Companies and offices",
+      },
+    },
+  ],
 
-    category: category.key,
+  "reception-counters": [
+    {
+      label: { ar: "الخامة", en: "Material" },
+      value: {
+        ar: "خشب MDF",
+        en: "MDF wood",
+      },
+    },
+    {
+      label: { ar: "الاستخدام", en: "Usage" },
+      value: {
+        ar: "استقبال الشركات والعيادات",
+        en: "Corporate and clinic reception",
+      },
+    },
+  ],
 
-    price,
+  "meeting-tables": [
+    {
+      label: { ar: "الخامة", en: "Material" },
+      value: {
+        ar: "خشب MDF عالي الجودة",
+        en: "High-quality MDF wood",
+      },
+    },
+    {
+      label: { ar: "الاستخدام", en: "Usage" },
+      value: {
+        ar: "غرف الاجتماعات",
+        en: "Meeting rooms",
+      },
+    },
+  ],
 
-    oldPrice,
+  "office-accessories": [
+    {
+      label: { ar: "الخامة", en: "Material" },
+      value: {
+        ar: "خشب MDF",
+        en: "MDF wood",
+      },
+    },
+    {
+      label: { ar: "الاستخدام", en: "Usage" },
+      value: {
+        ar: "تنظيم المكتب",
+        en: "Office organization",
+      },
+    },
+  ],
+};
 
-    serialNumber: `TW-${String(globalIndex + 1).padStart(4, "0")}`,
+const createProducts = () => {
+  const products = [];
+  let productNumber = 1;
 
-    media: createMedia(
-      category.imageType,
-      globalIndex,
-      arName,
-      enName
-    ),
+  for (const category of categories) {
+    for (let i = 0; i < category.names.length; i++) {
+      const [nameAr, nameEn] = category.names[i];
 
-    colors: [
-      {
+      const color1 = colors[i % colors.length];
+      const color2 = colors[(i + 1) % colors.length];
+
+      const basePrice = {
+        "computer-desks": 8500,
+        chairs: 3200,
+        "office-sofas": 12000,
+        "work-cells": 7500,
+        "reception-counters": 9000,
+        "meeting-tables": 11000,
+        "office-accessories": 1800,
+      }[category.key];
+
+      const price = basePrice + (i % 5) * 750;
+      const oldPrice = price + 1000 + (i % 4) * 500;
+
+      const product = {
         name: {
-          ar: color.ar,
-          en: color.en,
+          ar: nameAr,
+          en: nameEn,
         },
-        hex: color.hex,
-        stock: 3 + (globalIndex % 15),
-        serialNumber: `TW-${String(globalIndex + 1).padStart(4, "0")}-C1`,
+
+        description: {
+          ar: `${nameAr} بتصميم عصري وجودة عالية، مناسب للمكاتب والشركات والمساحات الإدارية.`,
+          en: `${nameEn} with a modern design and high-quality construction, suitable for offices, companies, and administrative spaces.`,
+        },
+
+        slug: `${nameEn
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-|-$/g, "")}-tw-${String(productNumber).padStart(3, "0")}`,
+
+        category: category.key,
+
+        price,
+
+        oldPrice,
+
+        serialNumber: `TW-2026-${String(productNumber).padStart(3, "0")}`,
+
+        stock: 5 + (i % 6) * 5,
+
         media: [],
-      },
-    ],
 
-    stock: 5 + (globalIndex % 30),
+        colors: [
+          {
+            name: color1.name,
+            hex: color1.hex,
+            stock: 3 + (i % 5),
+            serialNumber: `TW-2026-${String(productNumber).padStart(
+              3,
+              "0"
+            )}-01`,
+            media: [],
+          },
+          {
+            name: color2.name,
+            hex: color2.hex,
+            stock: 2 + (i % 4),
+            serialNumber: `TW-2026-${String(productNumber).padStart(
+              3,
+              "0"
+            )}-02`,
+            media: [],
+          },
+        ],
 
-    specifications: createSpecifications(
-      category.key,
-      globalIndex
-    ),
+        specifications: specifications[category.key],
 
-    featured: globalIndex % 10 === 0,
+        featured: productNumber <= 20,
 
-    badge,
+        badge:
+          productNumber <= 10
+            ? {
+                ar: "الأكثر مبيعًا",
+                en: "Best Seller",
+              }
+            : productNumber <= 20
+            ? {
+                ar: "مميز",
+                en: "Featured",
+              }
+            : {
+                ar: "",
+                en: "",
+              },
 
-    rating: Number(
-      (3.8 + ((globalIndex * 7) % 12) / 10).toFixed(1)
-    ),
+        rating: Number((4.2 + (i % 8) * 0.1).toFixed(1)),
 
-    reviewsCount: globalIndex % 9 === 0
-      ? 0
-      : 3 + (globalIndex % 35),
+        reviewsCount: 5 + (i % 20),
 
-    active: true,
+        active: true,
+      };
 
-    brand: brand[0],
-  };
-}
+      products.push(product);
+      productNumber++;
+    }
+  }
 
-const products = [];
+  return products;
+};
 
-let globalIndex = 0;
-
-for (const category of categories) {
-  for (const productInfo of category.products) {
-    if (products.length >= 100) {
-      break;
+const seed = async () => {
+  try {
+    if (!process.env.MONGO_URI) {
+      throw new Error("MONGO_URI غير موجود في ملف .env");
     }
 
-    products.push(
-      createProduct(
-        category,
-        productInfo,
-        products.length,
-        globalIndex
-      )
-    );
+    const products = createProducts();
 
-    globalIndex++;
-  }
+    console.log(`Preparing ${products.length} products...`);
 
-  if (products.length >= 100) {
-    break;
-  }
-}
-
-async function seedProducts() {
-  try {
     await mongoose.connect(process.env.MONGO_URI);
 
-    console.log("MongoDB Connected");
+    console.log("MongoDB connected");
 
     await Product.deleteMany({});
 
-    console.log("Old products deleted.");
+    console.log("Old products deleted");
 
-    const createdProducts =
-      await Product.insertMany(products);
+    await Product.insertMany(products);
 
     console.log(
-      `${createdProducts.length} products inserted successfully.`
+      `Seed completed successfully: ${products.length} products inserted`
     );
 
-    const categoryStats = {};
+    console.log("\nCategory counts:");
 
-    for (const product of createdProducts) {
-      categoryStats[product.category] =
-        (categoryStats[product.category] || 0) + 1;
+    const categoryCounts = {};
+
+    for (const product of products) {
+      categoryCounts[product.category] =
+        (categoryCounts[product.category] || 0) + 1;
     }
 
-    console.log("\nProducts by category:");
+    Object.entries(categoryCounts).forEach(([category, count]) => {
+      console.log(`- ${category}: ${count} product(s)`);
+    });
 
-    console.table(categoryStats);
+    await mongoose.connection.close();
 
-    process.exit(0);
+    console.log("\nMongoDB connection closed");
   } catch (error) {
     console.error("Seed failed:", error);
 
+    try {
+      await mongoose.connection.close();
+    } catch {}
+
     process.exit(1);
   }
-}
+};
 
-seedProducts();
+seed();
+
