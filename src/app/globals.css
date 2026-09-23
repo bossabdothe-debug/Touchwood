@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Alexandria:wght@300;400;500;600;700;800&display=swap');
+
 :root {
   --primary: #238a37;
   --primary-dark: #1c702d;
@@ -44,7 +46,8 @@ html[dir="ltr"] {
   direction: ltr;
 }
 
-body {
+body {  font-family: 'Alexandria', sans-serif;
+
   min-height: 100vh;
   background: var(--background);
   color: var(--text-primary);

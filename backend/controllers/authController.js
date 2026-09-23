@@ -38,19 +38,19 @@ const isValidUserId = (userId) => {
 export const register = async (req, res) => {
   try {
     const name = sanitizeString(req.body.name);
-    const email = sanitizeString(req.body.email);
+    const email = sanitizeString(req.body.email).toLocaleLowerCase();
     const password =
       typeof req.body.password === "string"
         ? req.body.password
         : "";
     const phone = sanitizeString(req.body.phone);
-
+const passpass = password.toLocaleLowerCase()
     if (!name || !email || !password || !phone) {
       return res.status(400).json({
         message: "All fields are required",
       });
     }
-if (email === password ) {
+if (email === passpass ) {
       return res.status(400).json({
         message: "Email and password match",
       });

@@ -3,16 +3,22 @@
 import {
   ChangeEvent,
   FormEvent,
+  ReactNode,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
+
 import {
+  Check,
+  ChevronDown,
   Edit3,
   ImagePlus,
   Loader2,
   Package,
   Plus,
+  Search,
   Trash2,
   X,
 } from "lucide-react";
@@ -25,6 +31,8 @@ import {
   updateProduct,
   uploadImageToR2,
 } from "@/services/api";
+
+import "./products.css";
 
 type Localized = {
   ar: string;
@@ -45,7 +53,7 @@ type ProductColor = {
   name: Localized;
   hex: string;
   stock: number;
-  serialNumber: string;
+  serialNumber?: string;
   media: Media[];
 };
 
@@ -64,6 +72,14 @@ type Product = {
   active: boolean;
   featured: boolean;
 };
+
+type StockFilter =
+  | "all"
+  | "available"
+  | "low"
+  | "out";
+
+const LOW_STOCK_THRESHOLD = 5;
 
 const categories = [
   ["computer-desks", "مكاتب وطاولات كمبيوتر"],
@@ -95,15 +111,56 @@ const emptyForm = () => ({
 
 const emptyColor = (): ProductColor => ({
   name: emptyLocalized(),
-  hex: "#000000",
+  hex: "#405D3A",
   stock: 0,
   serialNumber: "",
   media: [],
 });
 
+function getCategoryLabel(category: string) {
+  return (
+    categories.find(([value]) => value === category)?.[1] ||
+    category ||
+    "غير مصنف"
+  );
+}
+
+function getStockStatus(stock: number) {
+  if (stock <= 0) {
+    return {
+      label: "نفد المخزون",
+      className: "stock-badge stock-out",
+    };
+  }
+
+  if (stock <= LOW_STOCK_THRESHOLD) {
+    return {
+      label: "على وشك النفاد",
+      className: "stock-badge stock-low",
+    };
+  }
+
+  return {
+    label: "متوفر",
+    className: "stock-badge stock-good",
+  };
+}
+
+function generateSlug(value: string) {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
+
   const [form, setForm] = useState(emptyForm());
+
   const [editingProduct, setEditingProduct] =
     useState<Product | null>(null);
 
@@ -113,53 +170,238 @@ export default function ProductsPage() {
   const [galleryImages, setGalleryImages] =
     useState<Media[]>([]);
 
-  const [colors, setColors] = useState<ProductColor[]>([]);
+  const [colors, setColors] =
+    useState<ProductColor[]>([]);
+
   const [search, setSearch] = useState("");
-  const [showForm, setShowForm] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  const [message, setMessage] = useState("");
+  const [categoryFilter, setCategoryFilter] =
+    useState("all");
+
+  const [stockFilter, setStockFilter] =
+    useState<StockFilter>("all");
+
+  const [showForm, setShowForm] =
+    useState(false);
+
+  const [deleteTarget, setDeleteTarget] =
+    useState<Product | null>(null);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [saving, setSaving] =
+    useState(false);
+
+  const [uploading, setUploading] =
+    useState(false);
+
+  const [deleting, setDeleting] =
+    useState(false);
+
+  /*
+   * الرسالة العامة:
+   * تستخدم للنجاح والحذف والعمليات خارج الفورم.
+   */
+  const [message, setMessage] =
+    useState("");
+
+  const [messageType, setMessageType] =
+    useState<"error" | "success">("error");
+
+  /*
+   * رسالة خطأ خاصة بفورم المنتج.
+   *
+   * هذه الرسالة تظهر داخل الـ Modal
+   * مباشرة أسفل عنوان الفورم.
+   */
+  const [formError, setFormError] =
+    useState("");
+
+  /*
+   * مرجع لجسم الـ Modal.
+   *
+   * نستخدمه لإرجاع الـ scroll إلى الأعلى
+   * عندما يظهر خطأ أثناء الحفظ.
+   */
+  const modalBodyRef =
+    useRef<HTMLDivElement | null>(null);
+
+  /*
+   * إجمالي مخزون جميع الألوان
+   */
+  const colorsStockTotal = useMemo(() => {
+    return colors.reduce(
+      (total, color) =>
+        total + (Number(color.stock) || 0),
+      0
+    );
+  }, [colors]);
+
+  useEffect(() => {
+    loadProducts();
+  }, []);
+
+  useEffect(() => {
+    if (showForm || deleteTarget) {
+      document.body.classList.add(
+        "products-modal-open"
+      );
+    } else {
+      document.body.classList.remove(
+        "products-modal-open"
+      );
+    }
+
+    return () => {
+      document.body.classList.remove(
+        "products-modal-open"
+      );
+    };
+  }, [showForm, deleteTarget]);
+
+  /*
+   * عند وجود ألوان:
+   * نحسب المخزون تلقائيًا ونضعه في form.stock.
+   */
+  useEffect(() => {
+    if (colors.length === 0) {
+      return;
+    }
+
+    setForm((current) => {
+      const newStock =
+        String(colorsStockTotal);
+
+      if (current.stock === newStock) {
+        return current;
+      }
+
+      return {
+        ...current,
+        stock: newStock,
+      };
+    });
+  }, [colorsStockTotal, colors.length]);
+
+  /*
+   * عند ظهور خطأ داخل الفورم:
+   * نرجع الـ Modal إلى أعلى الصفحة الداخلية
+   * حتى تكون الرسالة ظاهرة للمستخدم.
+   */
+  useEffect(() => {
+    if (!formError) {
+      return;
+    }
+
+    requestAnimationFrame(() => {
+      modalBodyRef.current?.scrollTo({
+        top: 0,
+        behavior: "smooth",
+      });
+    });
+  }, [formError]);
 
   const loadProducts = async () => {
     try {
       setLoading(true);
+
       const data = await getProducts();
 
-      setProducts(Array.isArray(data) ? data : []);
+      setProducts(
+        Array.isArray(data) ? data : []
+      );
     } catch (error) {
-      setMessage(
+      showMessage(
         error instanceof Error
           ? error.message
-          : "تعذر تحميل المنتجات"
+          : "تعذر تحميل المنتجات",
+        "error"
       );
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    loadProducts();
-  }, []);
+  /*
+   * عرض الرسائل العامة.
+   *
+   * إذا كان الخطأ متعلقًا بالفورم،
+   * يتم وضع نسخة منه داخل الفورم أيضًا.
+   */
+  const showMessage = (
+    text: string,
+    type: "error" | "success" = "error"
+  ) => {
+    setMessage(text);
+    setMessageType(type);
+
+    if (type === "error") {
+      setFormError(text);
+    }
+  };
+
+  /*
+   * عرض خطأ داخل فورم المنتج فقط.
+   */
+  const showFormError = (
+    text: string
+  ) => {
+    setFormError(text);
+
+    setMessage("");
+  };
+
+  const clearFormError = () => {
+    setFormError("");
+  };
 
   const filteredProducts = useMemo(() => {
-    const value = search.trim().toLowerCase();
+    const value =
+      search.trim().toLowerCase();
 
-    if (!value) {
-      return products;
-    }
+    return products.filter((product) => {
+      const matchesSearch =
+        !value ||
+        [
+          product.name?.ar,
+          product.name?.en,
+          product.slug,
+          product.serialNumber,
+        ].some((item) =>
+          item
+            ?.toLowerCase()
+            .includes(value)
+        );
 
-    return products.filter((product) =>
-      [
-        product.name?.ar,
-        product.name?.en,
-        product.slug,
-        product.serialNumber,
-      ].some((item) =>
-        item?.toLowerCase().includes(value)
-      )
-    );
-  }, [products, search]);
+      const matchesCategory =
+        categoryFilter === "all" ||
+        product.category ===
+          categoryFilter;
+
+      const matchesStock =
+        stockFilter === "all" ||
+        (stockFilter === "out" &&
+          product.stock <= 0) ||
+        (stockFilter === "low" &&
+          product.stock > 0 &&
+          product.stock <=
+            LOW_STOCK_THRESHOLD) ||
+        (stockFilter === "available" &&
+          product.stock >
+            LOW_STOCK_THRESHOLD);
+
+      return (
+        matchesSearch &&
+        matchesCategory &&
+        matchesStock
+      );
+    });
+  }, [
+    products,
+    search,
+    categoryFilter,
+    stockFilter,
+  ]);
 
   const openCreateForm = () => {
     setEditingProduct(null);
@@ -167,46 +409,85 @@ export default function ProductsPage() {
     setPrimaryImage(null);
     setGalleryImages([]);
     setColors([]);
+
     setMessage("");
+    setFormError("");
+
     setShowForm(true);
   };
 
-  const openEditForm = (product: Product) => {
+  const openEditForm = (
+    product: Product
+  ) => {
     const mainImage =
       product.media?.find(
         (item) => item.isPrimary
-      ) || product.media?.[0];
+      ) ||
+      product.media?.[0];
 
     setEditingProduct(product);
 
     setForm({
-      name: product.name || emptyLocalized(),
+      name:
+        product.name ||
+        emptyLocalized(),
+
       description:
-        product.description || emptyLocalized(),
+        product.description ||
+        emptyLocalized(),
+
       slug: product.slug || "",
-      category: product.category || "",
-      price: String(product.price || ""),
+
+      category:
+        product.category || "",
+
+      price:
+        product.price !== undefined &&
+        product.price !== null
+          ? String(product.price)
+          : "",
+
       oldPrice:
         product.oldPrice === null ||
         product.oldPrice === undefined
           ? ""
           : String(product.oldPrice),
-      serialNumber: product.serialNumber || "",
-      stock: String(product.stock || 0),
-      featured: Boolean(product.featured),
-      active: product.active !== false,
+
+      serialNumber:
+        product.serialNumber || "",
+
+      stock:
+        product.stock !== undefined &&
+        product.stock !== null
+          ? String(product.stock)
+          : "0",
+
+      featured:
+        Boolean(product.featured),
+
+      active:
+        product.active !== false,
     });
 
-    setPrimaryImage(mainImage || null);
+    setPrimaryImage(
+      mainImage || null
+    );
 
     setGalleryImages(
       (product.media || []).filter(
-        (item) => item.storageKey !== mainImage?.storageKey
+        (item) =>
+          item.storageKey !==
+          mainImage?.storageKey
       )
     );
 
-    setColors(product.colors || []);
+    setColors(
+      product.colors || []
+    );
+
     setMessage("");
+    setFormError("");
+
     setShowForm(true);
   };
 
@@ -214,7 +495,8 @@ export default function ProductsPage() {
     file: File,
     isPrimary: boolean
   ) => {
-    const token = localStorage.getItem("token");
+    const token =
+      localStorage.getItem("token");
 
     if (!token) {
       throw new Error(
@@ -222,24 +504,42 @@ export default function ProductsPage() {
       );
     }
 
-    if (!file.type.startsWith("image/")) {
-      throw new Error("يمكن رفع الصور فقط");
+    if (
+      !file.type.startsWith("image/")
+    ) {
+      throw new Error(
+        "يمكن رفع الصور فقط"
+      );
     }
 
-    const upload = await createUploadUrl(
-      token,
-      file.name,
-      file.type,
-      "products/gallery"
-    );
+    const MAX_FILE_SIZE =
+      10 * 1024 * 1024;
 
-    await uploadImageToR2(upload.uploadUrl, file);
+    if (file.size > MAX_FILE_SIZE) {
+      throw new Error(
+        "حجم الصورة يجب ألا يتجاوز 10MB"
+      );
+    }
+
+    const upload =
+      await createUploadUrl(
+        token,
+        file.name,
+        file.type,
+        "products/gallery"
+      );
+
+    await uploadImageToR2(
+      upload.uploadUrl,
+      file
+    );
 
     return {
       type: "image" as const,
       url: upload.publicUrl,
       storageKey: upload.key,
-      thumbnail: upload.publicUrl,
+      thumbnail:
+        upload.publicUrl,
       alt: {
         ar: form.name.ar,
         en: form.name.en,
@@ -251,9 +551,13 @@ export default function ProductsPage() {
 
   const handleImageUpload = async (
     event: ChangeEvent<HTMLInputElement>,
-    target: "primary" | "gallery"
+    target:
+      | "primary"
+      | "gallery"
   ) => {
-    const files = Array.from(event.target.files || []);
+    const files = Array.from(
+      event.target.files || []
+    );
 
     if (!files.length) {
       return;
@@ -261,9 +565,10 @@ export default function ProductsPage() {
 
     try {
       setUploading(true);
-      setMessage("");
+      clearFormError();
 
-      const uploadedImages: Media[] = [];
+      const uploadedImages: Media[] =
+        [];
 
       for (const file of files) {
         uploadedImages.push(
@@ -275,22 +580,37 @@ export default function ProductsPage() {
       }
 
       if (target === "primary") {
-        setPrimaryImage(uploadedImages[0]);
+        setPrimaryImage(
+          uploadedImages[0]
+        );
 
-        if (uploadedImages.length > 1) {
-          setGalleryImages((current) => [
-            ...current,
-            ...uploadedImages.slice(1),
-          ]);
+        if (
+          uploadedImages.length > 1
+        ) {
+          setGalleryImages(
+            (current) => [
+              ...current,
+              ...uploadedImages.slice(
+                1
+              ),
+            ]
+          );
         }
       } else {
-        setGalleryImages((current) => [
-          ...current,
-          ...uploadedImages,
-        ]);
+        setGalleryImages(
+          (current) => [
+            ...current,
+            ...uploadedImages,
+          ]
+        );
       }
+
+      showMessage(
+        "تم رفع الصورة بنجاح",
+        "success"
+      );
     } catch (error) {
-      setMessage(
+      showFormError(
         error instanceof Error
           ? error.message
           : "تعذر رفع الصورة"
@@ -306,25 +626,143 @@ export default function ProductsPage() {
   ) => {
     event.preventDefault();
 
-    const token = localStorage.getItem("token");
+    /*
+     * إزالة الخطأ السابق بمجرد محاولة الحفظ
+     */
+    clearFormError();
+
+    const token =
+      localStorage.getItem("token");
 
     if (!token) {
-      setMessage(
+      showFormError(
         "يرجى تسجيل الدخول كمسؤول أولًا"
       );
       return;
     }
 
+    /*
+     * التحقق من الحقول الأساسية
+     */
     if (
       !form.name.ar.trim() ||
+      !form.name.en.trim() ||
       !form.description.ar.trim() ||
-      !form.slug.trim() ||
+      !form.description.en.trim() ||
       !form.category ||
+      !form.serialNumber.trim() ||
       !form.price ||
       !primaryImage
     ) {
-      setMessage(
-        "أكمل الحقول المطلوبة وأضف الصورة الرئيسية"
+      showFormError(
+        "يرجى إكمال جميع الحقول المطلوبة وإضافة الصورة الرئيسية"
+      );
+      return;
+    }
+
+    /*
+     * المخزون الذي أدخله المستخدم
+     */
+    const enteredStock =
+      Number(form.stock);
+
+    /*
+     * التأكد أن قيمة المخزون رقم صحيح
+     */
+    if (
+      !Number.isFinite(
+        enteredStock
+      ) ||
+      enteredStock < 0 ||
+      !Number.isInteger(
+        enteredStock
+      )
+    ) {
+      showFormError(
+        "قيمة المخزون يجب أن تكون رقمًا صحيحًا أكبر من أو يساوي صفر"
+      );
+      return;
+    }
+
+    /*
+     * إذا كان هناك ألوان:
+     *
+     * مخزون المنتج =
+     * مجموع مخزون جميع الألوان
+     */
+    if (colors.length > 0) {
+      const calculatedStock =
+        colors.reduce(
+          (total, color) =>
+            total +
+            (Number(color.stock) || 0),
+          0
+        );
+
+      if (
+        enteredStock !==
+        calculatedStock
+      ) {
+        showFormError(
+          `مخزون المنتج يجب أن يساوي مجموع مخزون الألوان. مجموع الألوان = ${calculatedStock} وحدة، بينما المخزون المدخل = ${enteredStock} وحدة.`
+        );
+
+        return;
+      }
+    }
+
+    /*
+     * التأكد من أن كل لون لديه اسم
+     */
+    if (colors.length > 0) {
+      const invalidColor =
+        colors.some(
+          (color) =>
+            !color.name.ar.trim() ||
+            !color.name.en.trim()
+        );
+
+      if (invalidColor) {
+        showFormError(
+          "يرجى إدخال اسم اللون بالعربية والإنجليزية لكل الألوان"
+        );
+        return;
+      }
+    }
+
+    /*
+     * التأكد أن مخزون كل لون صحيح
+     */
+    if (colors.length > 0) {
+      const invalidColorStock =
+        colors.some(
+          (color) =>
+            !Number.isFinite(
+              Number(color.stock)
+            ) ||
+            Number(color.stock) < 0 ||
+            !Number.isInteger(
+              Number(color.stock)
+            )
+        );
+
+      if (invalidColorStock) {
+        showFormError(
+          "مخزون كل لون يجب أن يكون رقمًا صحيحًا أكبر من أو يساوي صفر"
+        );
+        return;
+      }
+    }
+
+    const generatedSlug =
+      form.slug.trim() ||
+      generateSlug(
+        `${form.name.en} ${form.serialNumber}`
+      );
+
+    if (!generatedSlug) {
+      showFormError(
+        "تعذر إنشاء رابط المنتج"
       );
       return;
     }
@@ -337,36 +775,72 @@ export default function ProductsPage() {
       isPrimary: index === 0,
       sortOrder: index,
       alt: {
-        ar: image.alt?.ar || form.name.ar,
-        en: image.alt?.en || form.name.en,
+        ar:
+          image.alt?.ar ||
+          form.name.ar,
+
+        en:
+          image.alt?.en ||
+          form.name.en,
       },
     }));
 
     const productData = {
       name: form.name,
-      description: form.description,
-      slug: form.slug.trim().toLowerCase(),
-      category: form.category,
-      price: Number(form.price),
-      oldPrice: form.oldPrice
-        ? Number(form.oldPrice)
-        : null,
-      serialNumber: form.serialNumber.trim(),
-      stock: Number(form.stock) || 0,
-      featured: form.featured,
-      active: form.active,
+
+      description:
+        form.description,
+
+      slug: generatedSlug,
+
+      category:
+        form.category,
+
+      price:
+        Number(form.price),
+
+      oldPrice:
+        form.oldPrice
+          ? Number(
+              form.oldPrice
+            )
+          : null,
+
+      serialNumber:
+        form.serialNumber.trim(),
+
+      stock:
+        enteredStock,
+
+      featured:
+        form.featured,
+
+      active:
+        form.active,
+
       media,
-      colors: colors.map((color) => ({
-        ...color,
-        stock: Number(color.stock) || 0,
-        serialNumber: color.serialNumber.trim(),
-      })),
+
+      colors: colors.map(
+        (color) => ({
+          ...color,
+
+          stock:
+            Number(
+              color.stock
+            ) || 0,
+
+          serialNumber:
+            color.serialNumber?.trim() ||
+            "",
+        })
+      ),
+
       specifications: [],
     };
 
     try {
       setSaving(true);
-      setMessage("");
+      clearFormError();
 
       if (editingProduct) {
         await updateProduct(
@@ -374,14 +848,37 @@ export default function ProductsPage() {
           editingProduct._id,
           productData
         );
+
+        setFormError("");
+
+        showMessage(
+          "تم تحديث المنتج بنجاح",
+          "success"
+        );
       } else {
-        await createProduct(token, productData);
+        await createProduct(
+          token,
+          productData
+        );
+
+        setFormError("");
+
+        showMessage(
+          "تمت إضافة المنتج بنجاح",
+          "success"
+        );
       }
 
       setShowForm(false);
+
       await loadProducts();
     } catch (error) {
-      setMessage(
+      /*
+       * مهم:
+       * خطأ الـ API يظهر داخل نافذة الفورم
+       * بدل أن يختفي خلف الـ Modal.
+       */
+      showFormError(
         error instanceof Error
           ? error.message
           : "تعذر حفظ المنتج"
@@ -391,684 +888,1729 @@ export default function ProductsPage() {
     }
   };
 
-  const handleDelete = async (product: Product) => {
-    const token = localStorage.getItem("token");
+  const handleDelete = async () => {
+    if (!deleteTarget) {
+      return;
+    }
+
+    const token =
+      localStorage.getItem("token");
 
     if (!token) {
-      setMessage(
+      showMessage(
         "يرجى تسجيل الدخول كمسؤول أولًا"
       );
       return;
     }
 
-    if (
-      !window.confirm(
-        `هل تريد حذف المنتج: ${product.name.ar}؟`
-      )
-    ) {
-      return;
-    }
-
     try {
-      await deleteProduct(token, product._id);
+      setDeleting(true);
 
-      setProducts((current) =>
-        current.filter(
-          (item) => item._id !== product._id
-        )
+      await deleteProduct(
+        token,
+        deleteTarget._id
+      );
+
+      setProducts(
+        (current) =>
+          current.filter(
+            (item) =>
+              item._id !==
+              deleteTarget._id
+          )
+      );
+
+      setDeleteTarget(null);
+
+      showMessage(
+        "تم حذف المنتج بنجاح",
+        "success"
       );
     } catch (error) {
-      setMessage(
+      showMessage(
         error instanceof Error
           ? error.message
-          : "تعذر حذف المنتج"
+          : "تعذر حذف المنتج",
+        "error"
       );
+    } finally {
+      setDeleting(false);
     }
+  };
+
+  const updateColor = (
+    index: number,
+    changes: Partial<ProductColor>
+  ) => {
+    clearFormError();
+
+    setColors(
+      (current) =>
+        current.map(
+          (color, colorIndex) =>
+            colorIndex === index
+              ? {
+                  ...color,
+                  ...changes,
+                }
+              : color
+        )
+    );
   };
 
   if (loading) {
     return (
-      <main style={ui.loading}>
-        <Loader2 size={28} className="spin" />
-        جاري تحميل المنتجات...
+      <main
+        className="products-loading"
+        dir="rtl"
+      >
+        <Loader2
+          size={30}
+          className="products-spin"
+        />
+
+        <span>
+          جاري تحميل المنتجات...
+        </span>
       </main>
     );
   }
 
   return (
-    <main style={ui.page} dir="rtl">
-      <style>{`
-        .spin { animation: spin .8s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        input, textarea, select { font: inherit; }
-      `}</style>
+    <main
+      className="products-page"
+      dir="rtl"
+    >
+      <div className="products-container">
 
-      <header style={ui.header}>
-        <div>
-          <span style={ui.eyebrow}>
-            لوحة التحكم
-          </span>
+        {/* Header */}
 
-          <h1 style={ui.title}>إدارة المنتجات</h1>
+        <header className="products-header">
+          <div>
+            <span className="products-eyebrow">
+              لوحة التحكم
+            </span>
 
-          <p style={ui.subtitle}>
-            إضافة وتعديل وحذف المنتجات، الصور،
-            والألوان.
-          </p>
-        </div>
-
-        <button
-          style={ui.primaryButton}
-          onClick={openCreateForm}
-        >
-          <Plus size={18} />
-          إضافة منتج
-        </button>
-      </header>
-
-      {message && (
-        <div style={ui.message}>
-          <span>{message}</span>
+            <h1>
+              إدارة المنتجات
+            </h1>
+<br />
+            <p>
+              إدارة المنتجات والصور
+              والألوان والمخزون من
+              مكان واحد.
+            </p>
+          </div>
 
           <button
-            style={ui.iconButton}
-            onClick={() => setMessage("")}
+            className="products-primary-button"
+            onClick={
+              openCreateForm
+            }
           >
-            <X size={18} />
+            <Plus size={19} />
+
+            إضافة منتج
           </button>
-        </div>
-      )}
+        </header>
 
-      <input
-        style={ui.search}
-        value={search}
-        onChange={(event) =>
-          setSearch(event.target.value)
-        }
-        placeholder="ابحث باسم المنتج أو السيريال أو Slug"
-      />
+        {/* Global Message */}
 
-      <section style={ui.cards}>
-        {filteredProducts.map((product) => {
-          const image =
-            product.media?.find(
-              (item) => item.isPrimary
-            ) || product.media?.[0];
+        {message && (
+          <div
+            className={`products-message ${
+              messageType ===
+              "success"
+                ? "message-success"
+                : "message-error"
+            }`}
+          >
+            <div>
+              {messageType ===
+              "success" ? (
+                <Check size={18} />
+              ) : (
+                <X size={18} />
+              )}
 
-          return (
-            <article
-              key={product._id}
-              style={ui.card}
+              <span>
+                {message}
+              </span>
+            </div>
+
+            <button
+              onClick={() =>
+                setMessage("")
+              }
+              aria-label="إغلاق"
             >
-              <div style={ui.imageBox}>
-                {image ? (
-                  <img
-                    src={image.url}
-                    alt={product.name.ar}
-                    style={ui.coverImage}
-                  />
-                ) : (
-                  <Package size={34} />
+              <X size={17} />
+            </button>
+          </div>
+        )}
+
+        {/* Filters */}
+
+        <section className="products-toolbar">
+
+          <div className="products-search">
+            <Search size={19} />
+
+            <input
+              value={search}
+              onChange={(event) =>
+                setSearch(
+                  event.target.value
+                )
+              }
+              placeholder="ابحث باسم المنتج أو الموديل..."
+            />
+
+            {search && (
+              <button
+                onClick={() =>
+                  setSearch("")
+                }
+              >
+                <X size={16} />
+              </button>
+            )}
+          </div>
+
+          <div className="products-filter">
+            <span>
+              التصنيف
+            </span>
+
+            <div className="products-select-wrap">
+              <select
+                value={
+                  categoryFilter
+                }
+                onChange={(event) =>
+                  setCategoryFilter(
+                    event.target.value
+                  )
+                }
+              >
+                <option value="all">
+                  جميع التصنيفات
+                </option>
+
+                {categories.map(
+                  ([value, label]) => (
+                    <option
+                      key={value}
+                      value={value}
+                    >
+                      {label}
+                    </option>
+                  )
                 )}
-              </div>
+              </select>
 
-              <div style={ui.cardContent}>
-                <small style={ui.category}>
-                  {product.category}
-                </small>
+              <ChevronDown
+                size={16}
+              />
+            </div>
+          </div>
 
-                <h2 style={ui.productTitle}>
-                  {product.name.ar ||
-                    product.name.en}
-                </h2>
+          <div className="products-filter">
+            <span>
+              حالة المخزون
+            </span>
 
-                <strong style={ui.price}>
-                  {product.price.toLocaleString("ar-EG")} ج.م
-                </strong>
+            <div className="products-select-wrap">
+              <select
+                value={
+                  stockFilter
+                }
+                onChange={(event) =>
+                  setStockFilter(
+                    event.target
+                      .value as StockFilter
+                  )
+                }
+              >
+                <option value="all">
+                  كل المنتجات
+                </option>
 
-                <p style={ui.serial}>
-                  Serial:{" "}
-                  {product.serialNumber || "—"}
-                </p>
+                <option value="available">
+                  متوفر
+                </option>
 
-                <div style={ui.actions}>
-                  <button
-                    style={ui.editButton}
-                    onClick={() =>
-                      openEditForm(product)
+                <option value="low">
+                  على وشك النفاد
+                </option>
+
+                <option value="out">
+                  نفد المخزون
+                </option>
+              </select>
+
+              <ChevronDown
+                size={16}
+              />
+            </div>
+          </div>
+
+          <div className="products-count">
+            <strong>
+              {
+                filteredProducts.length
+              }
+            </strong>
+
+            <span>
+              منتج
+            </span>
+          </div>
+        </section>
+
+        {/* Product Cards */}
+
+        {filteredProducts.length ? (
+          <section className="products-grid">
+            {filteredProducts.map(
+              (product) => {
+                const image =
+                  product.media?.find(
+                    (item) =>
+                      item.isPrimary
+                  ) ||
+                  product.media?.[0];
+
+                const stockStatus =
+                  getStockStatus(
+                    Number(
+                      product.stock
+                    ) || 0
+                  );
+
+                return (
+                  <article
+                    className="product-card"
+                    key={
+                      product._id
                     }
                   >
-                    <Edit3 size={16} />
-                    تعديل
-                  </button>
+                    <div className="product-card-image">
+                      {image ? (
+                        <img
+                          src={
+                            image.url
+                          }
+                          alt={
+                            product
+                              .name
+                              ?.ar ||
+                            product
+                              .name
+                              ?.en ||
+                            "Product"
+                          }
+                        />
+                      ) : (
+                        <div className="product-no-image">
+                          <Package
+                            size={48}
+                          />
 
-                  <button
-                    style={ui.deleteButton}
-                    onClick={() =>
-                      handleDelete(product)
-                    }
-                  >
-                    <Trash2 size={16} />
-                    حذف
-                  </button>
-                </div>
-              </div>
-            </article>
-          );
-        })}
-      </section>
+                          <span>
+                            لا توجد صورة
+                          </span>
+                        </div>
+                      )}
 
-      {!filteredProducts.length && (
-        <div style={ui.empty}>
-          <Package size={42} />
-          <p>لا توجد منتجات حاليًا</p>
-        </div>
-      )}
+                      <div className="product-card-category">
+                        {
+                          getCategoryLabel(
+                            product.category
+                          )
+                        }
+                      </div>
+
+                      {!product.active && (
+                        <div className="product-inactive">
+                          غير نشط
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="product-card-body">
+
+                      <div className="product-card-heading">
+                        <div>
+                          <h2>
+                            {
+                              product
+                                .name
+                                ?.ar ||
+                              product
+                                .name
+                                ?.en ||
+                              "بدون اسم"
+                            }
+                          </h2>
+
+                          {product
+                            .name
+                            ?.en && (
+                            <p dir="ltr">
+                              {
+                                product
+                                  .name
+                                  .en
+                              }
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="product-model">
+                        <span>
+                          الموديل
+                        </span>
+
+                        <strong dir="ltr">
+                          {
+                            product
+                              .serialNumber ||
+                            "—"
+                          }
+                        </strong>
+                      </div>
+
+                      <div className="product-card-info">
+
+                        <div className="product-info-item">
+                          <span>
+                            السعر
+                          </span>
+
+                          <strong>
+                            {Number(
+                              product.price ||
+                                0
+                            ).toLocaleString(
+                              "ar-EG"
+                            )}{" "}
+                            ج.م
+                          </strong>
+                        </div>
+
+                        <div className="product-info-item">
+                          <span>
+                            المخزون
+                          </span>
+
+                          <strong>
+                            {
+                              product.stock
+                            }
+                          </strong>
+                        </div>
+
+                      </div>
+
+                      <div className="product-stock-row">
+                        <span
+                          className={
+                            stockStatus.className
+                          }
+                        >
+                          <span className="stock-dot" />
+
+                          {
+                            stockStatus.label
+                          }
+                        </span>
+
+                        <span className="product-stock-number">
+                          {
+                            product.stock
+                          }{" "}
+                          وحدة
+                        </span>
+                      </div>
+
+                      <div className="product-card-actions">
+
+                        <button
+                          className="product-edit-button"
+                          onClick={() =>
+                            openEditForm(
+                              product
+                            )
+                          }
+                        >
+                          <Edit3
+                            size={17}
+                          />
+
+                          تعديل
+                        </button>
+
+                        <button
+                          className="product-delete-button"
+                          onClick={() =>
+                            setDeleteTarget(
+                              product
+                            )
+                          }
+                        >
+                          <Trash2
+                            size={17}
+                          />
+
+                          حذف
+                        </button>
+
+                      </div>
+                    </div>
+                  </article>
+                );
+              }
+            )}
+          </section>
+        ) : (
+          <div className="products-empty">
+            <Package
+              size={55}
+            />
+
+            <h3>
+              لا توجد منتجات
+            </h3>
+
+            <p>
+              لم نجد منتجات تطابق
+              معايير البحث الحالية.
+            </p>
+
+            <button
+              onClick={() => {
+                setSearch("");
+                setCategoryFilter(
+                  "all"
+                );
+                setStockFilter(
+                  "all"
+                );
+              }}
+            >
+              إعادة ضبط التصفية
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Product Form Modal */}
 
       {showForm && (
-        <div style={ui.overlay}>
+        <div className="product-modal-layer">
+
+          <div
+            className="product-modal-backdrop"
+            onClick={() => {
+              if (
+                !saving &&
+                !uploading
+              ) {
+                setShowForm(false);
+              }
+            }}
+          />
+
           <form
-            style={ui.modal}
-            onSubmit={handleSubmit}
+            className="product-modal"
+            onSubmit={
+              handleSubmit
+            }
           >
-            <header style={ui.modalHeader}>
+            <header className="product-modal-header">
+
               <div>
-                <h2 style={{ margin: 0 }}>
+                <span>
+                  إدارة المنتجات
+                </span>
+
+                <h2>
                   {editingProduct
                     ? "تعديل المنتج"
                     : "إضافة منتج جديد"}
                 </h2>
 
-                <p style={ui.modalSub}>
-                  الحقول التي تحتوي على * مطلوبة
+                <p>
+                  أدخل بيانات المنتج
+                  والصور والمخزون
+                  والألوان.
                 </p>
               </div>
 
               <button
                 type="button"
-                style={ui.iconButton}
-                onClick={() => setShowForm(false)}
+                className="product-modal-close"
+                disabled={
+                  saving ||
+                  uploading
+                }
+                onClick={() =>
+                  setShowForm(false)
+                }
               >
                 <X size={22} />
               </button>
+
             </header>
 
-            <div style={ui.formBody}>
-              <h3>المعلومات الأساسية</h3>
+            {/* =====================================================
+                Form Error
+                ===================================================== */}
 
-              <div style={ui.grid}>
-                <Field label="اسم المنتج بالعربية *">
-                  <input
-                    style={ui.input}
-                    value={form.name.ar}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        name: {
-                          ...current.name,
-                          ar: event.target.value,
-                        },
-                      }))
-                    }
-                  />
-                </Field>
-
-                <Field label="اسم المنتج بالإنجليزية">
-                  <input
-                    dir="ltr"
-                    style={ui.input}
-                    value={form.name.en}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        name: {
-                          ...current.name,
-                          en: event.target.value,
-                        },
-                      }))
-                    }
-                  />
-                </Field>
-
-                <Field label="الوصف بالعربية *">
-                  <textarea
-                    style={ui.textarea}
-                    value={form.description.ar}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        description: {
-                          ...current.description,
-                          ar: event.target.value,
-                        },
-                      }))
-                    }
-                  />
-                </Field>
-
-                <Field label="الوصف بالإنجليزية">
-                  <textarea
-                    dir="ltr"
-                    style={ui.textarea}
-                    value={form.description.en}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        description: {
-                          ...current.description,
-                          en: event.target.value,
-                        },
-                      }))
-                    }
-                  />
-                </Field>
-
-                <Field label="Slug *">
-                  <input
-                    dir="ltr"
-                    style={ui.input}
-                    value={form.slug}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        slug: event.target.value
-                          .toLowerCase()
-                          .replace(/\s+/g, "-"),
-                      }))
-                    }
-                  />
-                </Field>
-
-                <Field label="التصنيف *">
-                  <select
-                    style={ui.input}
-                    value={form.category}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        category: event.target.value,
-                      }))
-                    }
-                  >
-                    <option value="">
-                      اختر التصنيف
-                    </option>
-
-                    {categories.map(([value, label]) => (
-                      <option key={value} value={value}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-
-                <Field label="السعر *">
-                  <input
-                    type="number"
-                    min="0"
-                    style={ui.input}
-                    value={form.price}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        price: event.target.value,
-                      }))
-                    }
-                  />
-                </Field>
-
-                <Field label="السعر القديم">
-                  <input
-                    type="number"
-                    min="0"
-                    style={ui.input}
-                    value={form.oldPrice}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        oldPrice: event.target.value,
-                      }))
-                    }
-                  />
-                </Field>
-
-                <Field label="Serial Number">
-                  <input
-                    dir="ltr"
-                    style={ui.input}
-                    value={form.serialNumber}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        serialNumber: event.target.value,
-                      }))
-                    }
-                  />
-                </Field>
-
-                <Field label="المخزون">
-                  <input
-                    type="number"
-                    min="0"
-                    style={ui.input}
-                    value={form.stock}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        stock: event.target.value,
-                      }))
-                    }
-                  />
-                </Field>
-              </div>
-
-              <h3>صور المنتج</h3>
-
-              <div style={ui.imagesGrid}>
-                <div style={ui.imagePanel}>
-                  <b>الصورة الرئيسية / Thumbnail *</b>
-
-                  {primaryImage ? (
-                    <>
-                      <img
-                        src={primaryImage.url}
-                        alt="الصورة الرئيسية"
-                        style={ui.preview}
-                      />
-
-                      <button
-                        type="button"
-                        style={ui.removeImage}
-                        onClick={() =>
-                          setPrimaryImage(null)
-                        }
-                      >
-                        <Trash2 size={15} />
-                        إزالة الصورة
-                      </button>
-                    </>
-                  ) : (
-                    <label style={ui.uploadBox}>
-                      <ImagePlus size={27} />
-                      {uploading
-                        ? "جاري الرفع..."
-                        : "اختر الصورة الرئيسية"}
-
-                      <input
-                        hidden
-                        type="file"
-                        accept="image/*"
-                        disabled={uploading}
-                        onChange={(event) =>
-                          handleImageUpload(
-                            event,
-                            "primary"
-                          )
-                        }
-                      />
-                    </label>
-                  )}
+            {formError && (
+              <div
+                className="product-form-error"
+                role="alert"
+              >
+                <div className="product-form-error-icon">
+                  <X size={20} />
                 </div>
 
-                <div style={ui.imagePanel}>
-                  <b>صور المعرض</b>
+                <div className="product-form-error-content">
+                  <strong>
+                    لا يمكن حفظ المنتج
+                  </strong>
 
-                  <label style={ui.galleryUpload}>
-                    <ImagePlus size={18} />
-                    إضافة صور
-
-                    <input
-                      hidden
-                      type="file"
-                      multiple
-                      accept="image/*"
-                      disabled={uploading}
-                      onChange={(event) =>
-                        handleImageUpload(
-                          event,
-                          "gallery"
-                        )
-                      }
-                    />
-                  </label>
-
-                  <div style={ui.gallery}>
-                    {galleryImages.map(
-                      (image, index) => (
-                        <div
-                          key={image.storageKey}
-                          style={ui.thumbnailBox}
-                        >
-                          <img
-                            src={image.url}
-                            alt=""
-                            style={ui.thumbnail}
-                          />
-
-                          <button
-                            type="button"
-                            style={ui.thumbnailDelete}
-                            onClick={() =>
-                              setGalleryImages(
-                                (current) =>
-                                  current.filter(
-                                    (_, itemIndex) =>
-                                      itemIndex !== index
-                                  )
-                              )
-                            }
-                          >
-                            <X size={15} />
-                          </button>
-                        </div>
-                      )
-                    )}
-                  </div>
+                  <p>
+                    {formError}
+                  </p>
                 </div>
-              </div>
-
-              <div style={ui.colorsHeader}>
-                <h3>الألوان والسيريال</h3>
 
                 <button
                   type="button"
-                  style={ui.editButton}
-                  onClick={() =>
-                    setColors((current) => [
-                      ...current,
-                      emptyColor(),
-                    ])
+                  className="product-form-error-close"
+                  onClick={
+                    clearFormError
                   }
+                  aria-label="إغلاق رسالة الخطأ"
                 >
-                  <Plus size={16} />
-                  إضافة لون
+                  <X size={17} />
                 </button>
               </div>
+            )}
 
-              {colors.map((color, index) => (
-                <div
-                  key={index}
-                  style={ui.colorRow}
-                >
-                  <input
-                    style={ui.input}
-                    placeholder="اسم اللون بالعربية"
-                    value={color.name.ar}
-                    onChange={(event) =>
-                      setColors((current) =>
-                        current.map((item, itemIndex) =>
-                          itemIndex === index
-                            ? {
-                                ...item,
-                                name: {
-                                  ...item.name,
-                                  ar: event.target.value,
-                                },
-                              }
-                            : item
-                        )
-                      )
-                    }
-                  />
+            <div
+              className="product-modal-body"
+              ref={modalBodyRef}
+            >
 
-                  <input
-                    dir="ltr"
-                    style={ui.input}
-                    placeholder="Color name"
-                    value={color.name.en}
-                    onChange={(event) =>
-                      setColors((current) =>
-                        current.map((item, itemIndex) =>
-                          itemIndex === index
-                            ? {
-                                ...item,
-                                name: {
-                                  ...item.name,
-                                  en: event.target.value,
-                                },
-                              }
-                            : item
-                        )
-                      )
-                    }
-                  />
+              {/* Basic Information */}
 
-                  <input
-                    type="color"
-                    value={color.hex}
-                    onChange={(event) =>
-                      setColors((current) =>
-                        current.map((item, itemIndex) =>
-                          itemIndex === index
-                            ? {
-                                ...item,
-                                hex: event.target.value,
-                              }
-                            : item
-                        )
-                      )
-                    }
-                  />
+              <section className="product-form-section">
 
-                  <input
-                    type="number"
-                    min="0"
-                    style={ui.input}
-                    placeholder="المخزون"
-                    value={color.stock}
-                    onChange={(event) =>
-                      setColors((current) =>
-                        current.map((item, itemIndex) =>
-                          itemIndex === index
-                            ? {
-                                ...item,
-                                stock: Number(
-                                  event.target.value
-                                ),
-                              }
-                            : item
-                        )
-                      )
-                    }
-                  />
+                <div className="product-section-heading">
+                  <div>
+                    <span>
+                      01
+                    </span>
 
-                  <input
-                    dir="ltr"
-                    style={ui.input}
-                    placeholder="Serial Number"
-                    value={color.serialNumber}
-                    onChange={(event) =>
-                      setColors((current) =>
-                        current.map((item, itemIndex) =>
-                          itemIndex === index
-                            ? {
-                                ...item,
-                                serialNumber:
-                                  event.target.value,
-                              }
-                            : item
+                    <div>
+                      <h3>
+                        المعلومات
+                        الأساسية
+                      </h3>
+
+                      <p>
+                        البيانات الأساسية
+                        للمنتج
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="product-form-grid">
+
+                  <Field
+                    label="اسم المنتج بالعربية"
+                    required
+                  >
+                    <input
+                      value={
+                        form.name.ar
+                      }
+                      onChange={(
+                        event
+                      ) => {
+                        clearFormError();
+
+                        setForm(
+                          (current) => ({
+                            ...current,
+                            name: {
+                              ...current.name,
+                              ar: event
+                                .target
+                                .value,
+                            },
+                          })
+                        );
+                      }}
+                      placeholder="مثال: مكتب مدير فاخر"
+                    />
+                  </Field>
+
+                  <Field
+                    label="اسم المنتج بالإنجليزية"
+                    required
+                  >
+                    <input
+                      dir="ltr"
+                      value={
+                        form.name.en
+                      }
+                      onChange={(
+                        event
+                      ) => {
+                        clearFormError();
+
+                        setForm(
+                          (current) => ({
+                            ...current,
+                            name: {
+                              ...current.name,
+                              en: event
+                                .target
+                                .value,
+                            },
+                          })
+                        );
+                      }}
+                      placeholder="Example: Executive Desk"
+                    />
+                  </Field>
+
+                  <Field
+                    label="الوصف بالعربية"
+                    required
+                    full
+                  >
+                    <textarea
+                      value={
+                        form.description
+                          .ar
+                      }
+                      onChange={(
+                        event
+                      ) => {
+                        clearFormError();
+
+                        setForm(
+                          (current) => ({
+                            ...current,
+                            description: {
+                              ...current.description,
+                              ar: event
+                                .target
+                                .value,
+                            },
+                          })
+                        );
+                      }}
+                      placeholder="اكتب وصفًا واضحًا للمنتج..."
+                    />
+                  </Field>
+
+                  <Field
+                    label="الوصف بالإنجليزية"
+                    required
+                    full
+                  >
+                    <textarea
+                      dir="ltr"
+                      value={
+                        form.description
+                          .en
+                      }
+                      onChange={(
+                        event
+                      ) => {
+                        clearFormError();
+
+                        setForm(
+                          (current) => ({
+                            ...current,
+                            description: {
+                              ...current.description,
+                              en: event
+                                .target
+                                .value,
+                            },
+                          })
+                        );
+                      }}
+                      placeholder="Write a clear product description..."
+                    />
+                  </Field>
+
+                  <Field
+                    label="التصنيف"
+                    required
+                  >
+                    <select
+                      value={
+                        form.category
+                      }
+                      onChange={(
+                        event
+                      ) => {
+                        clearFormError();
+
+                        setForm(
+                          (current) => ({
+                            ...current,
+                            category:
+                              event
+                                .target
+                                .value,
+                          })
+                        );
+                      }}
+                    >
+                      <option value="">
+                        اختر التصنيف
+                      </option>
+
+                      {categories.map(
+                        ([
+                          value,
+                          label,
+                        ]) => (
+                          <option
+                            key={
+                              value
+                            }
+                            value={
+                              value
+                            }
+                          >
+                            {label}
+                          </option>
                         )
-                      )
-                    }
-                  />
+                      )}
+                    </select>
+                  </Field>
+
+                  <Field
+                    label="الموديل"
+                    required
+                  >
+                    <input
+                      dir="ltr"
+                      value={
+                        form.serialNumber
+                      }
+                      onChange={(
+                        event
+                      ) => {
+                        clearFormError();
+
+                        setForm(
+                          (current) => ({
+                            ...current,
+                            serialNumber:
+                              event
+                                .target
+                                .value,
+                          })
+                        );
+                      }}
+                      placeholder="TW-2026-001"
+                    />
+                  </Field>
+
+                  <Field
+                    label="السعر"
+                    required
+                  >
+                    <div className="product-input-with-suffix">
+                      <input
+                        type="number"
+                        min="0"
+                        value={
+                          form.price
+                        }
+                        onChange={(
+                          event
+                        ) => {
+                          clearFormError();
+
+                          setForm(
+                            (current) => ({
+                              ...current,
+                              price:
+                                event
+                                  .target
+                                  .value,
+                            })
+                          );
+                        }}
+                        placeholder="0"
+                      />
+
+                      <span>
+                        ج.م
+                      </span>
+                    </div>
+                  </Field>
+
+                  <Field label="السعر القديم">
+                    <div className="product-input-with-suffix">
+                      <input
+                        type="number"
+                        min="0"
+                        value={
+                          form.oldPrice
+                        }
+                        onChange={(
+                          event
+                        ) => {
+                          clearFormError();
+
+                          setForm(
+                            (current) => ({
+                              ...current,
+                              oldPrice:
+                                event
+                                  .target
+                                  .value,
+                            })
+                          );
+                        }}
+                        placeholder="0"
+                      />
+
+                      <span>
+                        ج.م
+                      </span>
+                    </div>
+                  </Field>
+
+                  {/* Stock */}
+
+                  <Field label="المخزون">
+                    <div className="product-stock-field">
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={
+                          form.stock
+                        }
+                        onChange={(
+                          event
+                        ) => {
+                          clearFormError();
+
+                          setForm(
+                            (current) => ({
+                              ...current,
+                              stock:
+                                event
+                                  .target
+                                  .value,
+                            })
+                          );
+                        }}
+                        placeholder="0"
+                      />
+
+                      {colors.length >
+                        0 && (
+                        <div className="product-stock-calculated">
+                          <span>
+                            إجمالي مخزون
+                            الألوان
+                          </span>
+
+                          <strong>
+                            {
+                              colorsStockTotal
+                            }{" "}
+                            وحدة
+                          </strong>
+                        </div>
+                      )}
+                    </div>
+
+                    {colors.length >
+                      0 && (
+                      <small className="product-stock-hint">
+                        يجب أن يساوي
+                        مخزون المنتج
+                        مجموع مخزون جميع
+                        الألوان.
+                      </small>
+                    )}
+
+                    {colors.length ===
+                      0 && (
+                      <small className="product-stock-hint">
+                        أدخل المخزون
+                        الإجمالي للمنتج
+                        يدويًا.
+                      </small>
+                    )}
+                  </Field>
+
+                </div>
+              </section>
+
+              {/* Images */}
+
+              <section className="product-form-section">
+
+                <div className="product-section-heading">
+                  <div>
+                    <span>
+                      02
+                    </span>
+
+                    <div>
+                      <h3>
+                        صور المنتج
+                      </h3>
+
+                      <p>
+                        الصورة الرئيسية
+                        وصور المعرض
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="product-images-layout">
+
+                  {/* Primary */}
+
+                  <div className="product-primary-image-panel">
+
+                    <div className="image-panel-title">
+                      <div>
+                        <h4>
+                          الصورة
+                          الرئيسية
+                        </h4>
+
+                        <span>
+                          تظهر كصورة
+                          المنتج الأساسية
+                        </span>
+                      </div>
+
+                      <span className="required-pill">
+                        مطلوبة
+                      </span>
+                    </div>
+
+                    {primaryImage ? (
+                      <div className="primary-image-preview">
+
+                        <img
+                          src={
+                            primaryImage.url
+                          }
+                          alt="الصورة الرئيسية"
+                        />
+
+                        <div className="image-preview-overlay">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              clearFormError();
+
+                              setPrimaryImage(
+                                null
+                              );
+                            }}
+                          >
+                            <Trash2
+                              size={16}
+                            />
+
+                            إزالة
+                          </button>
+                        </div>
+
+                      </div>
+                    ) : (
+                      <label className="main-upload-zone">
+
+                        <div className="upload-icon">
+                          <ImagePlus
+                            size={27}
+                          />
+                        </div>
+
+                        <strong>
+                          {uploading
+                            ? "جاري رفع الصورة..."
+                            : "اختر الصورة الرئيسية"}
+                        </strong>
+
+                        <span>
+                          JPG, PNG, WEBP
+                        </span>
+
+                        <input
+                          hidden
+                          type="file"
+                          accept="image/*"
+                          disabled={
+                            uploading
+                          }
+                          onChange={(
+                            event
+                          ) =>
+                            handleImageUpload(
+                              event,
+                              "primary"
+                            )
+                          }
+                        />
+                      </label>
+                    )}
+                  </div>
+
+                  {/* Gallery */}
+
+                  <div className="product-gallery-panel">
+
+                    <div className="image-panel-title">
+                      <div>
+                        <h4>
+                          صور المعرض
+                        </h4>
+
+                        <span>
+                          يمكنك إضافة أكثر
+                          من صورة
+                        </span>
+                      </div>
+
+                      <label className="gallery-add-button">
+
+                        <Plus
+                          size={17}
+                        />
+
+                        إضافة صور
+
+                        <input
+                          hidden
+                          type="file"
+                          multiple
+                          accept="image/*"
+                          disabled={
+                            uploading
+                          }
+                          onChange={(
+                            event
+                          ) =>
+                            handleImageUpload(
+                              event,
+                              "gallery"
+                            )
+                          }
+                        />
+                      </label>
+                    </div>
+
+                    {galleryImages.length ? (
+                      <div className="gallery-preview-grid">
+                        {galleryImages.map(
+                          (
+                            image,
+                            index
+                          ) => (
+                            <div
+                              className="gallery-preview-item"
+                              key={
+                                image.storageKey
+                              }
+                            >
+                              <img
+                                src={
+                                  image.url
+                                }
+                                alt=""
+                              />
+
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  clearFormError();
+
+                                  setGalleryImages(
+                                    (
+                                      current
+                                    ) =>
+                                      current.filter(
+                                        (
+                                          _,
+                                          itemIndex
+                                        ) =>
+                                          itemIndex !==
+                                          index
+                                      )
+                                  );
+                                }}
+                              >
+                                <X
+                                  size={14}
+                                />
+                              </button>
+                            </div>
+                          )
+                        )}
+                      </div>
+                    ) : (
+                      <label className="gallery-empty">
+                        <ImagePlus
+                          size={25}
+                        />
+
+                        <span>
+                          لم تتم إضافة صور
+                          للمعرض
+                        </span>
+
+                        <small>
+                          اضغط لإضافة الصور
+                        </small>
+
+                        <input
+                          hidden
+                          type="file"
+                          multiple
+                          accept="image/*"
+                          disabled={
+                            uploading
+                          }
+                          onChange={(
+                            event
+                          ) =>
+                            handleImageUpload(
+                              event,
+                              "gallery"
+                            )
+                          }
+                        />
+                      </label>
+                    )}
+
+                  </div>
+
+                </div>
+              </section>
+
+              {/* Colors */}
+
+              <section className="product-form-section">
+
+                <div className="product-section-heading product-colors-heading">
+                  <div>
+                    <span>
+                      03
+                    </span>
+
+                    <div>
+                      <h3>
+                        ألوان المنتج
+                      </h3>
+
+                      <p>
+                        أضف الألوان المتاحة
+                        والمخزون لكل لون
+                      </p>
+                    </div>
+                  </div>
 
                   <button
                     type="button"
-                    style={ui.deleteButton}
-                    onClick={() =>
-                      setColors((current) =>
-                        current.filter(
-                          (_, itemIndex) =>
-                            itemIndex !== index
-                        )
-                      )
-                    }
+                    className="add-color-button"
+                    onClick={() => {
+                      clearFormError();
+
+                      setColors(
+                        (current) => [
+                          ...current,
+                          emptyColor(),
+                        ]
+                      );
+                    }}
                   >
-                    <Trash2 size={16} />
+                    <Plus
+                      size={17}
+                    />
+
+                    إضافة لون
                   </button>
                 </div>
-              ))}
 
-              <div style={ui.checks}>
-                <label>
+                {/* Total Colors Stock */}
+
+                {colors.length >
+                  0 && (
+                  <div className="colors-stock-summary">
+                    <div>
+                      <span>
+                        إجمالي مخزون
+                        الألوان
+                      </span>
+
+                      <small>
+                        يتم حسابه تلقائيًا
+                        من مخزون كل لون
+                      </small>
+                    </div>
+
+                    <strong>
+                      {
+                        colorsStockTotal
+                      }{" "}
+                      <span>
+                        وحدة
+                      </span>
+                    </strong>
+                  </div>
+                )}
+
+                {colors.length ? (
+                  <div className="colors-list">
+
+                    {colors.map(
+                      (
+                        color,
+                        index
+                      ) => (
+                        <div
+                          className="color-item"
+                          key={index}
+                        >
+
+                          <div className="color-preview">
+                            <input
+                              type="color"
+                              value={
+                                color.hex
+                              }
+                              onChange={(
+                                event
+                              ) =>
+                                updateColor(
+                                  index,
+                                  {
+                                    hex:
+                                      event
+                                        .target
+                                        .value,
+                                  }
+                                )
+                              }
+                            />
+                          </div>
+
+                          <div className="color-field">
+                            <label>
+                              اسم اللون
+                              بالعربية
+                            </label>
+
+                            <input
+                              value={
+                                color
+                                  .name
+                                  .ar
+                              }
+                              onChange={(
+                                event
+                              ) =>
+                                updateColor(
+                                  index,
+                                  {
+                                    name: {
+                                      ...color.name,
+                                      ar:
+                                        event
+                                          .target
+                                          .value,
+                                    },
+                                  }
+                                )
+                              }
+                              placeholder="أبيض"
+                            />
+                          </div>
+
+                          <div className="color-field">
+                            <label>
+                              اسم اللون
+                              بالإنجليزية
+                            </label>
+
+                            <input
+                              dir="ltr"
+                              value={
+                                color
+                                  .name
+                                  .en
+                              }
+                              onChange={(
+                                event
+                              ) =>
+                                updateColor(
+                                  index,
+                                  {
+                                    name: {
+                                      ...color.name,
+                                      en:
+                                        event
+                                          .target
+                                          .value,
+                                    },
+                                  }
+                                )
+                              }
+                              placeholder="White"
+                            />
+                          </div>
+
+                          <div className="color-field">
+                            <label>
+                              المخزون
+                            </label>
+
+                            <input
+                              type="number"
+                              min="0"
+                              step="1"
+                              value={
+                                color.stock
+                              }
+                              onChange={(
+                                event
+                              ) =>
+                                updateColor(
+                                  index,
+                                  {
+                                    stock:
+                                      Number(
+                                        event
+                                          .target
+                                          .value
+                                      ) || 0,
+                                  }
+                                )
+                              }
+                            />
+                          </div>
+
+                          <button
+                            type="button"
+                            className="remove-color-button"
+                            onClick={() => {
+                              clearFormError();
+
+                              setColors(
+                                (
+                                  current
+                                ) =>
+                                  current.filter(
+                                    (
+                                      _,
+                                      colorIndex
+                                    ) =>
+                                      colorIndex !==
+                                      index
+                                  )
+                              );
+                            }}
+                            aria-label="حذف اللون"
+                          >
+                            <Trash2
+                              size={17}
+                            />
+                          </button>
+
+                        </div>
+                      )
+                    )}
+
+                  </div>
+                ) : (
+                  <div className="colors-empty">
+                    <div>
+                      <Package
+                        size={26}
+                      />
+                    </div>
+
+                    <div>
+                      <strong>
+                        لا توجد ألوان
+                        مضافة
+                      </strong>
+
+                      <span>
+                        إذا كان المنتج
+                        متاحًا بأكثر من
+                        لون يمكنك
+                        إضافتها هنا.
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        clearFormError();
+
+                        setColors([
+                          emptyColor(),
+                        ]);
+                      }}
+                    >
+                      إضافة أول لون
+                    </button>
+                  </div>
+                )}
+              </section>
+
+              {/* Options */}
+
+              <section className="product-form-section product-options-section">
+
+                <label className="product-switch">
                   <input
                     type="checkbox"
-                    checked={form.featured}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        featured: event.target.checked,
-                      }))
+                    checked={
+                      form.featured
+                    }
+                    onChange={(
+                      event
+                    ) =>
+                      setForm(
+                        (current) => ({
+                          ...current,
+                          featured:
+                            event
+                              .target
+                              .checked,
+                        })
+                      )
                     }
                   />
-                  منتج مميز
+
+                  <span className="switch-ui" />
+
+                  <div>
+                    <strong>
+                      منتج مميز
+                    </strong>
+
+                    <small>
+                      يظهر ضمن المنتجات
+                      المميزة
+                    </small>
+                  </div>
                 </label>
 
-                <label>
+                <label className="product-switch">
                   <input
                     type="checkbox"
-                    checked={form.active}
-                    onChange={(event) =>
-                      setForm((current) => ({
-                        ...current,
-                        active: event.target.checked,
-                      }))
+                    checked={
+                      form.active
+                    }
+                    onChange={(
+                      event
+                    ) =>
+                      setForm(
+                        (current) => ({
+                          ...current,
+                          active:
+                            event
+                              .target
+                              .checked,
+                        })
+                      )
                     }
                   />
-                  المنتج نشط ومتاح للعرض
+
+                  <span className="switch-ui" />
+
+                  <div>
+                    <strong>
+                      المنتج نشط
+                    </strong>
+
+                    <small>
+                      السماح بعرض المنتج
+                      في المتجر
+                    </small>
+                  </div>
                 </label>
-              </div>
+
+              </section>
+
             </div>
 
-            <footer style={ui.footer}>
+            {/* Modal Footer */}
+
+            <footer className="product-modal-footer">
+
               <button
                 type="button"
-                style={ui.cancelButton}
-                onClick={() => setShowForm(false)}
+                className="product-cancel-button"
+                disabled={
+                  saving ||
+                  uploading
+                }
+                onClick={() =>
+                  setShowForm(false)
+                }
               >
                 إلغاء
               </button>
 
               <button
                 type="submit"
-                style={ui.primaryButton}
-                disabled={saving || uploading}
+                className="product-save-button"
+                disabled={
+                  saving ||
+                  uploading
+                }
               >
-                {saving && (
-                  <Loader2
-                    size={16}
-                    className="spin"
-                  />
-                )}
+                {saving ? (
+                  <>
+                    <Loader2
+                      size={18}
+                      className="products-spin"
+                    />
 
-                {saving
-                  ? "جاري الحفظ..."
-                  : editingProduct
-                  ? "حفظ التعديلات"
-                  : "إضافة المنتج"}
+                    جاري الحفظ...
+                  </>
+                ) : (
+                  <>
+                    <Check
+                      size={18}
+                    />
+
+                    {editingProduct
+                      ? "حفظ التعديلات"
+                      : "إضافة المنتج"}
+                  </>
+                )}
               </button>
+
             </footer>
           </form>
+        </div>
+      )}
+
+      {/* Delete Confirmation */}
+
+      {deleteTarget && (
+        <div className="delete-modal-layer">
+
+          <div
+            className="delete-modal-backdrop"
+            onClick={() =>
+              !deleting &&
+              setDeleteTarget(null)
+            }
+          />
+
+          <div className="delete-modal">
+
+            <div className="delete-icon">
+              <Trash2
+                size={25}
+              />
+            </div>
+
+            <h2>
+              حذف المنتج؟
+            </h2>
+
+            <p>
+              هل أنت متأكد أنك تريد
+              حذف المنتج:
+            </p>
+
+            <strong>
+              {deleteTarget.name
+                ?.ar ||
+                deleteTarget.name
+                  ?.en}
+            </strong>
+
+            <span>
+              سيتم حذف المنتج
+              والصور المرتبطة به
+              من النظام.
+            </span>
+
+            <div className="delete-modal-actions">
+
+              <button
+                type="button"
+                className="delete-cancel"
+                disabled={
+                  deleting
+                }
+                onClick={() =>
+                  setDeleteTarget(
+                    null
+                  )
+                }
+              >
+                إلغاء
+              </button>
+
+              <button
+                type="button"
+                className="delete-confirm"
+                disabled={
+                  deleting
+                }
+                onClick={
+                  handleDelete
+                }
+              >
+                {deleting ? (
+                  <>
+                    <Loader2
+                      size={17}
+                      className="products-spin"
+                    />
+
+                    جاري الحذف...
+                  </>
+                ) : (
+                  <>
+                    <Trash2
+                      size={17}
+                    />
+
+                    نعم، حذف المنتج
+                  </>
+                )}
+              </button>
+
+            </div>
+
+          </div>
         </div>
       )}
     </main>
@@ -1077,330 +2619,32 @@ export default function ProductsPage() {
 
 function Field({
   label,
+  required = false,
+  full = false,
   children,
 }: {
   label: string;
-  children: React.ReactNode;
+  required?: boolean;
+  full?: boolean;
+  children: ReactNode;
 }) {
   return (
-    <label style={ui.field}>
-      <span>{label}</span>
+    <label
+      className={`product-field ${
+        full
+          ? "product-field-full"
+          : ""
+      }`}
+    >
+      <span>
+        {label}
+
+        {required && (
+          <b> *</b>
+        )}
+      </span>
+
       {children}
     </label>
   );
 }
-
-const ui: Record<string, React.CSSProperties> = {
-  page: {
-    minHeight: "100vh",
-    padding: "32px",
-    background: "#f5f7f3",
-    color: "#263127",
-    fontFamily: "Arial, sans-serif",
-  },
-  loading: {
-    minHeight: "60vh",
-    display: "flex",
-    gap: "12px",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  header: {
-    maxWidth: "1400px",
-    margin: "0 auto 24px",
-    display: "flex",
-    gap: "20px",
-    alignItems: "end",
-    justifyContent: "space-between",
-  },
-  eyebrow: {
-    color: "#6d8068",
-    fontSize: "12px",
-    fontWeight: 700,
-  },
-  title: {
-    margin: "6px 0",
-    fontSize: "28px",
-  },
-  subtitle: {
-    margin: 0,
-    color: "#6d766d",
-  },
-  primaryButton: {
-    border: 0,
-    borderRadius: "9px",
-    padding: "12px 17px",
-    background: "#405d3a",
-    color: "#fff",
-    display: "inline-flex",
-    gap: "8px",
-    alignItems: "center",
-    cursor: "pointer",
-    fontWeight: 700,
-  },
-  message: {
-    maxWidth: "1400px",
-    margin: "0 auto 15px",
-    padding: "12px",
-    borderRadius: "8px",
-    background: "#fff0ed",
-    color: "#a33b2d",
-    display: "flex",
-    justifyContent: "space-between",
-  },
-  iconButton: {
-    border: 0,
-    background: "transparent",
-    cursor: "pointer",
-  },
-  search: {
-    width: "100%",
-    maxWidth: "1400px",
-    boxSizing: "border-box",
-    display: "block",
-    margin: "0 auto 20px",
-    padding: "13px",
-    borderRadius: "9px",
-    border: "1px solid #d7dfd4",
-  },
-  cards: {
-    maxWidth: "1400px",
-    margin: "auto",
-    display: "grid",
-    gridTemplateColumns:
-      "repeat(auto-fill, minmax(280px, 1fr))",
-    gap: "16px",
-  },
-  card: {
-    minHeight: "158px",
-    background: "#fff",
-    border: "1px solid #e0e6dd",
-    borderRadius: "12px",
-    overflow: "hidden",
-    display: "flex",
-  },
-  imageBox: {
-    width: "112px",
-    background: "#edf1eb",
-    display: "grid",
-    placeItems: "center",
-    color: "#788477",
-  },
-  coverImage: {
-    width: "100%",
-    height: "100%",
-    objectFit: "cover",
-  },
-  cardContent: {
-    flex: 1,
-    padding: "14px",
-  },
-  category: {
-    color: "#71806c",
-  },
-  productTitle: {
-    fontSize: "16px",
-    margin: "7px 0",
-  },
-  price: {
-    color: "#42613d",
-  },
-  serial: {
-    color: "#788077",
-    fontSize: "11px",
-  },
-  actions: {
-    display: "flex",
-    gap: "7px",
-  },
-  editButton: {
-    border: 0,
-    borderRadius: "7px",
-    padding: "8px",
-    background: "#e8f0e5",
-    color: "#3f5c3a",
-    cursor: "pointer",
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "5px",
-  },
-  deleteButton: {
-    border: 0,
-    borderRadius: "7px",
-    padding: "8px",
-    background: "#fff0ed",
-    color: "#a33b2d",
-    cursor: "pointer",
-    display: "inline-flex",
-    alignItems: "center",
-    gap: "5px",
-  },
-  empty: {
-    minHeight: "200px",
-    display: "grid",
-    placeContent: "center",
-    justifyItems: "center",
-    color: "#778177",
-  },
-  overlay: {
-    position: "fixed",
-    inset: 0,
-    zIndex: 100,
-    overflow: "auto",
-    padding: "20px",
-    background: "#14201499",
-  },
-  modal: {
-    width: "min(1050px, 100%)",
-    margin: "20px auto",
-    background: "#fff",
-    borderRadius: "15px",
-    overflow: "hidden",
-  },
-  modalHeader: {
-    padding: "18px 24px",
-    borderBottom: "1px solid #e6ece3",
-    display: "flex",
-    justifyContent: "space-between",
-  },
-  modalSub: {
-    color: "#788178",
-    margin: "6px 0 0",
-    fontSize: "12px",
-  },
-  formBody: {
-    padding: "24px",
-  },
-  grid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
-    gap: "13px",
-  },
-  field: {
-    display: "grid",
-    gap: "6px",
-    fontSize: "12px",
-    fontWeight: 700,
-  },
-  input: {
-    boxSizing: "border-box",
-    width: "100%",
-    padding: "10px",
-    border: "1px solid #d5ddd2",
-    borderRadius: "7px",
-  },
-  textarea: {
-    minHeight: "80px",
-    padding: "10px",
-    border: "1px solid #d5ddd2",
-    borderRadius: "7px",
-    resize: "vertical",
-  },
-  imagesGrid: {
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "15px",
-  },
-  imagePanel: {
-    minHeight: "180px",
-    padding: "14px",
-    border: "1px solid #dce4d9",
-    borderRadius: "10px",
-  },
-  uploadBox: {
-    minHeight: "130px",
-    marginTop: "12px",
-    border: "2px dashed #b9cbb4",
-    borderRadius: "8px",
-    display: "grid",
-    placeContent: "center",
-    justifyItems: "center",
-    gap: "8px",
-    color: "#496543",
-    cursor: "pointer",
-  },
-  preview: {
-    width: "100%",
-    height: "150px",
-    objectFit: "cover",
-    marginTop: "12px",
-    borderRadius: "8px",
-  },
-  removeImage: {
-    marginTop: "8px",
-    border: 0,
-    color: "#a33b2d",
-    background: "#fff0ed",
-    borderRadius: "6px",
-    padding: "7px",
-    cursor: "pointer",
-  },
-  galleryUpload: {
-    margin: "12px 0",
-    display: "inline-flex",
-    gap: "6px",
-    padding: "9px",
-    borderRadius: "7px",
-    background: "#e8f0e5",
-    color: "#3f5c3a",
-    cursor: "pointer",
-  },
-  gallery: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: "8px",
-  },
-  thumbnailBox: {
-    width: "70px",
-    height: "70px",
-    position: "relative",
-  },
-  thumbnail: {
-    width: "100%",
-    height: "100%",
-    objectFit: "cover",
-    borderRadius: "7px",
-  },
-  thumbnailDelete: {
-    position: "absolute",
-    top: "-6px",
-    left: "-6px",
-    border: 0,
-    borderRadius: "50%",
-    color: "#fff",
-    background: "#a33b2d",
-    cursor: "pointer",
-  },
-  colorsHeader: {
-    marginTop: "25px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  colorRow: {
-    display: "grid",
-    gridTemplateColumns:
-      "1fr 1fr 45px 90px 150px 38px",
-    gap: "7px",
-    marginBottom: "8px",
-  },
-  checks: {
-    marginTop: "22px",
-    display: "flex",
-    gap: "25px",
-  },
-  footer: {
-    padding: "16px 24px",
-    borderTop: "1px solid #e6ece3",
-    display: "flex",
-    justifyContent: "end",
-    gap: "10px",
-  },
-  cancelButton: {
-    border: 0,
-    borderRadius: "9px",
-    padding: "12px 17px",
-    background: "#e7ece5",
-    cursor: "pointer",
-  },
-};
