@@ -5,6 +5,50 @@ import Product from "./models/Product.js";
 
 dotenv.config();
 
+const imagePools = {
+  "computer-desks": [
+    "https://images.unsplash.com/photo-1778287527407-1dc5ce1aa8e8?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1767786330387-5cef0327b6c1?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1772164585108-f391c1b1771a?auto=format&fit=crop&w=1200&q=80",
+  ],
+
+  chairs: [
+    "https://images.unsplash.com/photo-1782080163196-26ed8ea266d7?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1786456805212-47324cf7cb5c?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1774853114355-1ac941f85397?auto=format&fit=crop&w=1200&q=80",
+  ],
+
+  "office-sofas": [
+    "https://images.unsplash.com/photo-1774853114355-1ac941f85397?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1772164585108-f391c1b1771a?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1767786330387-5cef0327b6c1?auto=format&fit=crop&w=1200&q=80",
+  ],
+
+  "work-cells": [
+    "https://images.unsplash.com/photo-1772164585108-f391c1b1771a?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1767786330387-5cef0327b6c1?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1778287527407-1dc5ce1aa8e8?auto=format&fit=crop&w=1200&q=80",
+  ],
+
+  "reception-counters": [
+    "https://images.unsplash.com/photo-1767786330387-5cef0327b6c1?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1778287527407-1dc5ce1aa8e8?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1772164585108-f391c1b1771a?auto=format&fit=crop&w=1200&q=80",
+  ],
+
+  "meeting-tables": [
+    "https://images.unsplash.com/photo-1782080163196-26ed8ea266d7?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1772164585108-f391c1b1771a?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1767786330387-5cef0327b6c1?auto=format&fit=crop&w=1200&q=80",
+  ],
+
+  "office-accessories": [
+    "https://images.unsplash.com/photo-1767786330387-5cef0327b6c1?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1778287527407-1dc5ce1aa8e8?auto=format&fit=crop&w=1200&q=80",
+    "https://images.unsplash.com/photo-1772164585108-f391c1b1771a?auto=format&fit=crop&w=1200&q=80",
+  ],
+};
+
 const categories = [
   {
     key: "computer-desks",
@@ -26,6 +70,7 @@ const categories = [
       ["مكتب إداري كبير", "Large Administrative Desk"],
     ],
   },
+
   {
     key: "chairs",
     names: [
@@ -46,6 +91,7 @@ const categories = [
       ["كرسي مدير مودرن", "Modern Manager Chair"],
     ],
   },
+
   {
     key: "office-sofas",
     names: [
@@ -66,6 +112,7 @@ const categories = [
       ["انتريه شركات", "Corporate Office Sofa Set"],
     ],
   },
+
   {
     key: "work-cells",
     names: [
@@ -85,6 +132,7 @@ const categories = [
       ["خلية عمل مودرن", "Modern Work Cell"],
     ],
   },
+
   {
     key: "reception-counters",
     names: [
@@ -104,6 +152,7 @@ const categories = [
       ["كاونتر استقبال احترافي", "Professional Reception Counter"],
     ],
   },
+
   {
     key: "meeting-tables",
     names: [
@@ -123,6 +172,7 @@ const categories = [
       ["ترابيزة اجتماعات احترافية", "Professional Meeting Table"],
     ],
   },
+
   {
     key: "office-accessories",
     names: [
@@ -169,14 +219,20 @@ const colors = [
 const specifications = {
   "computer-desks": [
     {
-      label: { ar: "الخامة", en: "Material" },
+      label: {
+        ar: "الخامة",
+        en: "Material",
+      },
       value: {
         ar: "خشب MDF عالي الجودة",
         en: "High-quality MDF wood",
       },
     },
     {
-      label: { ar: "الاستخدام", en: "Usage" },
+      label: {
+        ar: "الاستخدام",
+        en: "Usage",
+      },
       value: {
         ar: "المكاتب الإدارية",
         en: "Administrative offices",
@@ -186,14 +242,20 @@ const specifications = {
 
   chairs: [
     {
-      label: { ar: "الخامة", en: "Material" },
+      label: {
+        ar: "الخامة",
+        en: "Material",
+      },
       value: {
         ar: "خامات مكتبية عالية الجودة",
         en: "High-quality office materials",
       },
     },
     {
-      label: { ar: "الاستخدام", en: "Usage" },
+      label: {
+        ar: "الاستخدام",
+        en: "Usage",
+      },
       value: {
         ar: "المكاتب والشركات",
         en: "Offices and companies",
@@ -203,14 +265,20 @@ const specifications = {
 
   "office-sofas": [
     {
-      label: { ar: "الخامة", en: "Material" },
+      label: {
+        ar: "الخامة",
+        en: "Material",
+      },
       value: {
         ar: "جلد صناعي عالي الجودة",
         en: "High-quality artificial leather",
       },
     },
     {
-      label: { ar: "الاستخدام", en: "Usage" },
+      label: {
+        ar: "الاستخدام",
+        en: "Usage",
+      },
       value: {
         ar: "الاستقبال والمكاتب",
         en: "Reception areas and offices",
@@ -220,14 +288,20 @@ const specifications = {
 
   "work-cells": [
     {
-      label: { ar: "التصميم", en: "Design" },
+      label: {
+        ar: "التصميم",
+        en: "Design",
+      },
       value: {
         ar: "تصميم عملي للمساحات المكتبية",
         en: "Practical office workspace design",
       },
     },
     {
-      label: { ar: "الاستخدام", en: "Usage" },
+      label: {
+        ar: "الاستخدام",
+        en: "Usage",
+      },
       value: {
         ar: "الشركات والمكاتب",
         en: "Companies and offices",
@@ -237,14 +311,20 @@ const specifications = {
 
   "reception-counters": [
     {
-      label: { ar: "الخامة", en: "Material" },
+      label: {
+        ar: "الخامة",
+        en: "Material",
+      },
       value: {
         ar: "خشب MDF",
         en: "MDF wood",
       },
     },
     {
-      label: { ar: "الاستخدام", en: "Usage" },
+      label: {
+        ar: "الاستخدام",
+        en: "Usage",
+      },
       value: {
         ar: "استقبال الشركات والعيادات",
         en: "Corporate and clinic reception",
@@ -254,14 +334,20 @@ const specifications = {
 
   "meeting-tables": [
     {
-      label: { ar: "الخامة", en: "Material" },
+      label: {
+        ar: "الخامة",
+        en: "Material",
+      },
       value: {
         ar: "خشب MDF عالي الجودة",
         en: "High-quality MDF wood",
       },
     },
     {
-      label: { ar: "الاستخدام", en: "Usage" },
+      label: {
+        ar: "الاستخدام",
+        en: "Usage",
+      },
       value: {
         ar: "غرف الاجتماعات",
         en: "Meeting rooms",
@@ -271,20 +357,60 @@ const specifications = {
 
   "office-accessories": [
     {
-      label: { ar: "الخامة", en: "Material" },
+      label: {
+        ar: "الخامة",
+        en: "Material",
+      },
       value: {
         ar: "خشب MDF",
         en: "MDF wood",
       },
     },
     {
-      label: { ar: "الاستخدام", en: "Usage" },
+      label: {
+        ar: "الاستخدام",
+        en: "Usage",
+      },
       value: {
         ar: "تنظيم المكتب",
         en: "Office organization",
       },
     },
   ],
+};
+
+const createMedia = (categoryKey, index, nameAr, nameEn) => {
+  const pool = imagePools[categoryKey];
+
+  const firstImage = pool[index % pool.length];
+  const secondImage = pool[(index + 1) % pool.length];
+
+  return [
+    {
+      type: "image",
+      url: firstImage,
+      storageKey: "",
+      thumbnail: firstImage,
+      alt: {
+        ar: nameAr,
+        en: nameEn,
+      },
+      sortOrder: 0,
+      isPrimary: true,
+    },
+    {
+      type: "image",
+      url: secondImage,
+      storageKey: "",
+      thumbnail: secondImage,
+      alt: {
+        ar: `${nameAr} - صورة إضافية`,
+        en: `${nameEn} - Additional Image`,
+      },
+      sortOrder: 1,
+      isPrimary: false,
+    },
+  ];
 };
 
 const createProducts = () => {
@@ -311,7 +437,14 @@ const createProducts = () => {
       const price = basePrice + (i % 5) * 750;
       const oldPrice = price + 1000 + (i % 4) * 500;
 
-      const product = {
+      const media = createMedia(
+        category.key,
+        i,
+        nameAr,
+        nameEn
+      );
+
+      products.push({
         name: {
           ar: nameAr,
           en: nameEn,
@@ -325,7 +458,9 @@ const createProducts = () => {
         slug: `${nameEn
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, "-")
-          .replace(/^-|-$/g, "")}-tw-${String(productNumber).padStart(3, "0")}`,
+          .replace(/^-|-$/g, "")}-tw-${String(
+          productNumber
+        ).padStart(3, "0")}`,
 
         category: category.key,
 
@@ -333,31 +468,32 @@ const createProducts = () => {
 
         oldPrice,
 
-        serialNumber: `TW-2026-${String(productNumber).padStart(3, "0")}`,
+        serialNumber: `TW-2026-${String(productNumber).padStart(
+          3,
+          "0"
+        )}`,
 
         stock: 5 + (i % 6) * 5,
 
-        media: [],
+        media,
 
         colors: [
           {
             name: color1.name,
             hex: color1.hex,
             stock: 3 + (i % 5),
-            serialNumber: `TW-2026-${String(productNumber).padStart(
-              3,
-              "0"
-            )}-01`,
+            serialNumber: `TW-2026-${String(
+              productNumber
+            ).padStart(3, "0")}-01`,
             media: [],
           },
           {
             name: color2.name,
             hex: color2.hex,
             stock: 2 + (i % 4),
-            serialNumber: `TW-2026-${String(productNumber).padStart(
-              3,
-              "0"
-            )}-02`,
+            serialNumber: `TW-2026-${String(
+              productNumber
+            ).padStart(3, "0")}-02`,
             media: [],
           },
         ],
@@ -382,14 +518,15 @@ const createProducts = () => {
                 en: "",
               },
 
-        rating: Number((4.2 + (i % 8) * 0.1).toFixed(1)),
+        rating: Number(
+          (4.2 + (i % 8) * 0.1).toFixed(1)
+        ),
 
         reviewsCount: 5 + (i % 20),
 
         active: true,
-      };
+      });
 
-      products.push(product);
       productNumber++;
     }
   }
@@ -400,12 +537,16 @@ const createProducts = () => {
 const seed = async () => {
   try {
     if (!process.env.MONGO_URI) {
-      throw new Error("MONGO_URI غير موجود في ملف .env");
+      throw new Error(
+        "MONGO_URI غير موجود في ملف .env"
+      );
     }
 
     const products = createProducts();
 
-    console.log(`Preparing ${products.length} products...`);
+    console.log(
+      `Preparing ${products.length} products...`
+    );
 
     await mongoose.connect(process.env.MONGO_URI);
 
@@ -430,9 +571,19 @@ const seed = async () => {
         (categoryCounts[product.category] || 0) + 1;
     }
 
-    Object.entries(categoryCounts).forEach(([category, count]) => {
-      console.log(`- ${category}: ${count} product(s)`);
-    });
+    Object.entries(categoryCounts).forEach(
+      ([category, count]) => {
+        console.log(
+          `- ${category}: ${count} product(s)`
+        );
+      }
+    );
+
+    console.log(
+      `\nProducts with images: ${products.filter(
+        (product) => product.media.length > 0
+      ).length}`
+    );
 
     await mongoose.connection.close();
 
