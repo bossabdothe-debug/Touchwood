@@ -2,123 +2,369 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import {
   FiHeart,
   FiShoppingCart,
   FiShuffle,
   FiStar,
+  FiCheck,
 } from "react-icons/fi";
 import styles from "./ProductCard.module.css";
 
-type ProductCardProps = {
-  product: {
-    _id: string;
-    name: {
-      ar: string;
-      en: string;
-    };
-    category: {
-      name: {
-        ar: string;
-        en: string;
-      };
-      slug: string;
-    };
-    price: number;
-    oldPrice?: number;
-    rating: number;
-    reviewsCount: number;
-    image: string;
-    slug?: string;
-  };
+type Localized = {
+  ar: string;
+  en: string;
 };
 
-export default function ProductCard({ product }: ProductCardProps) {
+type Media = {
+  type?: "image" | "video";
+  url: string;
+  storageKey?: string;
+  thumbnail?: string;
+  alt?: Localized;
+  sortOrder?: number;
+  isPrimary?: boolean;
+};
+
+type Product = {
+  _id: string;
+  name: Localized;
+  description?: Localized;
+  slug: string;
+  category: string;
+  price: number;
+  oldPrice?: number | null;
+  serialNumber?: string;
+  stock: number;
+  media?: Media[];
+  rating?: number;
+  reviewsCount?: number;
+  featured?: boolean;
+  active?: boolean;
+};
+
+type ProductCardProps = {
+  product: Product;
+};
+
+const categories: Record<string, Localized> = {
+  "computer-desks": {
+    ar: "مكاتب وطاولات كمبيوتر",
+    en: "Computer Desks",
+  },
+  chairs: {
+    ar: "كراسي",
+    en: "Chairs",
+  },
+  "office-sofas": {
+    ar: "انتريهات مكتبية",
+    en: "Office Sofas",
+  },
+  "work-cells": {
+    ar: "خلايا العمل",
+    en: "Work Cells",
+  },
+  "reception-counters": {
+    ar: "كاونتر استقبال",
+    en: "Reception Counters",
+  },
+  "meeting-tables": {
+    ar: "ترابيزات اجتماعات",
+    en: "Meeting Tables",
+  },
+  "office-accessories": {
+    ar: "إكسسوارات الأثاث المكتبي",
+    en: "Office Accessories",
+  },
+};
+
+const WISHLIST_KEY = "touchwood_wishlist";
+const COMPARE_KEY = "touchwood_compare";
+
+function getStoredIds(key: string): string[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  try {
+    const stored = localStorage.getItem(key);
+
+    if (!stored) {
+      return [];
+    }
+
+    const parsed = JSON.parse(stored);
+
+    return Array.isArray(parsed)
+      ? parsed.map(String)
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveStoredIds(key: string, ids: string[]) {
+  localStorage.setItem(key, JSON.stringify(ids));
+
+  window.dispatchEvent(
+    new CustomEvent("touchwood-local-list-change", {
+      detail: {
+        key,
+        ids,
+      },
+    })
+  );
+}
+
+export default function ProductCard({
+  product,
+}: ProductCardProps) {
   const pathname = usePathname();
 
-  const segments = pathname.split("/").filter(Boolean);
-  const locale = segments[0] === "en" ? "en" : "ar";
+  const segments =
+    pathname?.split("/").filter(Boolean) || [];
 
-  const productName = product.name[locale];
-  const categoryName = product.category.name[locale];
+  const locale =
+    segments[0] === "en" ? "en" : "ar";
 
-  const productHref = `/${locale}/product/${
-    product.slug || product._id
-  }`;
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [isCompared, setIsCompared] = useState(false);
 
-  const formattedPrice = product.price.toLocaleString(
-    locale === "ar" ? "ar-EG" : "en-US"
+  useEffect(() => {
+    setIsFavorite(
+      getStoredIds(WISHLIST_KEY).includes(product._id)
+    );
+
+    setIsCompared(
+      getStoredIds(COMPARE_KEY).includes(product._id)
+    );
+
+    const handleLocalListChange = (event: Event) => {
+      const customEvent =
+        event as CustomEvent<{
+          key: string;
+          ids: string[];
+        }>;
+
+      if (customEvent.detail?.key === WISHLIST_KEY) {
+        setIsFavorite(
+          customEvent.detail.ids.includes(product._id)
+        );
+      }
+
+      if (customEvent.detail?.key === COMPARE_KEY) {
+        setIsCompared(
+          customEvent.detail.ids.includes(product._id)
+        );
+      }
+    };
+
+    window.addEventListener(
+      "touchwood-local-list-change",
+      handleLocalListChange
+    );
+
+    return () => {
+      window.removeEventListener(
+        "touchwood-local-list-change",
+        handleLocalListChange
+      );
+    };
+  }, [product._id]);
+
+  const productName =
+    product.name?.[locale] ||
+    product.name?.ar ||
+    product.name?.en ||
+    "منتج";
+
+  const category = categories[product.category];
+
+  const categoryName =
+    category?.[locale] ||
+    category?.ar ||
+    product.category;
+
+  const productHref = `/${locale}/product/${product.slug}`;
+
+  const primaryImage = useMemo(() => {
+    return (
+      product.media?.find(
+        (item) => item.isPrimary
+      ) ||
+      product.media?.find(
+        (item) => item.type === "image"
+      ) ||
+      product.media?.[0]
+    );
+  }, [product.media]);
+
+  const rating = Math.min(
+    Math.max(Number(product.rating) || 0, 0),
+    5
   );
 
-  const formattedOldPrice = product.oldPrice
-    ? product.oldPrice.toLocaleString(
-        locale === "ar" ? "ar-EG" : "en-US"
-      )
-    : null;
+  const reviewsCount =
+    Number(product.reviewsCount) || 0;
 
-  const rating = Math.min(Math.max(product.rating, 0), 5);
+  const oldPrice =
+    Number(product.oldPrice) || 0;
+
+  const currentPrice =
+    Number(product.price) || 0;
+
+  const discount =
+    oldPrice > currentPrice
+      ? Math.round(
+          ((oldPrice - currentPrice) / oldPrice) * 100
+        )
+      : 0;
+
+  const formattedPrice =
+    currentPrice.toLocaleString(
+      locale === "ar" ? "ar-EG" : "en-US"
+    );
+
+  const formattedOldPrice =
+    oldPrice > currentPrice
+      ? oldPrice.toLocaleString(
+          locale === "ar" ? "ar-EG" : "en-US"
+        )
+      : null;
+
+  const toggleWishlist = () => {
+    const current = getStoredIds(WISHLIST_KEY);
+
+    const next = current.includes(product._id)
+      ? current.filter((id) => id !== product._id)
+      : [...current, product._id];
+
+    saveStoredIds(WISHLIST_KEY, next);
+
+    setIsFavorite(next.includes(product._id));
+  };
+
+  const toggleCompare = () => {
+    const current = getStoredIds(COMPARE_KEY);
+
+    const next = current.includes(product._id)
+      ? current.filter((id) => id !== product._id)
+      : [...current, product._id];
+
+    saveStoredIds(COMPARE_KEY, next);
+
+    setIsCompared(next.includes(product._id));
+  };
+
+  const handleAddToCart = () => {
+    const currentCart =
+      getStoredIds("touchwood_cart");
+
+    if (!currentCart.includes(product._id)) {
+      saveStoredIds("touchwood_cart", [
+        ...currentCart,
+        product._id,
+      ]);
+    }
+  };
 
   return (
     <article className={styles.card}>
       <div className={styles.imageContainer}>
-        <Link
-          href={productHref}
-          className={styles.imageLink}
-          aria-label={productName}
-        >
-          <img
-            src={product.image}
-            alt={productName}
-            className={styles.image}
-          />
-        </Link>
+        {discount > 0 && (
+          <div className={styles.discountBadge}>
+            -{discount}%
+          </div>
+        )}
 
-        <div className={styles.sideActions}>
+        <div className={styles.topActions}>
           <button
             type="button"
-            className={styles.actionButton}
+            className={`${styles.actionButton} ${
+              isFavorite
+                ? styles.actionActive
+                : ""
+            }`}
+            onClick={toggleWishlist}
             aria-label={
-              locale === "ar" ? "إضافة إلى المفضلة" : "Add to wishlist"
+              locale === "ar"
+                ? "إضافة إلى المفضلة"
+                : "Add to wishlist"
             }
+            aria-pressed={isFavorite}
           >
-            <FiHeart />
+            <FiHeart
+              className={
+                isFavorite
+                  ? styles.filledIcon
+                  : ""
+              }
+            />
           </button>
 
           <button
             type="button"
-            className={styles.actionButton}
+            className={`${styles.actionButton} ${
+              isCompared
+                ? styles.actionActive
+                : ""
+            }`}
+            onClick={toggleCompare}
             aria-label={
-              locale === "ar" ? "إضافة إلى المقارنة" : "Add to compare"
+              locale === "ar"
+                ? "إضافة إلى المقارنة"
+                : "Add to compare"
             }
+            aria-pressed={isCompared}
           >
-            <FiShuffle />
+            {isCompared ? (
+              <FiCheck />
+            ) : (
+              <FiShuffle />
+            )}
           </button>
         </div>
 
-        <button
-          type="button"
-          className={styles.cartButton}
-          aria-label={
-            locale === "ar" ? "إضافة إلى السلة" : "Add to cart"
-          }
+        <Link
+          href={productHref}
+          className={styles.imageLink}
         >
-          <FiShoppingCart />
-          <span>
-            {locale === "ar" ? "إضافة إلى السلة" : "Add to cart"}
-          </span>
-        </button>
+          {primaryImage?.url ? (
+            <img
+              src={primaryImage.url}
+              alt={
+                primaryImage.alt?.[locale] ||
+                productName
+              }
+              className={styles.image}
+            />
+          ) : (
+            <div className={styles.noImage}>
+              <span>
+                {locale === "ar"
+                  ? "لا توجد صورة"
+                  : "No image"}
+              </span>
+            </div>
+          )}
+        </Link>
       </div>
 
       <div className={styles.content}>
-        <Link href={productHref} className={styles.productName}>
-          {productName}
-        </Link>
-
         <Link
-          href={`/${locale}/category/${product.category.slug}`}
+          href={`/${locale}/category/${product.category}`}
           className={styles.category}
         >
           {categoryName}
+        </Link>
+
+        <Link
+          href={productHref}
+          className={styles.productName}
+          title={productName}
+        >
+          {productName}
         </Link>
 
         <div className={styles.rating}>
@@ -140,21 +386,37 @@ export default function ProductCard({ product }: ProductCardProps) {
           </span>
 
           <span className={styles.reviewsCount}>
-            ({product.reviewsCount})
+            ({reviewsCount})
           </span>
         </div>
 
         <div className={styles.prices}>
           <span className={styles.currentPrice}>
-            {formattedPrice} {locale === "ar" ? "ج.م" : "EGP"}
+            {formattedPrice}{" "}
+            {locale === "ar" ? "ج.م" : "EGP"}
           </span>
 
           {formattedOldPrice && (
             <span className={styles.oldPrice}>
-              {formattedOldPrice} {locale === "ar" ? "ج.م" : "EGP"}
+              {formattedOldPrice}{" "}
+              {locale === "ar" ? "ج.م" : "EGP"}
             </span>
           )}
         </div>
+
+        <button
+          type="button"
+          className={styles.cartButton}
+          onClick={handleAddToCart}
+        >
+          <FiShoppingCart />
+
+          <span>
+            {locale === "ar"
+              ? "إضافة إلى السلة"
+              : "Add to cart"}
+          </span>
+        </button>
       </div>
     </article>
   );

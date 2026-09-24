@@ -1,3 +1,4 @@
+
 const API_URL =
   "https://touchwood-production-70f9.up.railway.app/api";
 
@@ -106,7 +107,7 @@ export const deleteProduct = async (
   });
 };
 
-/* رفع الصور إلى Cloudflare R2 */
+/* رفع الصور */
 
 export const createUploadUrl = async (
   token,
@@ -392,7 +393,16 @@ export const deleteAdminNotification = async (
 export const getProductReviews = async (
   productId
 ) => {
-  return apiRequest(`/reviews/product/${productId}`);
+  const response = await apiRequest(
+    `/reviews/product/${productId}`
+  );
+
+  return Array.isArray(response)
+    ? response
+    : response?.reviews ||
+      response?.data?.reviews ||
+      response?.data ||
+      [];
 };
 
 export const getOrderReviewStatus = async (
@@ -414,4 +424,28 @@ export const createReview = async (
     token,
     body: reviewData,
   });
+};
+
+/* المنتجات المقترحة */
+
+export const getRelatedProducts = async (
+  category,
+  currentProductId
+) => {
+  const response = await getProducts({
+    category,
+    active: true,
+  });
+
+  const products = Array.isArray(response)
+    ? response
+    : response?.products ||
+      response?.data?.products ||
+      response?.data ||
+      [];
+
+  return products.filter(
+    (product) =>
+      product._id !== currentProductId
+  );
 };

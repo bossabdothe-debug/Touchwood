@@ -1,0 +1,343 @@
+
+.page {
+  max-width: 1240px;
+  margin: auto;
+  padding: 40px 20px 80px;
+  color: #242424;
+}
+
+.productSection {
+  display: grid;
+  grid-template-columns: 1.08fr 1fr;
+  gap: 55px;
+  align-items: start;
+  direction: ltr;
+}
+
+.gallery,
+.info {
+  direction: rtl;
+}
+
+.mainImage {
+  aspect-ratio: 1 / 1;
+  background: #f7f6f3;
+  border-radius: 24px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.mainImage img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.thumbnails {
+  display: flex;
+  gap: 12px;
+  margin-top: 14px;
+  overflow: auto;
+}
+
+.thumb,
+.activeThumb {
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  background: #fff;
+  width: 84px;
+  height: 84px;
+  padding: 5px;
+  cursor: pointer;
+}
+
+.activeThumb {
+  border: 2px solid #8b6b42;
+}
+
+.thumb img,
+.activeThumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.category {
+  color: #98734b;
+  font-size: 14px;
+}
+
+.info h1 {
+  font-size: clamp(28px, 3vw, 44px);
+  margin: 10px 0 15px;
+}
+
+.rating {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #b08343;
+  font-size: 14px;
+}
+
+.rating span {
+  color: #777;
+}
+
+.priceRow {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin: 25px 0;
+}
+
+.priceRow strong {
+  font-size: 30px;
+  color: #8b6b42;
+}
+
+.priceRow del {
+  color: #999;
+}
+
+.description,
+.longDescription {
+  line-height: 2;
+  color: #666;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 28px 0;
+  flex-wrap: wrap;
+}
+
+.quantity {
+  display: flex;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.quantity button,
+.quantity span {
+  width: 38px;
+  height: 45px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: #fff;
+}
+
+.cartButton,
+.iconButton {
+  height: 45px;
+  border: 0;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.cartButton {
+  background: #8b6b42;
+  color: #fff;
+  padding: 0 22px;
+}
+
+.iconButton {
+  width: 45px;
+  background: #f3f0eb;
+  color: #6e5437;
+}
+
+.delivery {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  border-top: 1px solid #eee;
+  padding-top: 20px;
+  color: #777;
+}
+
+.message {
+  background: #f8f0e6;
+  padding: 12px;
+  border-radius: 10px;
+}
+
+.serviceGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin: 70px 0 35px;
+}
+
+.serviceCard {
+  display: flex;
+  gap: 18px;
+  background: #faf9f6;
+  border: 1px solid #eee8df;
+  border-radius: 20px;
+  padding: 26px;
+}
+
+.serviceCard svg {
+  color: #8b6b42;
+  flex-shrink: 0;
+}
+
+.serviceCard img {
+  width: 30px;
+  height: 30px;
+}
+
+.serviceCard h2,
+.contentSection h2 {
+  margin: 0 0 12px;
+  font-size: 23px;
+}
+
+.serviceCard p {
+  color: #666;
+  line-height: 1.9;
+  margin: 7px 0;
+}
+
+.serviceCard a {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #218b50;
+  font-weight: 700;
+  text-decoration: none;
+  margin-top: 8px;
+}
+
+.contentSection {
+  border-top: 1px solid #eee;
+  padding-top: 35px;
+  margin-top: 35px;
+}
+
+.specs {
+  border: 1px solid #eee;
+  border-radius: 14px;
+  overflow: hidden;
+  margin-top: 20px;
+}
+
+.specRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 15px 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.specRow:last-child {
+  border-bottom: 0;
+}
+
+.specRow span {
+  color: #777;
+}
+
+.reviews {
+  display: grid;
+  gap: 15px;
+}
+
+.review {
+  border: 1px solid #eee;
+  border-radius: 14px;
+  padding: 18px;
+}
+
+.review p {
+  color: #666;
+}
+
+.relatedGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+}
+
+.relatedCard {
+  text-decoration: none;
+  color: inherit;
+  border: 1px solid #eee;
+  border-radius: 16px;
+  padding: 12px;
+}
+
+.relatedCard img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: contain;
+  background: #f7f6f3;
+  border-radius: 12px;
+}
+
+.relatedCard h3 {
+  font-size: 16px;
+}
+
+.relatedCard strong {
+  color: #8b6b42;
+}
+
+.state {
+  padding: 100px 20px;
+  text-align: center;
+}
+
+@media (max-width: 900px) {
+  .productSection,
+  .serviceGrid {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+
+  .relatedGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .page {
+    padding: 25px 15px 60px;
+  }
+
+  .serviceGrid {
+    margin-top: 40px;
+  }
+
+  .serviceCard {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .mainImage {
+    border-radius: 16px;
+  }
+
+  .info h1 {
+    font-size: 28px;
+  }
+
+  .cartButton {
+    flex: 1;
+  }
+
+  .specRow {
+    flex-direction: column;
+    gap: 5px;
+  }
+}

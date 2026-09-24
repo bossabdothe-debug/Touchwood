@@ -376,7 +376,25 @@ export const createProduct = async (req, res) => {
 /* =========================================================
    GET PRODUCT BY ID
 ========================================================= */
+export const getProductBySlug = async (req, res) => {
+  try {
+    const product = await Product.findOne({
+      slug: req.params.slug,
+    });
 
+    if (!product) {
+      return res.status(404).json({
+        message: "المنتج غير موجود",
+      });
+    }
+
+    res.status(200).json(product);
+  } catch (error) {
+    res.status(500).json({
+      message: "حدث خطأ في السيرفر",
+    });
+  }
+};
 export const getProductById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -421,57 +439,7 @@ export const getProductById = async (req, res) => {
   }
 };
 
-/* =========================================================
-   GET PRODUCT BY SLUG
-========================================================= */
 
-export const getProductBySlug = async (req, res) => {
-  try {
-    const { slug } = req.params;
-
-    const productBySlug = await Product.findOne({
-      slug: slug.toLowerCase(),
-      active: true,
-    });
-
-    if (!productBySlug) {
-      return res.status(404).json({
-        message: "Product is not found",
-      });
-    }
-
-    const reviews = await Review.find({
-      product: productBySlug._id,
-    })
-      .populate(
-        "user",
-        "firstName lastName name username"
-      )
-      .sort({
-        createdAt: -1,
-      });
-
-    const product = {
-      ...productBySlug.toObject(),
-      reviews,
-    };
-
-    return res.status(200).json(product);
-  } catch (error) {
-    console.error(
-      "GET PRODUCT BY SLUG ERROR:",
-      error
-    );
-
-    return res.status(500).json({
-      message: "Failed to fetch product",
-    });
-  }
-};
-
-/* =========================================================
-   UPDATE PRODUCT
-========================================================= */
 
 export const updateProduct = async (req, res) => {
   try {

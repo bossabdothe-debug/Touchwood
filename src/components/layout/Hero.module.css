@@ -1,6 +1,6 @@
 .hero {
   width: 100%;
-  padding: 34px 32px 40px;
+  padding: 34px 32px 20px;
   background: var(--background);
   overflow: hidden;
 }
@@ -127,7 +127,7 @@
 
 @media (max-width: 480px) {
   .hero {
-    padding: 20px 0 26px;
+    padding: 20px 0 15px;
   }
 
   .mobileCategories :global(.swiper) {

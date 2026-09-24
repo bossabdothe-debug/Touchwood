@@ -1,8 +1,8 @@
 .card {
   width: 100%;
   min-width: 0;
-  background: var(--background-white);
-  border: 1px solid var(--border-light);
+  background: #ffffff;
+  border: 1px solid #e8ebe9;
   border-radius: 14px;
   overflow: hidden;
   transition:
@@ -20,64 +20,84 @@
 .imageContainer {
   position: relative;
   width: 100%;
-  aspect-ratio: 1 / 1;
+  height: 250px;
   overflow: hidden;
-  background: #f7f7f7;
+  background: #ffffff;
+  border-bottom: 1px solid #f0f1f2;
 }
 
 .imageLink {
-  display: block;
   width: 100%;
   height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
 }
 
 .image {
   width: 100%;
   height: 100%;
   display: block;
-  object-fit: cover;
-  transition: transform 0.45s ease;
+  object-fit: contain;
+  object-position: center;
 }
 
-.card:hover .image {
-  transform: scale(1.04);
-}
-
-.sideActions {
-  position: absolute;
-  top: 14px;
-  inset-inline-start: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  opacity: 0;
-  transform: translateX(-10px);
-  transition:
-    opacity 0.25s ease,
-    transform 0.25s ease;
-  z-index: 2;
-}
-
-.card:hover .sideActions {
-  opacity: 1;
-  transform: translateX(0);
-}
-
-.actionButton {
-  width: 38px;
-  height: 38px;
+.noImage {
+  width: 100%;
+  height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 0;
+  color: #999999;
+  font-size: 12px;
+}
+
+.discountBadge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 4;
+  min-width: 48px;
+  height: 30px;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f07e1b;
+  color: #ffffff;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.topActions {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.actionButton {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e5e7eb;
   border-radius: 50%;
-  background: var(--background-white);
-  color: var(--text-primary);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  background: rgba(255, 255, 255, 0.96);
+  color: #555555;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.09);
   cursor: pointer;
   transition:
     color 0.2s ease,
     background 0.2s ease,
+    border-color 0.2s ease,
     transform 0.2s ease;
 }
 
@@ -88,106 +108,82 @@
 }
 
 .actionButton:hover {
-  color: #ffffff;
-  background: var(--primary);
-  transform: scale(1.08);
+  color: #238a37;
+  border-color: #238a37;
+  transform: scale(1.06);
 }
 
-.cartButton {
-  position: absolute;
-  bottom: 12px;
-  left: 50%;
-  transform: translate(-50%, 15px);
-  height: 42px;
-  min-width: 145px;
-  padding: 0 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border: 0;
-  border-radius: 22px;
-  background: var(--primary);
-  color: #ffffff;
-  font-family: inherit;
-  font-size: 11px;
-  font-weight: 600;
-  white-space: nowrap;
-  box-shadow: 0 5px 16px rgba(35, 138, 55, 0.25);
-  opacity: 0;
-  visibility: hidden;
-  cursor: pointer;
-  transition:
-    opacity 0.25s ease,
-    visibility 0.25s ease,
-    transform 0.25s ease,
-    background 0.2s ease;
-  z-index: 2;
+.actionActive {
+  color: #238a37;
+  border-color: #238a37;
+  background: #f0f8f2;
 }
 
-.card:hover .cartButton {
-  opacity: 1;
-  visibility: visible;
-  transform: translate(-50%, 0);
-}
-
-.cartButton svg {
-  width: 17px;
-  height: 17px;
-  stroke-width: 2;
-}
-
-.cartButton:hover {
-  background: var(--primary-dark);
+.filledIcon {
+  fill: currentColor;
 }
 
 .content {
-  padding: 13px 14px 15px;
+  padding: 13px 14px 14px;
+}
+
+.category {
+  position: relative;
+  display: inline-block;
+  width: fit-content;
+  max-width: 100%;
+  padding-bottom: 5px;
+  color: #238a37;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.5;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.category::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 2px;
+  border-radius: 2px;
+  background: #f07e1b;
+}
+
+.category:hover {
+  color: #1d7430;
 }
 
 .productName {
-  display: block;
+  display: -webkit-box;
   width: 100%;
+  height: 44px;
+  margin-top: 8px;
   overflow: hidden;
-  color: var(--text-primary);
+  color: #111111;
   font-size: 13px;
   font-weight: 600;
   line-height: 1.7;
   text-decoration: none;
-  white-space: nowrap;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
   text-overflow: ellipsis;
-  transition: color 0.2s ease;
 }
 
 .productName:hover {
-  color: var(--primary);
-}
-
-.category {
-  display: block;
-  width: 100%;
-  margin-top: 2px;
-  overflow: hidden;
-  color: var(--text-light);
-  font-size: 10px;
-  font-weight: 400;
-  line-height: 1.7;
-  text-decoration: none;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  transition: color 0.2s ease;
-}
-
-.category:hover {
-  color: var(--primary);
+  color: #238a37;
 }
 
 .rating {
-  min-height: 22px;
-  margin-top: 5px;
+  min-height: 23px;
+  margin-top: 7px;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   direction: ltr;
 }
 
@@ -198,8 +194,8 @@
 }
 
 .stars svg {
-  width: 13px;
-  height: 13px;
+  width: 14px;
+  height: 14px;
   stroke-width: 1.8;
 }
 
@@ -209,41 +205,43 @@
 }
 
 .starInactive {
-  color: #d7d9dc;
+  color: #d6d9dc;
   fill: transparent;
 }
 
 .ratingValue {
-  color: var(--text-secondary);
+  color: #555555;
   font-size: 10px;
-  font-weight: 500;
-  margin-inline-start: 2px;
+  font-weight: 600;
 }
 
 .reviewsCount {
-  color: var(--text-light);
+  color: #999999;
   font-size: 9px;
-  font-weight: 400;
 }
 
 .prices {
-  margin-top: 5px;
+  min-height: 27px;
+  margin-top: 6px;
   display: flex;
   align-items: center;
+  justify-content: space-between; /* يوزع السعرين على الأطراف */
+  flex-direction: row-reverse;    /* يعكس الأماكن لتثبيت الحالي على اليسار والقديم على اليمين */
   flex-wrap: wrap;
   gap: 8px;
 }
 
 .currentPrice {
-  color: #e53935;
-  font-size: 14px;
+  color: #238a37;
+  font-size: 15px;
   font-weight: 700;
   line-height: 1.5;
   white-space: nowrap;
+  
 }
 
 .oldPrice {
-  color: #9a9a9a;
+  color: #999999;
   font-size: 10px;
   font-weight: 400;
   line-height: 1.5;
@@ -251,101 +249,96 @@
   white-space: nowrap;
 }
 
-@media (max-width: 850px) {
-  .card {
-    border-radius: 12px;
-  }
+.cartButton {
+  width: 100%;
+  height: 42px;
+  margin-top: 12px;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 7px;
+  background: #238a37;
+  color: #ffffff;
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
 
+.cartButton:hover {
+  background: #1d7430;
+  transform: translateY(-1px);
+}
+
+.cartButton svg {
+  width: 17px;
+  height: 17px;
+  stroke-width: 2;
+}
+
+@media (max-width: 850px) {
   .card:hover {
     transform: none;
     box-shadow: none;
   }
 
   .imageContainer {
-    aspect-ratio: 1 / 1;
+    height: 220px;
   }
 
-  .sideActions {
-    top: 10px;
-    inset-inline-start: 10px;
-    gap: 6px;
-    opacity: 1;
-    transform: none;
-  }
-
-  .actionButton {
-    width: 34px;
-    height: 34px;
-  }
-
-  .actionButton svg {
-    width: 15px;
-    height: 15px;
-  }
-
-  .cartButton {
-    bottom: 10px;
-    min-width: 130px;
-    height: 38px;
-    padding: 0 14px;
-    font-size: 10px;
-    opacity: 1;
-    visibility: visible;
-    transform: translate(-50%, 0);
-  }
-
-  .cartButton svg {
-    width: 15px;
-    height: 15px;
+  .imageLink {
+    padding: 12px;
   }
 
   .content {
-    padding: 11px 11px 13px;
+    padding: 12px;
   }
 
   .productName {
     font-size: 12px;
   }
 
-  .category {
-    font-size: 9px;
-  }
-
-  .rating {
-    margin-top: 4px;
-  }
-
-  .stars svg {
-    width: 12px;
-    height: 12px;
-  }
-
-  .ratingValue {
-    font-size: 9px;
-  }
-
-  .reviewsCount {
-    font-size: 8px;
-  }
-
-  .prices {
-    margin-top: 4px;
-    gap: 6px;
-  }
-
   .currentPrice {
-    font-size: 12px;
+    font-size: 13px;
   }
 
-  .oldPrice {
-    font-size: 9px;
+  .cartButton {
+    height: 40px;
   }
 }
 
 @media (max-width: 480px) {
-  .sideActions {
+  .card {
+    border-radius: 11px;
+  }
+
+  .imageContainer {
+    height: 180px;
+  }
+
+  .imageLink {
+    padding: 9px;
+  }
+
+  .discountBadge {
     top: 8px;
-    inset-inline-start: 8px;
+    left: 8px;
+    min-width: 43px;
+    height: 27px;
+    padding: 0 8px;
+    font-size: 9px;
+  }
+
+  .topActions {
+    top: 8px;
+    right: 8px;
+    gap: 5px;
   }
 
   .actionButton {
@@ -358,29 +351,46 @@
     height: 14px;
   }
 
-  .cartButton {
-    min-width: 118px;
-    height: 35px;
-    bottom: 8px;
-    font-size: 9px;
-    gap: 6px;
-  }
-
-  .cartButton svg {
-    width: 14px;
-    height: 14px;
-  }
-
   .content {
-    padding: 9px 9px 11px;
-  }
-
-  .productName {
-    font-size: 11px;
+    padding: 10px;
   }
 
   .category {
     font-size: 8px;
+  }
+
+  .productName {
+    height: 39px;
+    margin-top: 6px;
+    font-size: 10px;
+    line-height: 1.7;
+  }
+
+  .rating {
+    margin-top: 5px;
+    gap: 3px;
+  }
+
+  .stars {
+    gap: 0;
+  }
+
+  .stars svg {
+    width: 11px;
+    height: 11px;
+  }
+
+  .ratingValue {
+    font-size: 8px;
+  }
+
+  .reviewsCount {
+    font-size: 7px;
+  }
+
+  .prices {
+    margin-top: 4px;
+    gap: 5px;
   }
 
   .currentPrice {
@@ -389,5 +399,18 @@
 
   .oldPrice {
     font-size: 8px;
+  }
+
+  .cartButton {
+    height: 35px;
+    margin-top: 9px;
+    padding: 0 8px;
+    gap: 5px;
+    font-size: 9px;
+  }
+
+  .cartButton svg {
+    width: 14px;
+    height: 14px;
   }
 }

@@ -25,8 +25,7 @@ router.post(
   createProduct
 );
 
-router.get("/:id", getProductById);
-
+router.get("/slug/:slug", getProductBySlug);
 router.put(
   "/:id",
   authMiddleware,

@@ -79,6 +79,10 @@ type StockFilter =
   | "low"
   | "out";
 
+type FeaturedFilter =
+  | "all"
+  | "featured";
+
 const LOW_STOCK_THRESHOLD = 5;
 
 const categories = [
@@ -180,6 +184,9 @@ export default function ProductsPage() {
   const [stockFilter, setStockFilter] =
     useState<StockFilter>("all");
 
+  const [featuredFilter, setFeaturedFilter] =
+    useState<FeaturedFilter>("all");
+
   const [showForm, setShowForm] =
     useState(false);
 
@@ -196,6 +203,15 @@ export default function ProductsPage() {
     useState(false);
 
   const [deleting, setDeleting] =
+    useState(false);
+
+  const [selectedProducts, setSelectedProducts] =
+    useState<string[]>([]);
+
+  const [bulkDeleteOpen, setBulkDeleteOpen] =
+    useState(false);
+
+  const [bulkDeleting, setBulkDeleting] =
     useState(false);
 
   /*
@@ -390,10 +406,16 @@ export default function ProductsPage() {
           product.stock >
             LOW_STOCK_THRESHOLD);
 
+      const matchesFeatured =
+        featuredFilter === "all" ||
+        (featuredFilter === "featured" &&
+          product.featured === true);
+
       return (
         matchesSearch &&
         matchesCategory &&
-        matchesStock
+        matchesStock &&
+        matchesFeatured
       );
     });
   }, [
@@ -401,6 +423,7 @@ export default function ProductsPage() {
     search,
     categoryFilter,
     stockFilter,
+    featuredFilter,
   ]);
 
   const openCreateForm = () => {
@@ -888,6 +911,133 @@ export default function ProductsPage() {
     }
   };
 
+  const toggleProductSelection = (
+    productId: string
+  ) => {
+    setSelectedProducts((current) =>
+      current.includes(productId)
+        ? current.filter(
+            (id) => id !== productId
+          )
+        : [...current, productId]
+    );
+  };
+
+  const visibleProductIds =
+    filteredProducts.map(
+      (product) => product._id
+    );
+
+  const allVisibleSelected =
+    filteredProducts.length > 0 &&
+    filteredProducts.every((product) =>
+      selectedProducts.includes(
+        product._id
+      )
+    );
+
+  const toggleSelectAll = () => {
+    if (allVisibleSelected) {
+      setSelectedProducts((current) =>
+        current.filter(
+          (id) =>
+            !visibleProductIds.includes(id)
+        )
+      );
+
+      return;
+    }
+
+    setSelectedProducts((current) => [
+      ...new Set([
+        ...current,
+        ...visibleProductIds,
+      ]),
+    ]);
+  };
+
+  const handleBulkDelete = async () => {
+    if (!selectedProducts.length) {
+      return;
+    }
+
+    const token =
+      localStorage.getItem("token");
+
+    if (!token) {
+      showMessage(
+        "يرجى تسجيل الدخول كمسؤول أولًا",
+        "error"
+      );
+      return;
+    }
+
+    try {
+      setBulkDeleting(true);
+
+      const results = await Promise.allSettled(
+        selectedProducts.map((productId) =>
+          deleteProduct(
+            token,
+            productId
+          )
+        )
+      );
+
+      const deletedIds = selectedProducts.filter(
+        (_, index) =>
+          results[index].status === "fulfilled"
+      );
+
+      setProducts((current) =>
+        current.filter(
+          (product) =>
+            !deletedIds.includes(
+              product._id
+            )
+        )
+      );
+
+      setSelectedProducts((current) =>
+        current.filter(
+          (id) =>
+            !deletedIds.includes(id)
+        )
+      );
+
+      setBulkDeleteOpen(false);
+
+      if (
+        deletedIds.length ===
+        selectedProducts.length
+      ) {
+        showMessage(
+          "تم حذف المنتجات المحددة بنجاح",
+          "success"
+        );
+      } else if (deletedIds.length > 0) {
+        showMessage(
+          `تم حذف ${deletedIds.length} من أصل ${selectedProducts.length} منتجات، وتعذر حذف بعض المنتجات`,
+          "error"
+        );
+      } else {
+        showMessage(
+          "تعذر حذف المنتجات المحددة",
+          "error"
+        );
+      }
+    } catch (error) {
+      showMessage(
+        error instanceof Error
+          ? error.message
+          : "تعذر حذف المنتجات المحددة",
+        "error"
+      );
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
   const handleDelete = async () => {
     if (!deleteTarget) {
       return;
@@ -921,6 +1071,13 @@ export default function ProductsPage() {
       );
 
       setDeleteTarget(null);
+
+      setSelectedProducts((current) =>
+        current.filter(
+          (id) =>
+            id !== deleteTarget._id
+        )
+      );
 
       showMessage(
         "تم حذف المنتج بنجاح",
@@ -1155,6 +1312,33 @@ export default function ProductsPage() {
             </div>
           </div>
 
+          <div className="products-filter products-featured-filter">
+            <span>
+              المنتجات المميزة
+            </span>
+
+            <div className="products-select-wrap">
+              <select
+                value={featuredFilter}
+                onChange={(event) =>
+                  setFeaturedFilter(
+                    event.target.value as FeaturedFilter
+                  )
+                }
+              >
+                <option value="all">
+                  جميع المنتجات
+                </option>
+
+                <option value="featured">
+                  المنتجات المميزة فقط
+                </option>
+              </select>
+
+              <ChevronDown size={16} />
+            </div>
+          </div>
+
           <div className="products-count">
             <strong>
               {
@@ -1167,6 +1351,50 @@ export default function ProductsPage() {
             </span>
           </div>
         </section>
+
+        {filteredProducts.length > 0 && (
+          <div className="products-selection-toolbar">
+            <label className="products-select-all">
+              <input
+                type="checkbox"
+                checked={allVisibleSelected}
+                onChange={toggleSelectAll}
+              />
+
+              <span className="products-checkbox-ui">
+                <Check size={14} />
+              </span>
+
+              <span>
+                تحديد الكل
+              </span>
+            </label>
+
+            {selectedProducts.length > 0 && (
+              <div className="products-selection-actions">
+                <span className="products-selected-count">
+                  تم تحديد{" "}
+                  <strong>
+                    {selectedProducts.length}
+                  </strong>{" "}
+                  منتج
+                </span>
+
+                <button
+                  type="button"
+                  className="products-bulk-delete-button"
+                  onClick={() =>
+                    setBulkDeleteOpen(true)
+                  }
+                >
+                  <Trash2 size={17} />
+
+                  حذف المحدد
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Product Cards */}
 
@@ -1190,11 +1418,35 @@ export default function ProductsPage() {
 
                 return (
                   <article
-                    className="product-card"
+                    className={`product-card ${
+                      selectedProducts.includes(
+                        product._id
+                      )
+                        ? "product-card-selected"
+                        : ""
+                    }`}
                     key={
                       product._id
                     }
                   >
+                    <label className="product-selection-checkbox">
+                      <input
+                        type="checkbox"
+                        checked={selectedProducts.includes(
+                          product._id
+                        )}
+                        onChange={() =>
+                          toggleProductSelection(
+                            product._id
+                          )
+                        }
+                      />
+
+                      <span className="products-checkbox-ui">
+                        <Check size={14} />
+                      </span>
+                    </label>
+
                     <div className="product-card-image">
                       {image ? (
                         <img
@@ -1396,6 +1648,9 @@ export default function ProductsPage() {
                   "all"
                 );
                 setStockFilter(
+                  "all"
+                );
+                setFeaturedFilter(
                   "all"
                 );
               }}
@@ -2610,6 +2865,79 @@ export default function ProductsPage() {
 
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {bulkDeleteOpen && (
+        <div className="delete-modal-layer">
+          <div
+            className="delete-modal-backdrop"
+            onClick={() =>
+              !bulkDeleting &&
+              setBulkDeleteOpen(false)
+            }
+          />
+
+          <div className="delete-modal">
+            <div className="delete-icon">
+              <Trash2 size={25} />
+            </div>
+
+            <h2>
+              حذف المنتجات المحددة؟
+            </h2>
+
+            <p>
+              هل أنت متأكد أنك تريد حذف
+              المنتجات المحددة؟
+            </p>
+
+            <strong>
+              تم تحديد {selectedProducts.length} منتج
+            </strong>
+
+            <span>
+              سيتم حذف المنتجات المحددة
+              والصور المرتبطة بها من النظام.
+            </span>
+
+            <div className="delete-modal-actions">
+              <button
+                type="button"
+                className="delete-cancel"
+                disabled={bulkDeleting}
+                onClick={() =>
+                  setBulkDeleteOpen(false)
+                }
+              >
+                إلغاء
+              </button>
+
+              <button
+                type="button"
+                className="delete-confirm"
+                disabled={bulkDeleting}
+                onClick={handleBulkDelete}
+              >
+                {bulkDeleting ? (
+                  <>
+                    <Loader2
+                      size={17}
+                      className="products-spin"
+                    />
+
+                    جاري الحذف...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={17} />
+
+                    نعم، حذف المنتجات
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}

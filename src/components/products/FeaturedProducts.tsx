@@ -1,0 +1,135 @@
+
+"use client";
+import "./FeaturedProducts.css";
+import { useEffect, useState } from "react";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Navigation, Autoplay } from "swiper/modules";
+import "swiper/css";
+import "swiper/css/navigation";
+
+import ProductCard from "./ProductCard";
+import { getProducts } from "@/services/api";
+
+type Localized = {
+  ar: string;
+  en: string;
+};
+
+type Product = {
+  _id: string;
+  name: Localized;
+  description?: Localized;
+  slug: string;
+  category: string;
+  price: number;
+  oldPrice?: number | null;
+  serialNumber?: string;
+  stock: number;
+  media?: {
+    type?: "image" | "video";
+    url: string;
+    thumbnail?: string;
+    alt?: Localized;
+    sortOrder?: number;
+    isPrimary?: boolean;
+  }[];
+  rating?: number;
+  reviewsCount?: number;
+  featured?: boolean;
+  active?: boolean;
+};
+
+export default function FeaturedProducts() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadFeaturedProducts = async () => {
+      try {
+        const data = await getProducts({
+          featured: true,
+          active: true,
+        });
+
+        setProducts(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error("Failed to load featured products:", error);
+        setProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadFeaturedProducts();
+  }, []);
+
+  if (!loading && products.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="featured-products">
+      <div className="featured-products__container">
+        <div className="featured-products__header">
+          <div>
+            <span className="featured-products__eyebrow">
+              Touch Wood
+            </span>
+
+            <h2 className="featured-products__title">
+              المنتجات المميزة
+            </h2>
+
+            <p className="featured-products__description">
+              اكتشف مجموعة مختارة من منتجاتنا المميزة
+            </p>
+          </div>
+        </div>
+
+        {loading ? (
+          <div className="featured-products__loading">
+            جاري تحميل المنتجات...
+          </div>
+        ) : (
+          <Swiper
+            modules={[Navigation, Autoplay]}
+            dir="rtl"
+            navigation
+            autoplay={{
+              delay: 3500,
+              disableOnInteraction: false,
+            }}
+            loop={products.length > 4}
+            spaceBetween={18}
+            slidesPerView={2}
+            breakpoints={{
+              480: {
+                slidesPerView: 1.5,
+                spaceBetween: 14,
+              },
+              640: {
+                slidesPerView: 2,
+                spaceBetween: 16,
+              },
+              900: {
+                slidesPerView: 3,
+                spaceBetween: 18,
+              },
+              1200: {
+                slidesPerView: 4,
+                spaceBetween: 20,
+              },
+            }}
+            className="featured-products__swiper"
+          >
+            {products.map((product) => (
+              <SwiperSlide key={product._id}>
+                <ProductCard product={product} />
+              </SwiperSlide>
+            ))}
+          </Swiper>
+        )}
+      </div>
+    </section>
+  );
+}

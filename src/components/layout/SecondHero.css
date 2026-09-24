@@ -1,0 +1,117 @@
+.secondHero {
+  width: 100%;
+  padding: 0px 0 24px;
+  background: #fdfdff;
+}
+
+.secondHeroContainer {
+  width: 100%;
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 0 16px;
+  box-sizing: border-box;
+}
+
+.secondHeroSwiper {
+  width: 100%;
+  overflow: hidden;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.secondHeroSlide {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 21 / 9;
+  min-height: 220px;
+  max-height: 500px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fdfdff;
+}
+
+.secondHeroImage {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.secondHeroSwiper :global(.swiper-pagination) {
+  bottom: 12px;
+}
+
+.secondHeroSwiper :global(.swiper-pagination-bullet) {
+  width: 8px;
+  height: 8px;
+  background-color: #fff;
+  opacity: 0.5;
+}
+
+.secondHeroSwiper :global(.swiper-pagination-bullet-active) {
+  width: 24px;
+  border-radius: 10px;
+  background-color: #e3000f;
+  opacity: 1;
+}
+
+.secondHeroSwiper :global(.swiper-button-next),
+.secondHeroSwiper :global(.swiper-button-prev) {
+  color: #ffffff;
+  opacity: 0.7;
+  transform: scale(0.6);
+  transition: 0.3s;
+}
+
+.secondHeroSwiper :global(.swiper-button-next:hover),
+.secondHeroSwiper :global(.swiper-button-prev:hover) {
+  opacity: 1;
+  transform: scale(0.7);
+}
+
+@media (max-width: 768px) {
+  .secondHero {
+  padding: 0px 10px 24px;
+  }
+
+  .secondHeroContainer {
+    padding: 0;
+  }
+
+  .secondHeroSwiper {
+    border-radius: 12px;
+  }
+
+  .secondHeroSlide {
+    min-height: 0;
+    max-height: none;
+    aspect-ratio: 3 / 1;
+    background: #fdfdff;
+  }
+
+  .secondHeroImage {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+  }
+
+  .secondHeroSwiper :global(.swiper-pagination) {
+    bottom: 8px;
+  }
+
+  .secondHeroSwiper :global(.swiper-pagination-bullet) {
+    width: 6px;
+    height: 6px;
+  }
+
+  .secondHeroSwiper :global(.swiper-pagination-bullet-active) {
+    width: 16px;
+  }
+
+  .secondHeroSwiper :global(.swiper-button-next),
+  .secondHeroSwiper :global(.swiper-button-prev) {
+    display: none;
+  }
+}
