@@ -28,34 +28,34 @@ export default function Footer() {
   const productCategories = [
     {
       label: isArabic ? "مكاتب وطاولات كمبيوتر" : "Computer Tables",
-      href: `/${locale}/category/computer-tables`,
+      href: `/${locale}/shop?category=computer-desks`,
     },
     {
       label: isArabic ? "كراسي" : "Chairs",
-      href: `/${locale}/category/office-chairs`,
+      href: `/${locale}/shop?category=chairs`,
     },
     {
       label: isArabic ? "انتريهات مكتبية" : "Office Seating Sets",
-      href: `/${locale}/category/office-seating-sets`,
+      href: `/${locale}/shop?category=office-sofas`,
     },
     {
       label: isArabic ? "خلايا العمل" : "Working Stations",
-      href: `/${locale}/category/working-stations`,
+      href: `/${locale}/shop?category=work-cells`,
     },
     {
       label: isArabic ? "كاونتر استقبال" : "Reception Desks",
-      href: `/${locale}/category/reception-desks`,
+      href: `/${locale}/shop?category=reception-counters`,
     },
     {
       label: isArabic ? "ترابيزات اجتماعات" : "Meeting Tables",
-      href: `/${locale}/category/meeting-tables`,
+      href: `/${locale}/shop?category=meeting-tables`,
     },
     {
       label:
         isArabic
           ? "اكسسوارات الأثاث المكتبي"
           : "Office Furniture Accessories",
-      href: `/${locale}/category/office-furniture-accessories`,
+      href: `/${locale}/shop?category=office-accessories`,
     },
   ];
 
@@ -188,14 +188,14 @@ export default function Footer() {
 
             <div className={styles.linksList}>
               {productCategories.map((category) => (
-                <Link
+                <a
                   key={category.href}
                   href={category.href}
                   className={styles.footerLink}
                 >
                   <span>{category.label}</span>
                   <FiArrowUpLeft />
-                </Link>
+                </a>
               ))}
             </div>
           </div>

@@ -471,4 +471,64 @@
 
 .logo:hover .companyName::after {
   width: 42px;
+}.searchBox {
+  position: relative;
+}
+
+.searchResults {
+  position: absolute;
+  top: calc(100% + 10px);
+  inset-inline: 0;
+  z-index: 1000;
+  width: 100%;
+  min-width: 280px;
+  max-height: 380px;
+  overflow-y: auto;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.12);
+}
+
+.searchResultItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  color: #1f2937;
+  text-decoration: none;
+  border-bottom: 1px solid #f0f0f0;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.searchResultItem:last-child {
+  border-bottom: none;
+}
+
+.searchResultItem:hover {
+  background: #f3f7f2;
+  color: #315b3b;
+}
+
+.searchResultName {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.searchResultCategory {
+  display: block;
+  color: #7b827d;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.searchMessage {
+  padding: 18px 14px;
+  color: #737373;
+  font-size: 14px;
+  text-align: center;
 }

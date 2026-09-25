@@ -97,23 +97,29 @@ export default function MobileTopNavbar() {
             <FiMenu />
           </button>
 
-          <Link
-            href={`/${locale}`}
-            className={styles.logo}
-            onClick={closeMenu}
-          >
-            <Image
-              src="/logo/logo.jpeg"
-              alt={locale === "ar" ? "تاتش وود" : "Touch Wood"}
-              width={180}
-              height={68}
-              priority
-            />
+       <a
+  href={`/${locale}`}
+  className={styles.logo}
+  onClick={(event) => {
+    event.preventDefault();
+    closeMenu();
+    window.location.assign(`/${locale}`);
+  }}
+>
+  <Image
+    src="/logo/logo.jpeg"
+    alt={locale === "ar" ? "تاتش وود" : "Touch Wood"}
+    width={180}
+    height={68}
+    priority
+  />
 
-            <span className={styles.companyName}>
-              {locale === "ar" ? "تاتش وود للأثاث المكتبي" : "Touch Wood Furniture"}
-            </span>
-          </Link>
+  <span className={styles.companyName}>
+    {locale === "ar"
+      ? "تاتش وود للأثاث المكتبي"
+      : "Touch Wood Furniture"}
+  </span>
+</a>
 
           <Link
             href={`/${locale}/login`}

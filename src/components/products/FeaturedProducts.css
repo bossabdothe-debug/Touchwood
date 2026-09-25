@@ -1,100 +1,261 @@
+
 .featured-products {
+  position: relative;
   width: 100%;
   padding: 80px 24px;
-  background:transparent;
-}
-
-.featured-products__container {
-  width: 100%;
-  max-width: 14400px;
-  margin: 0 auto;
-  padding: 52px 48px 58px;
-  border-radius: 32px;
-  background:
-    radial-gradient(
-      circle at 100% 0%,
-      rgba(255, 255, 255, 0.09),
-      transparent 30%
-    ),
-    radial-gradient(
-      circle at 0% 100%,
-      rgba(240, 126, 27, 0.13),
-      transparent 28%
-    ),
-    #238a37;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.16);
+  background: transparent;
   overflow: hidden;
 }
 
+/* خلفية زخرفية خارج الحاوية */
+.featured-products::before,
+.featured-products::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  border-radius: 50%;
+  border: 1px solid rgba(35, 138, 55, 0.12);
+}
+
+.featured-products::before {
+  width: 380px;
+  height: 380px;
+  top: -260px;
+  left: -180px;
+  box-shadow:
+    0 0 0 35px rgba(35, 138, 55, 0.035),
+    0 0 0 70px rgba(35, 138, 55, 0.025);
+}
+
+.featured-products::after {
+  width: 420px;
+  height: 420px;
+  right: -240px;
+  bottom: -280px;
+  box-shadow:
+    0 0 0 35px rgba(240, 126, 27, 0.035),
+    0 0 0 70px rgba(240, 126, 27, 0.02);
+}
+
+/* الحاوية الرئيسية */
+.featured-products__container {
+  position: relative;
+  isolation: isolate;
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 64px 48px 58px;
+  border-radius: 34px;
+  overflow: hidden;
+
+  background:
+    radial-gradient(
+      ellipse at 100% 0%,
+      rgba(139, 207, 94, 0.48) 0%,
+      rgba(139, 207, 94, 0.16) 22%,
+      transparent 42%
+    ),
+    radial-gradient(
+      ellipse at 0% 100%,
+      rgba(103, 176, 65, 0.42) 0%,
+      rgba(103, 176, 65, 0.12) 24%,
+      transparent 45%
+    ),
+    radial-gradient(
+      ellipse at 50% 110%,
+      rgba(39, 112, 44, 0.8) 0%,
+      transparent 52%
+    ),
+    linear-gradient(
+      135deg,
+      #0b4824 0%,
+      #10602d 30%,
+      #176d35 58%,
+      #0b4824 100%
+    );
+
+  border: 1px solid rgba(255, 255, 255, 0.14);
+
+  box-shadow:
+    0 26px 65px rgba(12, 71, 35, 0.2),
+    0 8px 25px rgba(0, 0, 0, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.13);
+}
+
+/* دائرة خضراء فاتحة في الركن العلوي */
+.featured-products__container::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  width: 480px;
+  height: 480px;
+  top: -350px;
+  right: -140px;
+  border-radius: 50%;
+
+  background:
+    radial-gradient(
+      circle,
+      rgba(154, 218, 104, 0.68) 0%,
+      rgba(119, 190, 78, 0.35) 46%,
+      rgba(119, 190, 78, 0.04) 72%,
+      transparent 73%
+    );
+
+  pointer-events: none;
+}
+
+/* زخرفة سفلية خضراء */
+.featured-products__container::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  width: 430px;
+  height: 250px;
+  left: -180px;
+  bottom: -190px;
+  border-radius: 50%;
+
+  background:
+    radial-gradient(
+      ellipse,
+      rgba(130, 199, 78, 0.55) 0%,
+      rgba(86, 159, 61, 0.24) 52%,
+      transparent 70%
+    );
+
+  border: 1px solid rgba(169, 225, 119, 0.25);
+  box-shadow:
+    0 0 0 25px rgba(126, 194, 79, 0.035),
+    0 0 0 50px rgba(126, 194, 79, 0.025);
+
+  pointer-events: none;
+}
+
+/* الخط البرتقالي الزخرفي العلوي */
 .featured-products__header {
+  position: relative;
+  z-index: 2;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
+  gap: 24px;
   margin-bottom: 42px;
 }
 
+.featured-products__header::before {
+  content: "";
+  position: absolute;
+  width: 270px;
+  height: 270px;
+  top: -175px;
+  left: -190px;
+  border: 3px solid rgba(240, 126, 27, 0.9);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* العنوان الفرعي */
 .featured-products__eyebrow {
-  display: inline-block;
-  margin-bottom: 12px;
-  color: #f07e1b;
-  font-size: 16px;
-  font-weight: 700;
-  letter-spacing: 1.5px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+
+  color: #f6a04f;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 1.8px;
   text-transform: uppercase;
 }
 
+.featured-products__eyebrow::before {
+  content: "";
+  width: 36px;
+  height: 4px;
+  border-radius: 20px;
+  background: #f07e1b;
+  box-shadow: 0 0 14px rgba(240, 126, 27, 0.35);
+}
+
+/* العنوان الرئيسي */
 .featured-products__title {
+  position: relative;
+  max-width: 700px;
   margin: 0;
+
   color: #ffffff;
   font-size: 42px;
   font-weight: 800;
-  line-height: 1.35;
+  line-height: 1.4;
+  letter-spacing: -0.7px;
+  text-wrap: balance;
+
+  text-shadow: 0 3px 18px rgba(0, 0, 0, 0.12);
 }
 
+/* الوصف */
 .featured-products__description {
-  margin: 12px 0 0;
-  color: rgba(255, 255, 255, 0.82);
+  max-width: 650px;
+  margin: 14px 0 0;
+
+  color: rgba(255, 255, 255, 0.84);
   font-size: 17px;
   font-weight: 400;
-  line-height: 1.9;
+  line-height: 1.95;
 }
 
+/* السلايدر */
 .featured-products__swiper {
+  position: relative;
+  z-index: 2;
   width: 100%;
-  padding: 8px 4px 18px !important;
+  padding: 10px 8px 26px !important;
 }
 
 .featured-products__swiper .swiper-slide {
   height: auto;
+  transition:
+    transform 0.3s ease,
+    opacity 0.3s ease;
 }
 
+/* أزرار التنقل */
 .featured-products__swiper .swiper-button-prev,
 .featured-products__swiper .swiper-button-next {
-  width: 50px;
-  height: 50px;
+  width: 52px;
+  height: 52px;
+  margin-top: -26px;
+
   border-radius: 50%;
-  background: #ffffff;
-  border: 2px solid rgba(255, 255, 255, 0.5);
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.18);
+  background: transparent;
+
+  
   transition:
     background 0.25s ease,
     border-color 0.25s ease,
-    transform 0.25s ease;
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
 }
 
 .featured-products__swiper .swiper-button-prev::after,
 .featured-products__swiper .swiper-button-next::after {
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 900;
-  color: #176d29;
+  color: #168044;
+  transition: color 0.25s ease;
 }
 
 .featured-products__swiper .swiper-button-prev:hover,
 .featured-products__swiper .swiper-button-next:hover {
   background: #f07e1b;
   border-color: #f07e1b;
-  transform: scale(1.06);
+  transform: scale(1.08);
+
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.22),
+    0 0 0 6px rgba(240, 126, 27, 0.14);
 }
 
 .featured-products__swiper .swiper-button-prev:hover::after,
@@ -102,28 +263,14 @@
   color: #ffffff;
 }
 
-.featured-products__loading {
-  min-height: 320px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #ffffff;
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.featured-products__swiper .swiper-button-disabled {
-  opacity: 0.45;
-}
-
 .featured-products__swiper .swiper-button-prev {
   right: auto;
-  left: 10px;
+  left: 8px;
 }
 
 .featured-products__swiper .swiper-button-next {
   left: auto;
-  right: 10px;
+  right: 8px;
 }
 
 .featured-products__swiper .swiper-button-prev,
@@ -131,13 +278,57 @@
   z-index: 10;
 }
 
+.featured-products__swiper .swiper-button-disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* حالة التحميل */
+.featured-products__loading {
+  min-height: 320px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.featured-products__loading::before {
+  content: "";
+  width: 27px;
+  height: 27px;
+  border: 3px solid rgba(255, 255, 255, 0.25);
+  border-top-color: #f07e1b;
+  border-radius: 50%;
+  animation: featuredProductsSpin 0.8s linear infinite;
+}
+
+@keyframes featuredProductsSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* روابط المنتجات */
+.featured-products__link {
+  display: block;
+  width: 100%;
+  height: 100%;
+  color: inherit;
+  text-decoration: none;
+}
+
+/* الشاشات المتوسطة */
 @media (max-width: 1100px) {
   .featured-products {
     padding: 65px 20px;
   }
 
   .featured-products__container {
-    padding: 44px 34px 50px;
+    padding: 48px 34px 52px;
   }
 
   .featured-products__title {
@@ -147,61 +338,105 @@
   .featured-products__description {
     font-size: 16px;
   }
+
+  .featured-products__container::before {
+    width: 380px;
+    height: 380px;
+    top: -280px;
+    right: -150px;
+  }
 }
 
+/* الأجهزة اللوحية والموبايل */
 @media (max-width: 768px) {
   .featured-products {
-    padding: 5px 14px;
+    padding: 30px 14px;
   }
 
   .featured-products__container {
-    padding: 34px 18px 40px;
-    border-radius: 24px;
+    padding: 38px 18px 42px;
+    border-radius: 26px;
   }
 
   .featured-products__header {
-    margin-bottom: 28px;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 30px;
+  }
+
+  .featured-products__header::before {
+    width: 180px;
+    height: 180px;
+    top: -125px;
+    left: -120px;
+    border-width: 2px;
   }
 
   .featured-products__eyebrow {
+    gap: 8px;
+    margin-bottom: 10px;
     font-size: 13px;
-    margin-bottom: 8px;
+    letter-spacing: 1.2px;
+  }
+
+  .featured-products__eyebrow::before {
+    width: 25px;
+    height: 3px;
   }
 
   .featured-products__title {
     font-size: 30px;
+    line-height: 1.45;
+    letter-spacing: 0;
   }
 
   .featured-products__description {
-    margin-top: 8px;
+    margin-top: 9px;
     font-size: 14px;
-    line-height: 1.8;
+    line-height: 1.9;
   }
 
   .featured-products__swiper {
-    padding: 5px 2px 14px !important;
+    padding: 6px 2px 20px !important;
   }
 
   .featured-products__swiper .swiper-button-prev,
   .featured-products__swiper .swiper-button-next {
     width: 40px;
     height: 40px;
+    margin-top: -20px;
   }
 
   .featured-products__swiper .swiper-button-prev::after,
   .featured-products__swiper .swiper-button-next::after {
     font-size: 13px;
   }
+
+  .featured-products__container::before {
+    width: 300px;
+    height: 300px;
+    top: -230px;
+    right: -150px;
+  }
+
+  .featured-products__container::after {
+    width: 280px;
+    height: 180px;
+    left: -160px;
+    bottom: -140px;
+  }
 }
 
+/* الهواتف الصغيرة */
 @media (max-width: 480px) {
   .featured-products {
-    padding: 0px 10px;
+    padding: 18px 10px;
   }
 
   .featured-products__container {
-    padding: 0px 12px 0px;
-    border-radius: 20px;
+    padding: 30px 12px 32px;
+    border-radius: 22px;
   }
 
   .featured-products__title {
@@ -210,16 +445,40 @@
 
   .featured-products__description {
     font-size: 13px;
+    line-height: 1.85;
+  }
+
+  .featured-products__swiper {
+    padding: 4px 0 18px !important;
   }
 
   .featured-products__swiper .swiper-button-prev,
   .featured-products__swiper .swiper-button-next {
     width: 34px;
     height: 34px;
+    margin-top: -17px;
   }
 
   .featured-products__swiper .swiper-button-prev::after,
   .featured-products__swiper .swiper-button-next::after {
     font-size: 11px;
+  }
+
+  .featured-products__eyebrow {
+    font-size: 12px;
+  }
+
+  .featured-products__container::before {
+    width: 250px;
+    height: 250px;
+    top: -200px;
+    right: -150px;
+  }
+
+  .featured-products__container::after {
+    width: 220px;
+    height: 140px;
+    left: -140px;
+    bottom: -110px;
   }
 }

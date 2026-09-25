@@ -19,52 +19,52 @@ export default function BottomNavbar() {
   const categories = [
     {
       label: locale === "ar" ? "مكاتب و طاولات كمبيوتر" : "Computer Tables",
-      href: `/${locale}/category/computer-tables`,
+      href: `/${locale}/shop?category=computer-desks`,
     },
     {
       label: locale === "ar" ? "كراسي" : "Chairs",
-      href: `/${locale}/category/office-chairs`,
+      href: `/${locale}/shop?category=chairs`,
       children: [
         {
           label: locale === "ar" ? "كراسي شبك" : "Mesh Chairs",
-          href: `/${locale}/category/office-chairs/mesh-chairs`,
+          href: `/${locale}/shop?category=chairs`,
         },
         {
           label: locale === "ar" ? "كراسي جلد" : "Leather Chairs",
-          href: `/${locale}/category/office-chairs/leather-chairs`,
+          href: `/${locale}/shop?category=chairs`,
         },
         {
           label: locale === "ar" ? "كراسي بار" : "Bar Chairs",
-          href: `/${locale}/category/office-chairs/bar-chairs`,
+          href: `/${locale}/shop?category=chairs`,
         },
         {
           label: locale === "ar" ? "كراسي المعمل" : "Laboratory Chairs",
-          href: `/${locale}/category/office-chairs/laboratory-chairs`,
+          href: `/${locale}/shop?category=chairs`,
         },
       ],
     },
     {
       label: locale === "ar" ? "انتريهات مكتبية" : "Office Seating Sets",
-      href: `/${locale}/category/office-seating-sets`,
+      href: `/${locale}/shop?category=office-sofas`,
     },
     {
       label: locale === "ar" ? "خلايا العمل" : "Working Stations",
-      href: `/${locale}/category/working-stations`,
+      href: `/${locale}/shop?category=work-cells`,
     },
     {
       label: locale === "ar" ? "كاونتر استقبال" : "Reception Desks",
-      href: `/${locale}/category/reception-desks`,
+      href: `/${locale}/shop?category=reception-counters`,
     },
     {
       label: locale === "ar" ? "ترابيزات اجتماعات" : "Meeting Tables",
-      href: `/${locale}/category/meeting-tables`,
+      href: `/${locale}/shop?category=meeting-tables`,
     },
     {
       label:
         locale === "ar"
           ? "اكسسوارات الاثاث المكتبي"
           : "Office Furniture Accessories",
-      href: `/${locale}/category/office-furniture-accessories`,
+      href: `/${locale}/shop?category=office-accessories`,
     },
   ];
 
@@ -79,13 +79,13 @@ export default function BottomNavbar() {
                 category.children ? styles.hasDropdown : ""
               }`}
             >
-              <Link href={category.href} className={styles.categoryLink}>
+              <a href={category.href} className={styles.categoryLink}>
                 <span>{category.label}</span>
 
                 {category.children && (
                   <FiChevronDown className={styles.chevron} />
                 )}
-              </Link>
+              </a>
 
               {category.children && (
                 <div className={styles.dropdown}>

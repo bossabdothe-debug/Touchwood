@@ -186,7 +186,7 @@ export default function ProductCard({
     category?.ar ||
     product.category;
 
-  const productHref = `/${locale}/product/${product.slug}`;
+const productHref = `/${locale}/products/${product.slug}`;
 
   const primaryImage = useMemo(() => {
     return (
@@ -274,7 +274,7 @@ export default function ProductCard({
       <div className={styles.imageContainer}>
         {discount > 0 && (
           <div className={styles.discountBadge}>
-            -{discount}%
+            {discount}%-
           </div>
         )}
 
@@ -326,46 +326,50 @@ export default function ProductCard({
           </button>
         </div>
 
-        <Link
-          href={productHref}
-          className={styles.imageLink}
-        >
-          {primaryImage?.url ? (
-            <img
-              src={primaryImage.url}
-              alt={
-                primaryImage.alt?.[locale] ||
-                productName
-              }
-              className={styles.image}
-            />
-          ) : (
-            <div className={styles.noImage}>
-              <span>
-                {locale === "ar"
-                  ? "لا توجد صورة"
-                  : "No image"}
-              </span>
-            </div>
-          )}
-        </Link>
+        <a
+  href={productHref}
+  className={styles.imageLink}
+  onClick={(event) => {
+    event.preventDefault();
+    window.location.assign(productHref);
+  }}
+>
+  {primaryImage?.url ? (
+    <img
+      src={primaryImage.url}
+      alt={
+        primaryImage.alt?.[locale] ||
+        productName
+      }
+      className={styles.image}
+    />
+  ) : (
+    <div className={styles.noImage}>
+      <span>
+        {locale === "ar"
+          ? "لا توجد صورة"
+          : "No image"}
+      </span>
+    </div>
+  )}
+</a>
       </div>
 
       <div className={styles.content}>
-        <Link
+        <a
           href={`/${locale}/category/${product.category}`}
           className={styles.category}
         >
           {categoryName}
-        </Link>
+        </a>
 
-        <Link
+        <a
           href={productHref}
           className={styles.productName}
           title={productName}
         >
           {productName}
-        </Link>
+        </a>
 
         <div className={styles.rating}>
           <div className={styles.stars}>

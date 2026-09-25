@@ -55,8 +55,16 @@ export const getProducts = async (params = {}) => {
     query.set("active", String(params.active));
   }
 
-  if (params.search) {
-    query.set("search", params.search);
+  if (params.search?.trim()) {
+    query.set("search", params.search.trim());
+  }
+
+  if (params.limit !== undefined) {
+    query.set("limit", String(params.limit));
+  }
+
+  if (params.page !== undefined) {
+    query.set("page", String(params.page));
   }
 
   const queryString = query.toString();

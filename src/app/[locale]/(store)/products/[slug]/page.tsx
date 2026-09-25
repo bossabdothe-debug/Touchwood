@@ -1,17 +1,28 @@
 
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { categoryTranslations } from "@/constants/categoryTranslations";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
+
 import {
   Heart,
-  MessageCircle,
-  Scale,
   ShoppingCart,
   Star,
   Truck,
   ShieldCheck,
+  GitCompareArrows,
 } from "lucide-react";
+
+import { FaWhatsapp } from "react-icons/fa";
+
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Navigation, Pagination } from "swiper/modules";
+import type { Swiper as SwiperInstance } from "swiper/types";
+
+import "swiper/css";
+import "swiper/css/navigation";
+import "swiper/css/pagination";
 
 import {
   addCartItem,
@@ -19,9 +30,13 @@ import {
   addFavorite,
   removeFavorite,
   getProducts,
+  getProductReviews,
 } from "../../../../../services/api";
 
+import ProductCard from "../../../../../components/products/ProductCard";
 import styles from "./ProductDetails.module.css";
+
+type Locale = "ar" | "en";
 
 type Localized = {
   ar?: string;
@@ -29,7 +44,6 @@ type Localized = {
 };
 
 type Media = {
-  type?: string;
   url: string;
   thumbnail?: string;
   alt?: Localized;
@@ -39,6 +53,16 @@ type Media = {
 type Spec = {
   label: Localized;
   value: Localized;
+};
+
+type ProductColor = {
+  _id?: string;
+  name?: Localized | string;
+  label?: Localized | string;
+  color?: string;
+  value?: string;
+  hex?: string;
+  code?: string;
 };
 
 type Review = {
@@ -63,17 +87,129 @@ type Product = {
   category: string;
   media?: Media[];
   specifications?: Spec[];
+  colors?: ProductColor[];
   rating?: number;
   reviewsCount?: number;
   stock?: number;
-  reviews?: Review[];
 };
 
-const ar = (value?: Localized) =>
-  value?.ar || value?.en || "";
+const localText = (
+  value: Localized | undefined,
+  locale: Locale,
+): string => {
+  return value?.[locale] || value?.ar || value?.en || "";
+};
 
-const money = (value = 0) =>
-  `${new Intl.NumberFormat("ar-EG").format(value)} ج.م`;
+function getCategoryLabel(
+  category: string | undefined,
+  locale: Locale,
+): string {
+  if (!category) return "";
+
+  const translatedCategory = categoryTranslations[category];
+
+  if (translatedCategory) {
+    return translatedCategory[locale];
+  }
+
+  return category;
+}
+
+const t = (
+  locale: Locale,
+  ar: string,
+  en: string,
+): string => {
+  return locale === "ar" ? ar : en;
+};
+
+const money = (
+  value: number,
+  locale: Locale,
+): string => {
+  return new Intl.NumberFormat(
+    locale === "ar" ? "ar-EG" : "en-EG",
+    {
+      style: "currency",
+      currency: "EGP",
+      maximumFractionDigits: 0,
+    },
+  ).format(value);
+};
+
+const normalizeReviews = (
+  response: unknown,
+): Review[] => {
+  if (Array.isArray(response)) {
+    return response as Review[];
+  }
+
+  if (!response || typeof response !== "object") {
+    return [];
+  }
+
+  const value = response as {
+    reviews?: unknown;
+    data?: unknown;
+  };
+
+  if (Array.isArray(value.reviews)) {
+    return value.reviews as Review[];
+  }
+
+  if (Array.isArray(value.data)) {
+    return value.data as Review[];
+  }
+
+  if (
+    value.data &&
+    typeof value.data === "object"
+  ) {
+    const nested = value.data as {
+      reviews?: unknown;
+    };
+
+    if (Array.isArray(nested.reviews)) {
+      return nested.reviews as Review[];
+    }
+  }
+
+  return [];
+};
+
+const getColorName = (
+  color: ProductColor,
+  locale: Locale,
+): string => {
+  const name = color.name ?? color.label;
+
+  if (typeof name === "string") {
+    return name;
+  }
+
+  if (name && typeof name === "object") {
+    return localText(name, locale);
+  }
+
+  return (
+    color.hex ||
+    color.color ||
+    color.value ||
+    t(locale, "لون", "Color")
+  );
+};
+
+const getColorValue = (
+  color: ProductColor,
+): string => {
+  return (
+    color.hex ||
+    color.color ||
+    color.value ||
+    color.code ||
+    "#d1d5db"
+  );
+};
 
 export default function ProductDetailsPage() {
   const params = useParams<{
@@ -81,76 +217,245 @@ export default function ProductDetailsPage() {
     locale?: string;
   }>();
 
-  const [product, setProduct] = useState<Product | null>(null);
-  const [related, setRelated] = useState<Product[]>([]);
-  const [selectedImage, setSelectedImage] = useState(0);
-  const [quantity, setQuantity] = useState(1);
-  const [favorite, setFavorite] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState("");
+  const locale: Locale =
+    params.locale === "en" ? "en" : "ar";
+
+  const isArabic = locale === "ar";
+
+  const mainSwiper = useRef<SwiperInstance | null>(null);
+
+  const [product, setProduct] =
+    useState<Product | null>(null);
+
+  const [related, setRelated] =
+    useState<Product[]>([]);
+
+  const [reviews, setReviews] =
+    useState<Review[]>([]);
+
+  const [selectedImage, setSelectedImage] =
+    useState(0);
+
+  const [quantity, setQuantity] =
+    useState(1);
+
+  const [selectedColor, setSelectedColor] =
+    useState<string | null>(null);
+
+  const [favorite, setFavorite] =
+    useState(false);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [message, setMessage] =
+    useState("");
 
   useEffect(() => {
-    const load = async () => {
+    let cancelled = false;
+
+    async function load() {
+      setLoading(true);
+      setMessage("");
+
       try {
-        const item = await getProductBySlug(params.slug);
+        const item = (
+          await getProductBySlug(params.slug)
+        ) as Product;
+
+        if (cancelled) return;
 
         setProduct(item);
+        setSelectedImage(0);
+        setQuantity(1);
+        setSelectedColor(null);
 
-        const products = await getProducts({
-          category: item.category,
-          active: true,
-        });
+        const [
+          reviewResult,
+          relatedResult,
+        ] = await Promise.allSettled([
+          getProductReviews(item._id),
+          getProducts({
+            category: item.category,
+            active: true,
+          }),
+        ]);
 
-        const list = Array.isArray(products)
-          ? products
-          : products.products || [];
+        if (cancelled) return;
 
-        setRelated(
-          list
-            .filter((p: Product) => p._id !== item._id)
-            .slice(0, 4)
-        );
+        if (
+          reviewResult.status === "fulfilled"
+        ) {
+          setReviews(
+            normalizeReviews(
+              reviewResult.value,
+            ),
+          );
+        } else {
+          setReviews([]);
+        }
+
+        if (
+          relatedResult.status === "fulfilled"
+        ) {
+          const response =
+            relatedResult.value as
+              | Product[]
+              | { products?: Product[] };
+
+          const products = Array.isArray(response)
+            ? response
+            : response.products || [];
+
+          setRelated(
+            products
+              .filter(
+                (relatedItem) =>
+                  relatedItem._id !== item._id,
+              )
+              .slice(0, 8),
+          );
+        }
       } catch (error) {
-        setMessage(
-          error instanceof Error
-            ? error.message
-            : "تعذر تحميل المنتج"
-        );
+        if (!cancelled) {
+          setMessage(
+            error instanceof Error
+              ? error.message
+              : t(
+                  locale,
+                  "تعذر تحميل المنتج",
+                  "Unable to load product",
+                ),
+          );
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
-    };
+    }
 
-    if (params.slug) load();
-  }, [params.slug]);
+    if (params.slug) {
+      load();
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [params.slug, locale]);
 
   const media = useMemo(
     () =>
       [...(product?.media || [])].sort(
         (a, b) =>
           Number(Boolean(b.isPrimary)) -
-          Number(Boolean(a.isPrimary))
+          Number(Boolean(a.isPrimary)),
       ),
-    [product]
+    [product],
   );
 
-  const currentImage =
-    media[selectedImage]?.url || "/logo.jpeg";
+  const reviewCount = reviews.length;
+
+  const averageRating = reviewCount
+    ? reviews.reduce(
+        (sum, review) =>
+          sum + Number(review.rating || 0),
+        0,
+      ) / reviewCount
+    : 0;
+
+  const stock = Math.max(
+    0,
+    Number(product?.stock ?? 0),
+  );
+
+  const isOutOfStock = stock === 0;
+
+  const isLowStock =
+    stock > 0 && stock <= 5;
+
+  const stockMessage = isOutOfStock
+    ? t(
+        locale,
+        "نفد المخزون",
+        "Out of stock",
+      )
+    : isLowStock
+      ? t(
+          locale,
+          `متبقي فقط ${stock} وحدات — المنتج على وشك النفاد`,
+          `Only ${stock} units left — almost sold out`,
+        )
+      : t(
+          locale,
+          "متوفر في المخزون",
+          "In stock",
+        );
+
+  const discountPercentage =
+    product?.oldPrice &&
+    product.oldPrice > product.price &&
+    product.price >= 0
+      ? Math.round(
+          ((product.oldPrice - product.price) /
+            product.oldPrice) *
+            100,
+        )
+      : 0;
 
   const addToCart = async () => {
     if (!product) return;
 
+    if (isOutOfStock) {
+      setMessage(
+        t(
+          locale,
+          "هذا المنتج غير متوفر حاليًا",
+          "This product is out of stock",
+        ),
+      );
+
+      return;
+    }
+
+    if (quantity > stock) {
+      setMessage(
+        t(
+          locale,
+          `الكمية المتاحة فقط ${stock} وحدات`,
+          `Only ${stock} units are available`,
+        ),
+      );
+
+      return;
+    }
+
     try {
-      const token = localStorage.getItem("token") || "";
+      const token =
+        localStorage.getItem("token") || "";
 
-      await addCartItem(token, product._id, quantity);
+      await addCartItem(
+        token,
+        product._id,
+        quantity,
+      );
 
-      setMessage("تمت إضافة المنتج إلى السلة");
+      setMessage(
+        t(
+          locale,
+          "تمت إضافة المنتج إلى السلة",
+          "Product added to cart",
+        ),
+      );
     } catch (error) {
       setMessage(
         error instanceof Error
           ? error.message
-          : "تعذر الإضافة إلى السلة"
+          : t(
+              locale,
+              "تعذر الإضافة إلى السلة",
+              "Unable to add product to cart",
+            ),
       );
     }
   };
@@ -159,295 +464,750 @@ export default function ProductDetailsPage() {
     if (!product) return;
 
     try {
-      const token = localStorage.getItem("token") || "";
+      const token =
+        localStorage.getItem("token") || "";
 
       if (favorite) {
-        await removeFavorite(token, product._id);
+        await removeFavorite(
+          token,
+          product._id,
+        );
       } else {
-        await addFavorite(token, product._id);
+        await addFavorite(
+          token,
+          product._id,
+        );
       }
 
-      setFavorite(!favorite);
+      setFavorite((value) => !value);
     } catch (error) {
       setMessage(
         error instanceof Error
           ? error.message
-          : "يجب تسجيل الدخول أولاً"
+          : t(
+              locale,
+              "يجب تسجيل الدخول أولًا",
+              "Please log in first",
+            ),
       );
     }
   };
 
   if (loading) {
-    return (
-      <main className={styles.state}>
-        جاري تحميل المنتج...
-      </main>
-    );
-  }
+  return (
+    <main
+      className={styles.state}
+      dir={isArabic ? "rtl" : "ltr"}
+      aria-busy="true"
+      aria-live="polite"
+    >
+      <div className={styles.loadingContainer}>
+        <div
+          className={styles.loadingSpinner}
+          aria-hidden="true"
+        />
+
+        <p className={styles.loadingText}>
+          {t(
+            locale,
+            "جاري تحميل المنتج...",
+            "Loading product...",
+          )}
+        </p>
+      </div>
+    </main>
+  );
+}
 
   if (!product) {
     return (
       <main className={styles.state}>
-        {message || "المنتج غير موجود"}
+        {message ||
+          t(
+            locale,
+            "المنتج غير موجود",
+            "Product not found",
+          )}
       </main>
     );
   }
 
   return (
-    <main className={styles.page} dir="rtl">
-      {/* تفاصيل المنتج */}
-      <section className={styles.productSection}>
-        <div className={styles.gallery} dir="ltr">
-          <div className={styles.mainImage}>
-            <img
-              src={currentImage}
-              alt={
-                ar(media[selectedImage]?.alt) ||
-                ar(product.name)
-              }
-            />
-          </div>
+    <main
+      className={styles.page}
+      dir={isArabic ? "rtl" : "ltr"}
+    >
+      <nav
+  className={`${styles.breadcrumbs} ${
+    isArabic
+      ? styles.breadcrumbsArabic
+      : styles.breadcrumbsEnglish
+  }`}
+  dir={isArabic ? "rtl" : "ltr"}
+  aria-label={t(locale, "مسار التنقل", "Breadcrumb")}
+>
+  {/* الرئيسية */}
+  <a href={`/${locale}`}>
+    {t(locale, "الرئيسية", "Home")}
+  </a>
 
-          <div className={styles.thumbnails}>
-            {media.map((item, index) => (
-              <button
-                key={`${item.url}-${index}`}
-                className={
-                  index === selectedImage
-                    ? styles.activeThumb
-                    : styles.thumb
-                }
-                onClick={() => setSelectedImage(index)}
+  <span className={styles.breadcrumbSeparator}>/</span>
+
+  {/* التصنيف */}
+  <a
+    href={`/${locale}/products?category=${encodeURIComponent(
+      product.category,
+    )}`}
+  >
+    {getCategoryLabel(product.category, locale)}
+  </a>
+
+  <span className={styles.breadcrumbSeparator}>/</span>
+
+  {/* اسم المنتج */}
+  <span className={styles.breadcrumbCurrent}>
+    {localText(product.name, locale)}
+  </span>
+</nav>
+      <section className={styles.topLayout}>
+        <div className={styles.productArea}>
+          <div
+            className={styles.gallery}
+            dir="ltr"
+          >
+            <div className={styles.imageWrapper}>
+              {discountPercentage > 0 && (
+                <span
+                  className={styles.discountBadge}
+                >
+                  {isArabic
+                    ? `خصم %${discountPercentage}`
+                    : `${discountPercentage}% OFF`}
+                </span>
+              )}
+
+              <Swiper
+                modules={[
+                  Navigation,
+                  Pagination,
+                ]}
+                navigation
+                pagination={{
+                  clickable: true,
+                }}
+                className={styles.mainSwiper}
+                onSwiper={(swiper) => {
+                  mainSwiper.current = swiper;
+                }}
+                onSlideChange={(swiper) => {
+                  setSelectedImage(
+                    swiper.activeIndex,
+                  );
+                }}
               >
-                <img
-                  src={item.thumbnail || item.url}
-                  alt=""
-                />
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className={styles.info}>
-          <span className={styles.category}>
-            {product.category}
-          </span>
-
-          <h1>{ar(product.name)}</h1>
-
-          <div className={styles.rating}>
-            <Star size={17} fill="currentColor" />
-
-            {product.rating || 0}
-
-            <span>
-              (
-              {product.reviewsCount ||
-                product.reviews?.length ||
-                0}{" "}
-              مراجعة)
-            </span>
-          </div>
-
-          <div className={styles.priceRow}>
-            <strong>{money(product.price)}</strong>
-
-            {product.oldPrice ? (
-              <del>{money(product.oldPrice)}</del>
-            ) : null}
-          </div>
-
-          <p className={styles.description}>
-            {ar(product.description)}
-          </p>
-
-          <div className={styles.actions}>
-            <div className={styles.quantity}>
-              <button
-                onClick={() =>
-                  setQuantity(Math.max(1, quantity - 1))
-                }
-              >
-                −
-              </button>
-
-              <span>{quantity}</span>
-
-              <button
-                onClick={() => setQuantity(quantity + 1)}
-              >
-                +
-              </button>
+                {(
+                  media.length
+                    ? media
+                    : [{ url: "/logo.jpeg" }]
+                ).map((item, index) => (
+                  <SwiperSlide
+                    key={`${item.url}-${index}`}
+                  >
+                    <div
+                      className={styles.mainImage}
+                    >
+                      <img
+                        src={item.url}
+                        alt={
+                          localText(
+                            item.alt,
+                            locale,
+                          ) ||
+                          localText(
+                            product.name,
+                            locale,
+                          )
+                        }
+                      />
+                    </div>
+                  </SwiperSlide>
+                ))}
+              </Swiper>
             </div>
 
-            <button
-              className={styles.cartButton}
-              onClick={addToCart}
-            >
-              <ShoppingCart size={19} />
-              أضف إلى السلة
-            </button>
-
-            <button
-              className={styles.iconButton}
-              onClick={toggleFavorite}
-              aria-label="المفضلة"
-            >
-              <Heart
-                size={20}
-                fill={favorite ? "currentColor" : "none"}
-              />
-            </button>
-
-            <button
-              className={styles.iconButton}
-              aria-label="المقارنة"
-            >
-              <Scale size={20} />
-            </button>
-          </div>
-
-          {message && (
-            <p className={styles.message}>{message}</p>
-          )}
-
-          <div className={styles.delivery}>
-            <Truck size={20} />
-            <span>شحن ودعم موثوق لطلبك</span>
-          </div>
-        </div>
-      </section>
-
-      {/* الضمان والدعم */}
-      <section className={styles.serviceGrid}>
-        <article className={styles.serviceCard}>
-          <ShieldCheck size={28} />
-
-          <div>
-            <h2>ضمان جودة المنتجات</h2>
-
-            <p>
-              تتمتع جميع كراسي المكتب والانتريهات المكتبية
-              بضمان لمدة 12 شهراً من تاريخ الفاتورة.
-            </p>
-
-            <p>
-              تتمتع جميع المكاتب المكتبية المصنعة لدينا
-              بضمان لمدة 36 شهراً من تاريخ الفاتورة.
-            </p>
-          </div>
-        </article>
-
-        <article className={styles.serviceCard}>
-          <img
-            src="https://zakariafurniture.com/wp-content/uploads/2025/01/overview.svg"
-            alt=""
-          />
-
-          <div>
-            <h2>دعم وخدمة ما بعد البيع</h2>
-
-            <p>
-              نقدّم دعمًا فنيًا وخدمة ما بعد البيع لضمان
-              رضاكم التام ومعالجة أي استفسارات أو ملاحظات
-              في أسرع وقت.
-            </p>
-
-            <a
-              href="https://wa.me/201142447767"
-              target="_blank"
-              rel="noreferrer"
-            >
-              <MessageCircle size={18} />
-              01142447767
-            </a>
-          </div>
-        </article>
-      </section>
-
-      {/* الوصف والمواصفات */}
-      <section className={styles.contentSection}>
-        <h2>المواصفات والوصف</h2>
-
-        <p className={styles.longDescription}>
-          {ar(product.description)}
-        </p>
-
-        {product.specifications?.length ? (
-          <div className={styles.specs}>
-            {product.specifications.map((spec, index) => (
-              <div
-                className={styles.specRow}
-                key={index}
-              >
-                <span>{ar(spec.label)}</span>
-                <strong>{ar(spec.value)}</strong>
+            {media.length > 1 && (
+              <div className={styles.thumbnails}>
+                {media.map((item, index) => (
+                  <button
+                    key={`${item.url}-${index}`}
+                    type="button"
+                    className={
+                      index === selectedImage
+                        ? styles.activeThumb
+                        : styles.thumb
+                    }
+                    onClick={() =>
+                      mainSwiper.current?.slideTo(
+                        index,
+                      )
+                    }
+                  >
+                    <img
+                      src={
+                        item.thumbnail ||
+                        item.url
+                      }
+                      alt=""
+                    />
+                  </button>
+                ))}
               </div>
-            ))}
+            )}
           </div>
-        ) : null}
+
+          <div className={styles.info}>
+            <span className={styles.category}>
+              {getCategoryLabel(
+                product.category,
+                locale,
+              )}
+            </span>
+
+            <h1>
+              {localText(
+                product.name,
+                locale,
+              )}
+            </h1>
+
+            <a
+              className={styles.rating}
+              href="#reviews"
+            >
+              <Star
+                size={18}
+                fill="currentColor"
+              />
+
+              <span>
+                {averageRating
+                  ? averageRating.toFixed(1)
+                  : "0.0"}
+              </span>
+
+              <span>
+                ({reviewCount}{" "}
+                {t(
+                  locale,
+                  "مراجعة",
+                  "reviews",
+                )}
+                )
+              </span>
+            </a>
+
+            <div className={styles.priceRow}>
+              <strong>
+                {money(
+                  product.price,
+                  locale,
+                )}
+              </strong>
+
+              {product.oldPrice ? (
+                <del>
+                  {money(
+                    product.oldPrice,
+                    locale,
+                  )}
+                </del>
+              ) : null}
+            </div>
+
+            {product.colors &&
+              product.colors.length > 0 && (
+                <div
+                  className={
+                    styles.colorsSection
+                  }
+                >
+                  <h3
+                    className={
+                      styles.optionTitle
+                    }
+                  >
+                    {t(
+                      locale,
+                      "اختر اللون",
+                      "Choose color",
+                    )}
+                  </h3>
+
+                  <div
+                    className={
+                      styles.colorsList
+                    }
+                  >
+                    {product.colors.map(
+                      (color, index) => {
+                        const colorName =
+                          getColorName(
+                            color,
+                            locale,
+                          );
+
+                        const colorValue =
+                          getColorValue(color);
+
+                        const colorId =
+                          color._id ||
+                          `${colorValue}-${index}`;
+
+                        const isSelected =
+                          selectedColor ===
+                          colorId;
+
+                        return (
+                          <button
+                            key={colorId}
+                            type="button"
+                            className={`${styles.colorOption} ${
+                              isSelected
+                                ? styles.selectedColor
+                                : ""
+                            }`}
+                            onClick={() =>
+                              setSelectedColor(
+                                colorId,
+                              )
+                            }
+                            aria-label={
+                              colorName
+                            }
+                            aria-pressed={
+                              isSelected
+                            }
+                          >
+                            <span
+                              className={
+                                styles.colorCircle
+                              }
+                              style={{
+                                backgroundColor:
+                                  colorValue,
+                              }}
+                            />
+
+                            <span
+                              className={
+                                styles.colorName
+                              }
+                            >
+                              {colorName}
+                            </span>
+                          </button>
+                        );
+                      },
+                    )}
+                  </div>
+                </div>
+              )}
+
+            
+
+            <div className={styles.actions}>
+              <div
+                className={styles.quantity}
+              >
+                <button
+                  type="button"
+                  disabled={
+                    isOutOfStock ||
+                    quantity <= 1
+                  }
+                  onClick={() =>
+                    setQuantity(
+                      Math.max(
+                        1,
+                        quantity - 1,
+                      ),
+                    )
+                  }
+                  aria-label={t(
+                    locale,
+                    "تقليل الكمية",
+                    "Decrease quantity",
+                  )}
+                >
+                  −
+                </button>
+
+                <span>{quantity}</span>
+
+                <button
+                  type="button"
+                  disabled={
+                    isOutOfStock ||
+                    quantity >= stock
+                  }
+                  onClick={() =>
+                    setQuantity(
+                      Math.min(
+                        stock,
+                        quantity + 1,
+                      ),
+                    )
+                  }
+                  aria-label={t(
+                    locale,
+                    "زيادة الكمية",
+                    "Increase quantity",
+                  )}
+                >
+                  +
+                </button>
+              </div>
+
+              <button
+                type="button"
+                className={
+                  styles.cartButton
+                }
+                onClick={addToCart}
+                disabled={
+                  isOutOfStock ||
+                  quantity > stock
+                }
+              >
+                <ShoppingCart size={19} />
+
+                {isOutOfStock
+                  ? t(
+                      locale,
+                      "نفد المخزون",
+                      "Out of stock",
+                    )
+                  : t(
+                      locale,
+                      "أضف إلى السلة",
+                      "Add to cart",
+                    )}
+              </button>
+
+              <button
+                type="button"
+                className={
+                  styles.iconButton
+                }
+                onClick={toggleFavorite}
+                aria-label={t(
+                  locale,
+                  "المفضلة",
+                  "Favorites",
+                )}
+              >
+                <Heart
+                  size={20}
+                  fill={
+                    favorite
+                      ? "currentColor"
+                      : "none"
+                  }
+                />
+              </button>
+
+              <button
+                type="button"
+                className={
+                  styles.iconButton
+                }
+                aria-label={t(
+                  locale,
+                  "المقارنة",
+                  "Compare",
+                )}
+              >
+                <GitCompareArrows
+                  size={20}
+                />
+              </button>
+            </div>
+<div
+              className={`${styles.stockStatus} ${
+                isOutOfStock
+                  ? styles.outOfStock
+                  : isLowStock
+                    ? styles.lowStock
+                    : styles.inStock
+              }`}
+              role="status"
+            >
+              <span
+                className={styles.stockDot}
+              />
+
+              <span>
+                {stockMessage}
+              </span>
+            </div>
+            {message && (
+              <p className={styles.message}>
+                {message}
+              </p>
+            )}
+
+            <div
+              className={styles.delivery}
+            >
+              <Truck size={20} />
+
+              {t(
+                locale,
+                "شحن سريع لجميع انحاء الجمهورية بتكلفة 250 جنيه في فترة من 3 ل5 ايام عمل",
+                "Reliable shipping and support",
+              )}
+            </div>
+          </div>
+        </div>
+
+        <aside
+          className={styles.sideCards}
+        >
+          <article
+            className={styles.serviceCard}
+          >
+            <ShieldCheck size={30} />
+
+            <div>
+              <h2>
+                {t(
+                  locale,
+                  "ضمان تاتش وود",
+                  "Touch wood Warranty",
+                )}
+              </h2>
+
+              <p>
+                {t(
+                  locale,
+                  "تقدم تاتش وود ضماناً سارياً من تاريخ الفاتورة الشرائية لمدة 12 شهراً على جميع كراسي والأنتريهات المكتبية، وضماناً ممتداً لمدة 36 شهراً على كافة المكاتب من تصنيعنا.",
+                  "Touch Wood offers a 12-month warranty starting from the date of purchase on all office chairs and sofas, and an extended 36-month warranty on all desks of our own manufacture.",
+                )}
+              </p>
+            </div>
+          </article>
+
+          <article
+            className={styles.serviceCard}
+          >
+            <FaWhatsapp size={31} />
+
+            <div>
+              <h2>
+                {t(
+                  locale,
+                  "خدمة العملاء و دعم ما بعد البيع",
+                  "Customer service",
+                )}
+              </h2>
+
+              <p>
+                {t(
+                  locale,
+                  "نوفر لكم دعمًا فنيًا متكاملاً وخدمة ما بعد البيع حرصًا على رضاكم التام، وللإجابة عن كافة استفساراتكم وملاحظاتكم فورًا تواصل معنا عبر WhatsApp للحصول على المساعدة.",
+                  "Contact us on WhatsApp for assistance.",
+                )}
+              </p>
+
+              <a
+                href="https://wa.me/201142447767"
+                target="_blank"
+                rel="noreferrer"
+              >
+                <FaWhatsapp size={18} />
+                01142447767
+              </a>
+            </div>
+          </article>
+        </aside>
       </section>
 
-      {/* مراجعات العملاء */}
-      <section className={styles.contentSection}>
-        <h2>مراجعات العملاء</h2>
+      <section
+        className={styles.section}
+      >
+        <div
+          className={styles.sectionHeading}
+        >
+          <h2>
+            {t(
+              locale,
+              "المواصفات",
+              "Specifications",
+            )}
+          </h2>
+        </div>
 
-        <div className={styles.reviews}>
-          {(product.reviews || []).length ? (
-            product.reviews!.map((review) => (
-              <article
-                className={styles.review}
-                key={review._id}
-              >
-                <strong>
-                  {review.user?.name ||
-                    `${review.user?.firstName || "عميل"} ${
-                      review.user?.lastName || ""
-                    }`}
-                </strong>
+        <div
+          className={styles.specCard}
+        >
+          <div
+            className={
+              styles.descriptionBlock
+            }
+          >
+            <h3>
+              {t(
+                locale,
+                "وصف المنتج",
+                "Product description",
+              )}
+            </h3>
 
-                <div className={styles.rating}>
-                  {"★".repeat(review.rating || 0)}
-                </div>
+            <p>
+              {localText(
+                product.description,
+                locale,
+              ) ||
+                t(
+                  locale,
+                  "لا يوجد وصف متاح لهذا المنتج.",
+                  "No description is available for this product.",
+                )}
+            </p>
+          </div>
 
-                <p>{review.comment}</p>
-              </article>
-            ))
+         
+        </div>
+      </section>
+
+      <section
+        className={styles.section}
+        id="reviews"
+      >
+        <div
+          className={styles.sectionHeading}
+        >
+          <h2>
+            {t(
+              locale,
+              "مراجعات العملاء",
+              "Customer reviews",
+            )}
+          </h2>
+        </div>
+
+        <div
+          className={styles.reviews}
+        >
+          {reviews.length ? (
+            reviews.map((review) => {
+              const name =
+                review.user?.name ||
+                `${review.user?.firstName || t(locale, "عميل", "Customer")} ${
+                  review.user?.lastName || ""
+                }`.trim();
+
+              return (
+                <article
+                  className={styles.review}
+                  key={review._id}
+                >
+                  <strong>{name}</strong>
+
+                  <div
+                    className={
+                      styles.reviewStars
+                    }
+                  >
+                    {"★".repeat(
+                      Math.round(
+                        review.rating || 0,
+                      ),
+                    )}
+                  </div>
+
+                  {review.comment && (
+                    <p>
+                      {review.comment}
+                    </p>
+                  )}
+                </article>
+              );
+            })
           ) : (
-            <p>لا توجد مراجعات لهذا المنتج حتى الآن.</p>
+            <p
+              className={
+                styles.emptyText
+              }
+            >
+              {t(
+                locale,
+                "لا توجد مراجعات لهذا المنتج حتى الآن.",
+                "There are no reviews for this product yet.",
+              )}
+            </p>
           )}
         </div>
       </section>
 
-      {/* المنتجات المقترحة */}
-      <section className={styles.contentSection}>
-        <h2>منتجات مقترحة</h2>
+      {related.length > 0 && (
+        <section
+          className={styles.section}
+        >
+          <div
+            className={
+              styles.sectionHeading
+            }
+          >
+            <h2>
+              {t(
+                locale,
+                "منتجات مقترحة",
+                "Related products",
+              )}
+            </h2>
+          </div>
 
-        <div className={styles.relatedGrid}>
-          {related.map((item) => (
-            <a
-              href={`/${params.locale || "ar"}/products/${
-                item.slug || item._id
-              }`}
-              className={styles.relatedCard}
-              key={item._id}
-            >
-              <img
-                src={
-                  item.media?.find((m) => m.isPrimary)?.url ||
-                  item.media?.[0]?.url ||
-                  "/logo.jpeg"
-                }
-                alt={ar(item.name)}
-              />
-
-              <h3>{ar(item.name)}</h3>
-
-              <strong>{money(item.price)}</strong>
-            </a>
-          ))}
-        </div>
-      </section>
+          <Swiper
+            dir="ltr"
+            modules={[
+              Navigation,
+              Pagination,
+            ]}
+            navigation
+            pagination={{
+              clickable: true,
+            }}
+            spaceBetween={18}
+            slidesPerView={1.2}
+            breakpoints={{
+              640: {
+                slidesPerView: 2,
+              },
+              900: {
+                slidesPerView: 3,
+              },
+              1200: {
+                slidesPerView: 4,
+              },
+            }}
+            className={
+              styles.relatedSwiper
+            }
+          >
+            {related.map((item) => (
+              <SwiperSlide
+                key={item._id}
+              >
+                <ProductCard
+                  product={item as never}
+                  locale={locale}
+                />
+              </SwiperSlide>
+            ))}
+          </Swiper>
+        </section>
+      )}
     </main>
   );
 }

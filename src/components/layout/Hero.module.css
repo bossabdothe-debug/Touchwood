@@ -1,3 +1,4 @@
+
 .hero {
   width: 100%;
   padding: 34px 32px 20px;
@@ -6,11 +7,13 @@
 }
 
 .desktopCategories {
-  width: 100%;
+  width: calc(100% - 64px);
+  max-width: 1600px;
+  margin: 0 auto;
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   align-items: start;
-  gap: 20px;
+  gap: 24px;
 }
 
 .category {
@@ -19,15 +22,17 @@
   align-items: center;
   justify-content: flex-start;
   gap: 12px;
+  width: 100%;
+  min-width: 0;
   color: var(--text-primary);
   text-decoration: none;
   text-align: center;
-  min-width: 0;
 }
 
 .imageWrapper {
-  width: clamp(105px, 11vw, 155px);
+  width: clamp(105px, 10vw, 150px);
   aspect-ratio: 1;
+  flex-shrink: 0;
   border-radius: 50%;
   overflow: hidden;
   background: var(--background-white);
@@ -47,11 +52,15 @@
 }
 
 .category span {
+  display: block;
+  width: 100%;
   max-width: 160px;
+  min-height: 44px;
   color: var(--text-primary);
   font-size: 13px;
   font-weight: 600;
   line-height: 1.7;
+  text-align: center;
   transition: color 0.25s ease;
 }
 
@@ -65,12 +74,35 @@
   color: var(--primary);
 }
 
+/* نسخة الهاتف مخفية في الكمبيوتر */
 .mobileCategories {
   display: none;
 }
 
+/* شاشات الكمبيوتر المتوسطة */
+@media (max-width: 1200px) {
+  .hero {
+    padding-inline: 20px;
+  }
+
+  .desktopCategories {
+    width: 100%;
+    gap: 16px;
+  }
+
+  .imageWrapper {
+    width: clamp(95px, 9vw, 125px);
+  }
+
+  .category span {
+    font-size: 12px;
+  }
+}
+
+/* نسخة الهاتف */
 @media (max-width: 850px) {
   .hero {
+    width: 100%;
     padding: 24px 0 30px;
   }
 
@@ -81,12 +113,15 @@
   .mobileCategories {
     display: block;
     width: 100%;
+    min-height: 145px;
     overflow: hidden;
   }
 
   .mobileCategories :global(.swiper) {
     width: 100%;
-    overflow: visible;
+    min-height: 145px;
+    overflow: hidden;
+    padding-inline: 8px;
   }
 
   .mobileCategories :global(.swiper-wrapper) {
@@ -94,8 +129,10 @@
   }
 
   .mobileCategories :global(.swiper-slide) {
+    width: 120px;
     height: auto;
     display: flex;
+    align-items: flex-start;
     justify-content: center;
   }
 
@@ -112,7 +149,8 @@
 
   .category span {
     width: 120px;
-    font-size: 15px;
+    min-height: 42px;
+    font-size: 13px;
     line-height: 1.6;
   }
 
@@ -125,13 +163,23 @@
   }
 }
 
+/* الهواتف الصغيرة */
 @media (max-width: 480px) {
   .hero {
     padding: 20px 0 15px;
   }
 
+  .mobileCategories {
+    min-height: 125px;
+  }
+
   .mobileCategories :global(.swiper) {
+    min-height: 125px;
     padding-inline: 8px;
+  }
+
+  .mobileCategories :global(.swiper-slide) {
+    width: 110px;
   }
 
   .category {
@@ -145,6 +193,8 @@
 
   .category span {
     width: 110px;
+    min-height: 36px;
     font-size: 11px;
+    line-height: 1.6;
   }
 }
