@@ -459,7 +459,7 @@ const matchesCategory =
 
             <p className={styles.description}>
               {isArabic
-                ? "اكتشف مجموعة الأثاث المكتبي واختر ما يناسب احتياجاتك"
+                ? "حيث منتجات تاتش وود المميزة التي تلبي احتياجاتك "
                 : "Explore our office furniture collection and find what suits your needs"}
             </p>
           </div>

@@ -69,13 +69,13 @@ app.get("/api/health", (req, res) => {
 });
 
 app.use("/api", Router);
+app.use("/api/demo-reviews", demoReviewRouter);
 
 app.use((req, res) => {
   res.status(404).json({
     message: "Route not found",
   });
 });
-app.use("/api/demo-reviews", demoReviewRouter);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
