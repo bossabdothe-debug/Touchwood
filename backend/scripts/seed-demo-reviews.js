@@ -160,11 +160,11 @@ async function seedDemoReviews() {
   );
 }
 
-  if (!process.env.MONGODB_URI) {
-    throw new Error("MONGODB_URI is missing from environment variables.");
+  if (!process.env.MONGO_URI) {
+    throw new Error("MONGO_URI is missing from environment variables.");
   }
 
-  await mongoose.connect(process.env.MONGODB_URI);
+  await mongoose.connect(process.env.MONGO_URI);
 
   console.log("Connected to MongoDB.");
 
