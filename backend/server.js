@@ -50,7 +50,7 @@ app.use(hpp());
 
 app.use(
   rateLimit({
-    windowMs: 15 * 60 * 1000,
+    windowMs:60 * 1000,
     limit: 200,
     standardHeaders: "draft-8",
     legacyHeaders: false,

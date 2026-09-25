@@ -70,7 +70,7 @@ export default function MobileBottomNavbar() {
         </Link>
 
         <Link
-          href={`/${locale}/login`}
+          href={`/${locale}/shop`}
           className={styles.action}
           aria-label={locale === "ar" ? "الحساب" : "Account"}
         >
@@ -78,7 +78,7 @@ export default function MobileBottomNavbar() {
             <FiUser />
           </span>
           <span>
-            {locale === "ar" ? "الحساب" : "Account"}
+            {locale === "ar" ? "المتجر" : "shop"}
           </span>
         </Link>
 

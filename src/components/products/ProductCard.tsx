@@ -11,6 +11,10 @@ import {
   FiCheck,
 } from "react-icons/fi";
 import styles from "./ProductCard.module.css";
+import {
+  getDemoProductReviews,
+  getProductReviews,
+} from "@/services/api";
 
 type Localized = {
   ar: string;
@@ -46,6 +50,16 @@ type Product = {
 
 type ProductCardProps = {
   product: Product;
+};
+
+type Review = {
+  rating?: number;
+};
+
+type DemoReview = {
+  _id?: string;
+  rating?: number;
+  isDemo?: boolean;
 };
 
 const categories: Record<string, Localized> = {
@@ -130,6 +144,8 @@ export default function ProductCard({
 
   const [isFavorite, setIsFavorite] = useState(false);
   const [isCompared, setIsCompared] = useState(false);
+  const [realReviews, setRealReviews] = useState<Review[]>([]);
+  const [demoReviews, setDemoReviews] = useState<DemoReview[]>([]);
 
   useEffect(() => {
     setIsFavorite(
@@ -173,6 +189,46 @@ export default function ProductCard({
     };
   }, [product._id]);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadReviews = async () => {
+      const [realResult, demoResult] = await Promise.allSettled([
+        getProductReviews(product._id),
+        getDemoProductReviews(product._id),
+      ]);
+
+      if (!isMounted) {
+        return;
+      }
+
+      const realReviewsData =
+        realResult.status === "fulfilled" &&
+        Array.isArray(realResult.value)
+          ? realResult.value
+          : [];
+
+      const demoReviewsData =
+        demoResult.status === "fulfilled" &&
+        Array.isArray(demoResult.value)
+          ? demoResult.value
+          : [];
+
+      setRealReviews(realReviewsData);
+      setDemoReviews(
+        demoReviewsData.filter(
+          (review: DemoReview) => review?.isDemo === true
+        )
+      );
+    };
+
+    loadReviews();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [product._id]);
+
   const productName =
     product.name?.[locale] ||
     product.name?.ar ||
@@ -200,13 +256,23 @@ const productHref = `/${locale}/products/${product.slug}`;
     );
   }, [product.media]);
 
-  const rating = Math.min(
-    Math.max(Number(product.rating) || 0, 0),
-    5
-  );
+  const validRealRatings = realReviews
+    .map((review) => Number(review.rating))
+    .filter((value) => Number.isFinite(value) && value >= 1 && value <= 5);
 
-  const reviewsCount =
-    Number(product.reviewsCount) || 0;
+  const validDemoRatings = demoReviews
+    .map((review) => Number(review.rating))
+    .filter((value) => Number.isFinite(value) && value >= 1 && value <= 5);
+
+  const realReviewsCount = validRealRatings.length;
+  const demoReviewsCount = validDemoRatings.length;
+  const reviewsCount = realReviewsCount + demoReviewsCount;
+
+  const totalRating =
+    validRealRatings.reduce((sum, value) => sum + value, 0) +
+    validDemoRatings.reduce((sum, value) => sum + value, 0);
+
+  const rating = reviewsCount > 0 ? totalRating / reviewsCount : 0;
 
   const oldPrice =
     Number(product.oldPrice) || 0;
