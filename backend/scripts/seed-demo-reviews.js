@@ -151,11 +151,14 @@ function createReviewData(productId, index) {
 }
 
 async function seedDemoReviews() {
-  if (process.env.NODE_ENV === "production") {
-    throw new Error(
-      "Demo reviews cannot be seeded while NODE_ENV=production."
-    );
-  }
+  if (
+  process.env.NODE_ENV === "production" &&
+  process.env.ALLOW_DEMO_REVIEW_SEED !== "true"
+) {
+  throw new Error(
+    "Demo reviews are blocked in production unless explicitly enabled."
+  );
+}
 
   if (!process.env.MONGODB_URI) {
     throw new Error("MONGODB_URI is missing from environment variables.");
