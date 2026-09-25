@@ -48,17 +48,7 @@ app.use(
 
 app.use(hpp());
 
-app.use(
-  rateLimit({
-    windowMs:60 * 1000,
-    limit: 200,
-    standardHeaders: "draft-8",
-    legacyHeaders: false,
-    message: {
-      message: "Too many requests, please try again later.",
-    },
-  })
-);
+
 
 app.use(logger);
 
