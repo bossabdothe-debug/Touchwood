@@ -25,16 +25,23 @@ import "swiper/css/navigation";
 import "swiper/css/pagination";
 
 import {
-  addCartItem,
   getProductBySlug,
-  addFavorite,
-  removeFavorite,
   getProducts,
-  getProductReviews,getDemoProductReviews
+  getProductReviews,
+  getDemoProductReviews,
 } from "../../../../../services/api";
 
 import ProductCard from "../../../../../components/products/ProductCard";
 import styles from "./ProductDetails.module.css";
+import {
+  addToCart as addLocalToCart,
+  hasStoredId,
+  toggleStoredId,
+  WISHLIST_KEY,
+  COMPARE_KEY,
+  LOCAL_LIST_CHANGE_EVENT,
+  type LocalProduct,
+} from "@/lib/localStore";
 
 type Locale = "ar" | "en";
 
@@ -263,18 +270,36 @@ export default function ProductDetailsPage() {
   const [favorite, setFavorite] =
     useState(false);
 
+  const [compared, setCompared] =
+    useState(false);
+
   const [loading, setLoading] =
     useState(true);
 
   const [message, setMessage] =
     useState("");
 
+  const [messageType, setMessageType] =
+    useState<
+      "cart" | "favorite" | "compare" | "error" | ""
+    >("");
+useEffect(() => {
+  if (!message) return;
+
+  const timeoutId = window.setTimeout(() => {
+    setMessage("");
+    setMessageType("");
+  }, 1500);
+
+  return () => window.clearTimeout(timeoutId);
+}, [message]);
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
       setLoading(true);
       setMessage("");
+      setMessageType("");
 
       try {
         const item = (
@@ -381,6 +406,35 @@ setReviews([
     };
   }, [params.slug, locale]);
 
+  useEffect(() => {
+    if (!product?._id) {
+      setFavorite(false);
+      setCompared(false);
+      return;
+    }
+
+    const syncLocalLists = () => {
+      setFavorite(hasStoredId(WISHLIST_KEY, product._id));
+      setCompared(hasStoredId(COMPARE_KEY, product._id));
+    };
+
+    syncLocalLists();
+
+    window.addEventListener(
+      LOCAL_LIST_CHANGE_EVENT,
+      syncLocalLists,
+    );
+    window.addEventListener("storage", syncLocalLists);
+
+    return () => {
+      window.removeEventListener(
+        LOCAL_LIST_CHANGE_EVENT,
+        syncLocalLists,
+      );
+      window.removeEventListener("storage", syncLocalLists);
+    };
+  }, [product?._id]);
+
   const media = useMemo(
     () =>
       [...(product?.media || [])].sort(
@@ -440,10 +494,11 @@ setReviews([
         )
       : 0;
 
-  const addToCart = async () => {
+  const addToCart = () => {
     if (!product) return;
 
     if (isOutOfStock) {
+      setMessageType("error");
       setMessage(
         t(
           locale,
@@ -451,11 +506,11 @@ setReviews([
           "This product is out of stock",
         ),
       );
-
       return;
     }
 
     if (quantity > stock) {
+      setMessageType("error");
       setMessage(
         t(
           locale,
@@ -463,71 +518,75 @@ setReviews([
           `Only ${stock} units are available`,
         ),
       );
-
       return;
     }
 
-    try {
-      const token =
-        localStorage.getItem("token") || "";
+    addLocalToCart(
+      product as LocalProduct,
+      quantity,
+      selectedColor,
+    );
 
-      await addCartItem(
-        token,
-        product._id,
-        quantity,
-      );
-
-      setMessage(
-        t(
-          locale,
-          "تمت إضافة المنتج إلى السلة",
-          "Product added to cart",
-        ),
-      );
-    } catch (error) {
-      setMessage(
-        error instanceof Error
-          ? error.message
-          : t(
-              locale,
-              "تعذر الإضافة إلى السلة",
-              "Unable to add product to cart",
-            ),
-      );
-    }
+    setMessageType("cart");
+    setMessage(
+      t(
+        locale,
+        "تمت إضافة المنتج إلى السلة",
+        "Product added to cart",
+      ),
+    );
   };
 
-  const toggleFavorite = async () => {
+  const toggleFavorite = () => {
     if (!product) return;
 
-    try {
-      const token =
-        localStorage.getItem("token") || "";
+    const isAdded = toggleStoredId(
+      WISHLIST_KEY,
+      product._id,
+    );
 
-      if (favorite) {
-        await removeFavorite(
-          token,
-          product._id,
-        );
-      } else {
-        await addFavorite(
-          token,
-          product._id,
-        );
-      }
+    setFavorite(isAdded);
 
-      setFavorite((value) => !value);
-    } catch (error) {
-      setMessage(
-        error instanceof Error
-          ? error.message
-          : t(
-              locale,
-              "يجب تسجيل الدخول أولًا",
-              "Please log in first",
-            ),
-      );
-    }
+    setMessageType("favorite");
+    setMessage(
+      isAdded
+        ? t(
+            locale,
+            "تمت إضافة المنتج إلى المفضلة",
+            "Product added to wishlist",
+          )
+        : t(
+            locale,
+            "تمت إزالة المنتج من المفضلة",
+            "Product removed from wishlist",
+          ),
+    );
+  };
+
+  const toggleCompare = () => {
+    if (!product) return;
+
+    const isAdded = toggleStoredId(
+      COMPARE_KEY,
+      product._id,
+    );
+
+    setCompared(isAdded);
+
+    setMessageType("compare");
+    setMessage(
+      isAdded
+        ? t(
+            locale,
+            "تمت إضافة المنتج إلى المقارنة",
+            "Product added to comparison",
+          )
+        : t(
+            locale,
+            "تمت إزالة المنتج من المقارنة",
+            "Product removed from comparison",
+          ),
+    );
   };
 
   if (loading) {
@@ -955,14 +1014,14 @@ setReviews([
 
               <button
                 type="button"
-                className={
-                  styles.iconButton
-                }
+                className={styles.iconButton}
+                onClick={toggleCompare}
                 aria-label={t(
                   locale,
                   "المقارنة",
                   "Compare",
                 )}
+                aria-pressed={compared}
               >
                 <GitCompareArrows
                   size={20}
@@ -988,7 +1047,19 @@ setReviews([
               </span>
             </div>
             {message && (
-              <p className={styles.message}>
+              <p
+                className={`${styles.message} ${
+                  messageType === "cart"
+                    ? styles.messageCart
+                    : messageType === "favorite"
+                      ? styles.messageFavorite
+                      : messageType === "compare"
+                        ? styles.messageCompare
+                        : styles.messageError
+                }`}
+                role="status"
+                aria-live="polite"
+              >
                 {message}
               </p>
             )}

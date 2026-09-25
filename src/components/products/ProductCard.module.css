@@ -414,4 +414,95 @@
     width: 14px;
     height: 14px;
   }
+}.message {
+  position: fixed;
+  top: 22px;
+  right: 24px;
+  z-index: 9999;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+
+  width: max-content;
+  max-width: min(92vw, 520px);
+
+  margin: 0;
+  padding: 12px 18px;
+
+  border: 1px solid transparent;
+  border-radius: 14px;
+
+  direction: rtl;
+  text-align: right;
+
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.7;
+
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.14);
+
+  /*
+    الإجمالي: 3 ثوانٍ
+
+    0% - 33.33%  : دخول خلال ثانية
+    33.33% - 66.66% : ثبات لمدة ثانية
+    66.66% - 100% : خروج خلال ثانية
+  */
+  animation: toastThreeSeconds 3s ease-in-out both;
+}
+
+.messageCart {
+  color: #176b3a;
+  background: #e9f8ef;
+  border-color: #9edbb5;
+}
+
+.messageFavorite {
+  color: #a12655;
+  background: #fff0f5;
+  border-color: #f2abc6;
+}
+
+.messageCompare {
+  color: #4b3aa5;
+  background: #f0edff;
+  border-color: #bdb2f5;
+}
+
+@keyframes toastThreeSeconds {
+  /* بداية الإشعار: خارج الشاشة */
+  0% {
+    opacity: 0;
+    transform: translateX(120%) scale(0.94);
+  }
+
+  /* دخول خلال ثانية واحدة */
+  33.33% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+
+  /* ثبات لمدة ثانية واحدة */
+  66.66% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+
+  /* خروج خلال ثانية واحدة */
+  100% {
+    opacity: 0;
+    transform: translateX(120%) scale(0.96);
+  }
+}
+
+@media (max-width: 480px) {
+  .message {
+    top: 16px;
+    right: 12px;
+    max-width: calc(100vw - 24px);
+    padding: 10px 14px;
+    font-size: 13px;
+  }
 }

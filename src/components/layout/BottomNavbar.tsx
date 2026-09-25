@@ -1,5 +1,7 @@
+
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -10,15 +12,50 @@ import {
 } from "react-icons/fi";
 import styles from "./BottomNavbar.module.css";
 
+import {
+  getWishlistCount,
+  getCompareCount,
+  LOCAL_LIST_CHANGE_EVENT,
+} from "@/lib/localStore";
+
 export default function BottomNavbar() {
   const pathname = usePathname();
 
   const segments = pathname.split("/").filter(Boolean);
   const locale = segments[0] === "en" ? "en" : "ar";
 
+  const [wishlistCount, setWishlistCount] = useState(0);
+  const [compareCount, setCompareCount] = useState(0);
+
+  useEffect(() => {
+    const updateCounts = () => {
+      setWishlistCount(getWishlistCount());
+      setCompareCount(getCompareCount());
+    };
+
+    // قراءة الأعداد عند تحميل المكون
+    updateCounts();
+
+    // تحديث الأعداد عند حدوث تغيير في المفضلة أو المقارنة
+    window.addEventListener(
+      LOCAL_LIST_CHANGE_EVENT,
+      updateCounts
+    );
+
+    return () => {
+      window.removeEventListener(
+        LOCAL_LIST_CHANGE_EVENT,
+        updateCounts
+      );
+    };
+  }, []);
+
   const categories = [
     {
-      label: locale === "ar" ? "مكاتب و طاولات كمبيوتر" : "Computer Tables",
+      label:
+        locale === "ar"
+          ? "مكاتب و طاولات كمبيوتر"
+          : "Computer Tables",
       href: `/${locale}/shop?category=computer-desks`,
     },
     {
@@ -38,25 +75,40 @@ export default function BottomNavbar() {
           href: `/${locale}/shop?category=chairs`,
         },
         {
-          label: locale === "ar" ? "كراسي المعمل" : "Laboratory Chairs",
+          label:
+            locale === "ar"
+              ? "كراسي المعمل"
+              : "Laboratory Chairs",
           href: `/${locale}/shop?category=chairs`,
         },
       ],
     },
     {
-      label: locale === "ar" ? "انتريهات مكتبية" : "Office Seating Sets",
+      label:
+        locale === "ar"
+          ? "انتريهات مكتبية"
+          : "Office Seating Sets",
       href: `/${locale}/shop?category=office-sofas`,
     },
     {
-      label: locale === "ar" ? "خلايا العمل" : "Working Stations",
+      label:
+        locale === "ar"
+          ? "خلايا العمل"
+          : "Working Stations",
       href: `/${locale}/shop?category=work-cells`,
     },
     {
-      label: locale === "ar" ? "كاونتر استقبال" : "Reception Desks",
+      label:
+        locale === "ar"
+          ? "كاونتر استقبال"
+          : "Reception Desks",
       href: `/${locale}/shop?category=reception-counters`,
     },
     {
-      label: locale === "ar" ? "ترابيزات اجتماعات" : "Meeting Tables",
+      label:
+        locale === "ar"
+          ? "ترابيزات اجتماعات"
+          : "Meeting Tables",
       href: `/${locale}/shop?category=meeting-tables`,
     },
     {
@@ -76,14 +128,21 @@ export default function BottomNavbar() {
             <div
               key={category.label}
               className={`${styles.categoryItem} ${
-                category.children ? styles.hasDropdown : ""
+                category.children
+                  ? styles.hasDropdown
+                  : ""
               }`}
             >
-              <a href={category.href} className={styles.categoryLink}>
+              <a
+                href={category.href}
+                className={styles.categoryLink}
+              >
                 <span>{category.label}</span>
 
                 {category.children && (
-                  <FiChevronDown className={styles.chevron} />
+                  <FiChevronDown
+                    className={styles.chevron}
+                  />
                 )}
               </a>
 
@@ -104,46 +163,86 @@ export default function BottomNavbar() {
           ))}
         </div>
 
-        <div className={styles.accountActions}><div className={styles.accountActions}>
-  <Link
-    href={`/${locale}/wishlist`}
-    className={styles.action}
-    aria-label={locale === "ar" ? "المفضلة" : "Wishlist"}
-  >
-    <span className={styles.iconWrapper}>
-      <FiHeart />
-      <span className={styles.badge}>0</span>
-    </span>
-    <span>{locale === "ar" ? "المفضلة" : "Wishlist"}</span>
-  </Link>
+        <div className={styles.accountActions}>
+          {/* المفضلة */}
+          <Link
+            href={`/${locale}/wishlist`}
+            className={styles.action}
+            aria-label={
+              locale === "ar"
+                ? "المفضلة"
+                : "Wishlist"
+            }
+          >
+            <span className={styles.iconWrapper}>
+              <FiHeart />
 
-  <span className={styles.separator}>|</span>
+              {wishlistCount > 0 && (
+                <span className={styles.badge}>
+                  {wishlistCount}
+                </span>
+              )}
+            </span>
 
-  <Link
-    href={`/${locale}/compare`}
-    className={styles.action}
-    aria-label={locale === "ar" ? "المقارنة" : "Compare"}
-  >
-    <span className={styles.iconWrapper}>
-      <FiShuffle />
-      <span className={styles.badge}>0</span>
-    </span>
-    <span>{locale === "ar" ? "المقارنة" : "Compare"}</span>
-  </Link>
+            <span>
+              {locale === "ar"
+                ? "المفضلة"
+                : "Wishlist"}
+            </span>
+          </Link>
 
-  <span className={styles.separator}>|</span>
+          <span className={styles.separator}>|</span>
 
-  <Link
-    href={`/${locale}/login`}
-    className={styles.action}
-    aria-label={locale === "ar" ? "الحساب" : "Account"}
-  >
-    <span className={styles.iconWrapper}>
-      <FiUser />
-    </span>
-    <span>{locale === "ar" ? "الحساب" : "Account"}</span>
-  </Link>
-</div></div>
+          {/* المقارنة */}
+          <Link
+            href={`/${locale}/compare`}
+            className={styles.action}
+            aria-label={
+              locale === "ar"
+                ? "المقارنة"
+                : "Compare"
+            }
+          >
+            <span className={styles.iconWrapper}>
+              <FiShuffle />
+
+              {compareCount > 0 && (
+                <span className={styles.badge}>
+                  {compareCount}
+                </span>
+              )}
+            </span>
+
+            <span>
+              {locale === "ar"
+                ? "المقارنة"
+                : "Compare"}
+            </span>
+          </Link>
+
+          <span className={styles.separator}>|</span>
+
+          {/* الحساب */}
+          <Link
+            href={`/${locale}/login`}
+            className={styles.action}
+            aria-label={
+              locale === "ar"
+                ? "الحساب"
+                : "Account"
+            }
+          >
+            <span className={styles.iconWrapper}>
+              <FiUser />
+            </span>
+
+            <span>
+              {locale === "ar"
+                ? "الحساب"
+                : "Account"}
+            </span>
+          </Link>
+        </div>
       </div>
     </nav>
   );

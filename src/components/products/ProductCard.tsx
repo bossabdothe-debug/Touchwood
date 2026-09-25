@@ -1,5 +1,5 @@
 "use client";
-
+import { addToCart } from "@/lib/localStore";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -146,6 +146,10 @@ export default function ProductCard({
   const [isCompared, setIsCompared] = useState(false);
   const [realReviews, setRealReviews] = useState<Review[]>([]);
   const [demoReviews, setDemoReviews] = useState<DemoReview[]>([]);
+  const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState<
+    "cart" | "favorite" | "compare" | ""
+  >("");
 
   useEffect(() => {
     setIsFavorite(
@@ -188,6 +192,17 @@ export default function ProductCard({
       );
     };
   }, [product._id]);
+
+  useEffect(() => {
+    if (!message) return;
+
+    const timeoutId = window.setTimeout(() => {
+      setMessage("");
+      setMessageType("");
+    }, 5000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [message]);
 
   useEffect(() => {
     let isMounted = true;
@@ -308,7 +323,18 @@ const productHref = `/${locale}/products/${product.slug}`;
 
     saveStoredIds(WISHLIST_KEY, next);
 
-    setIsFavorite(next.includes(product._id));
+    const added = next.includes(product._id);
+    setIsFavorite(added);
+    setMessageType("favorite");
+    setMessage(
+      added
+        ? locale === "ar"
+          ? "تمت إضافة المنتج إلى المفضلة"
+          : "Product added to wishlist"
+        : locale === "ar"
+          ? "تمت إزالة المنتج من المفضلة"
+          : "Product removed from wishlist"
+    );
   };
 
   const toggleCompare = () => {
@@ -320,23 +346,50 @@ const productHref = `/${locale}/products/${product.slug}`;
 
     saveStoredIds(COMPARE_KEY, next);
 
-    setIsCompared(next.includes(product._id));
+    const added = next.includes(product._id);
+    setIsCompared(added);
+    setMessageType("compare");
+    setMessage(
+      added
+        ? locale === "ar"
+          ? "تمت إضافة المنتج إلى المقارنة"
+          : "Product added to compare"
+        : locale === "ar"
+          ? "تمت إزالة المنتج من المقارنة"
+          : "Product removed from compare"
+    );
   };
 
   const handleAddToCart = () => {
-    const currentCart =
-      getStoredIds("touchwood_cart");
+  addToCart(product, 1, null);
 
-    if (!currentCart.includes(product._id)) {
-      saveStoredIds("touchwood_cart", [
-        ...currentCart,
-        product._id,
-      ]);
-    }
-  };
+  setMessageType("cart");
+  setMessage(
+    locale === "ar"
+      ? "تمت إضافة المنتج إلى السلة"
+      : "Product added to cart"
+  );
+};
 
   return (
-    <article className={styles.card}>
+    <>
+      {message && (
+        <p
+          className={`${styles.message} ${
+            messageType === "cart"
+              ? styles.messageCart
+              : messageType === "favorite"
+                ? styles.messageFavorite
+                : styles.messageCompare
+          }`}
+          role="status"
+          aria-live="polite"
+        >
+          {message}
+        </p>
+      )}
+
+      <article className={styles.card}>
       <div className={styles.imageContainer}>
         {discount > 0 && (
           <div className={styles.discountBadge}>
@@ -489,5 +542,6 @@ const productHref = `/${locale}/products/${product.slug}`;
         </button>
       </div>
     </article>
+    </>
   );
 }
