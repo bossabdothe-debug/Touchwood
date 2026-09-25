@@ -23,6 +23,20 @@ export default function Navbar() {
   const pathname = usePathname();
 const [searchResults, setSearchResults] = useState<any[]>([]);
 const [isSearching, setIsSearching] = useState(false);
+const getLocalizedValue = (value, locale) => {
+  if (!value) return "";
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  return (
+    value[locale] ||
+    value.en ||
+    value.ar ||
+    ""
+  );
+};
 const [showSearchResults, setShowSearchResults] = useState(false);
 useEffect(() => {
   const searchTerm = search.trim();
@@ -156,59 +170,90 @@ useEffect(() => {
   </span>
 
   {showSearchResults && (
-    <div
-      className={styles.searchResults}
-      dir={currentLocale === "ar" ? "rtl" : "ltr"}
-    >
-      {isSearching ? (
-        <div className={styles.searchMessage}>
-          {currentLocale === "ar"
-            ? "جاري البحث..."
-            : "Searching..."}
-        </div>
-      ) : searchResults.length > 0 ? (
-        searchResults.map((product) => {
-          const productName =
-            typeof product.name === "object"
-              ? product.name?.[currentLocale] ||
-                product.name?.en ||
-                product.name?.ar
-              : product.name;
+  <div
+    className={styles.searchResults}
+    dir={currentLocale === "ar" ? "rtl" : "ltr"}
+  >
+    {isSearching ? (
+      <div className={styles.searchMessage}>
+        {currentLocale === "ar"
+          ? "جاري البحث..."
+          : "Searching..."}
+      </div>
+    ) : searchResults.length > 0 ? (
+      searchResults.map((product) => {
+        const productName = getLocalizedValue(
+          product.name,
+          currentLocale
+        );
 
-          const productHref = `/${currentLocale}/products/${product.slug}`;
+        const productDescription = getLocalizedValue(
+          product.description,
+          currentLocale
+        );
 
-          return (
-            <a
-              key={product._id}
-              href={productHref}
-              className={styles.searchResultItem}
-              onClick={() => {
-                setSearch("");
-                setShowSearchResults(false);
-                window.scrollTo(0, 0);
-              }}
-            >
+        const productImage =
+          product.media?.[0]?.url ||
+          product.media?.[0]?.secure_url ||
+          product.media?.[0]?.src ||
+          product.media?.[0]?.image ||
+          product.image ||
+          "/images/placeholder-product.jpg";
+
+        const productHref = `/${currentLocale}/products/${product.slug}`;
+
+        return (
+          <a
+            key={product._id}
+            href={productHref}
+            className={styles.searchResultItem}
+            onClick={() => {
+              setSearch("");
+              setShowSearchResults(false);
+              window.scrollTo(0, 0);
+            }}
+          >
+            <div className={styles.searchResultImageWrapper}>
+              <img
+                src={productImage}
+                alt={productName}
+                className={styles.searchResultImage}
+              />
+            </div>
+
+            <div className={styles.searchResultInfo}>
               <span className={styles.searchResultName}>
                 {productName}
               </span>
 
               {product.category && (
                 <span className={styles.searchResultCategory}>
-                  {product.category}
+                  {getLocalizedValue(
+                    product.category,
+                    currentLocale
+                  )}
                 </span>
               )}
-            </a>
-          );
-        })
-      ) : (
-        <div className={styles.searchMessage}>
-          {currentLocale === "ar"
-            ? "لم يتم العثور على منتجات"
-            : "No products found"}
-        </div>
-      )}
-    </div>
-  )}
+
+              <span className={styles.searchResultPrice}>
+                {Number(product.price || 0).toLocaleString(
+                  currentLocale === "ar" ? "ar-EG" : "en-US"
+                )}{" "}
+                {currentLocale === "ar" ? "ج.م" : "EGP"}
+              </span>
+            </div>
+          </a>
+        );
+      })
+    ) : (
+      <div className={styles.searchMessage}>
+        {currentLocale === "ar"
+          ? "لم يتم العثور على منتجات"
+          : "No products found"}
+      </div>
+    )}
+  </div>
+)}
 </form>
           </div>
 
@@ -241,7 +286,7 @@ useEffect(() => {
             </div>
           </div>
 
-          <Link
+          <a
             href={languageHref}
             className={styles.languageSwitcher}
             aria-label={
@@ -253,7 +298,7 @@ useEffect(() => {
             <FiGlobe />
 
             <span>{currentLocale === "ar" ? "EN" : "عربي"}</span>
-          </Link>
+          </a>
 
           <Link
             href={`/${currentLocale}/cart`}

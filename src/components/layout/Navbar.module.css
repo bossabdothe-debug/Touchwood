@@ -481,20 +481,20 @@
   inset-inline: 0;
   z-index: 1000;
   width: 100%;
-  min-width: 280px;
-  max-height: 380px;
+  min-width: 330px;
+  max-height: 420px;
   overflow-y: auto;
   background: #ffffff;
   border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.12);
+  border-radius: 14px;
+  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.14);
 }
 
 .searchResultItem {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 12px 14px;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
   color: #1f2937;
   text-decoration: none;
   border-bottom: 1px solid #f0f0f0;
@@ -508,27 +508,103 @@
 }
 
 .searchResultItem:hover {
-  background: #f3f7f2;
+  background: #f4f8f3;
   color: #315b3b;
 }
 
-.searchResultName {
+.searchResultImageWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 76px;
+  height: 76px;
+  overflow: hidden;
+  background: #f5f5f5;
+  border-radius: 10px;
+}
+
+.searchResultImage {
   display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.25s ease;
+}
+
+.searchResultItem:hover .searchResultImage {
+  transform: scale(1.06);
+}
+
+.searchResultInfo {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.searchResultName {
+  display: -webkit-box;
+  width: 100%;
+  overflow: hidden;
+  color: #263c2b;
   font-size: 14px;
   font-weight: 600;
   line-height: 1.5;
+  text-overflow: ellipsis;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .searchResultCategory {
   display: block;
-  color: #7b827d;
-  font-size: 12px;
+  max-width: 100%;
+  overflow: hidden;
+  color: #858b85;
+  font-size: 11px;
   line-height: 1.4;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.searchResultPrice {
+  display: block;
+  margin-top: 2px;
+  color: #c47b36;
+  font-size: 14px;
+  font-weight: 700;
+  direction: ltr;
 }
 
 .searchMessage {
-  padding: 18px 14px;
+  padding: 20px 14px;
   color: #737373;
   font-size: 14px;
   text-align: center;
+}
+
+@media (max-width: 768px) {
+  .searchResults {
+    position: absolute;
+    inset-inline: auto;
+    inset-inline-start: 50%;
+    width: min(90vw, 360px);
+    min-width: 0;
+    transform: translateX(-50%);
+  }
+
+  .searchResultImageWrapper {
+    width: 64px;
+    height: 64px;
+  }
+
+  .searchResultName {
+    font-size: 13px;
+  }
+
+  .searchResultPrice {
+    font-size: 13px;
+  }
 }

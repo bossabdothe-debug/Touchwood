@@ -82,7 +82,7 @@ export default function MobileBottomNavbar() {
           </span>
         </Link>
 
-        <Link
+        <a
           href={languageHref}
           className={styles.action}
           aria-label={
@@ -95,7 +95,7 @@ export default function MobileBottomNavbar() {
             <FiGlobe />
           </span>
           <span>{locale === "ar" ? "EN" : "عربي"}</span>
-        </Link>
+        </a>
       </div>
     </nav>
   );

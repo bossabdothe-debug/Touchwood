@@ -1,15 +1,9 @@
+import CategoryProductSections from "@/components/home/CategoryProductSections";
+
 export default function HomePage() {
   return (
     <main>
-      <section
-        style={{
-          width: "100%",
-          padding: "20px 32px 60px",
-          textAlign: "center",
-        }}
-      >
-        
-      </section>
+      <CategoryProductSections />
     </main>
   );
 }

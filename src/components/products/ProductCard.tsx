@@ -274,7 +274,7 @@ const productHref = `/${locale}/products/${product.slug}`;
       <div className={styles.imageContainer}>
         {discount > 0 && (
           <div className={styles.discountBadge}>
-            {discount}%-
+           {discount}%-
           </div>
         )}
 

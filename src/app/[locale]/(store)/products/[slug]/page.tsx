@@ -555,7 +555,7 @@ export default function ProductDetailsPage() {
 
   {/* التصنيف */}
   <a
-    href={`/${locale}/products?category=${encodeURIComponent(
+    href={`/${locale}/shop?category=${encodeURIComponent(
       product.category,
     )}`}
   >
@@ -577,7 +577,7 @@ export default function ProductDetailsPage() {
           >
             <div className={styles.imageWrapper}>
               {discountPercentage > 0 && (
-                <span
+                <span 
                   className={styles.discountBadge}
                 >
                   {isArabic
@@ -1169,32 +1169,22 @@ export default function ProductDetailsPage() {
           </div>
 
           <Swiper
-            dir="ltr"
-            modules={[
-              Navigation,
-              Pagination,
-            ]}
-            navigation
-            pagination={{
-              clickable: true,
-            }}
-            spaceBetween={18}
-            slidesPerView={1.2}
-            breakpoints={{
-              640: {
-                slidesPerView: 2,
-              },
-              900: {
-                slidesPerView: 3,
-              },
-              1200: {
-                slidesPerView: 4,
-              },
-            }}
-            className={
-              styles.relatedSwiper
-            }
-          >
+  dir={isArabic ? "rtl" : "rtl"}
+  modules={[Navigation, Pagination]}
+  navigation
+  autoplay
+  pagination={{ clickable: true }}
+  spaceBetween={18}
+  slidesPerView={2}
+  breakpoints={{
+    640: { slidesPerView: 2 },
+    900: { slidesPerView: 3 },
+    1200: { slidesPerView: 4 },
+  }}
+  className={`${styles.relatedSwiper} ${
+    isArabic ? styles.relatedSwiperArabic : ""
+  }`}
+>
             {related.map((item) => (
               <SwiperSlide
                 key={item._id}

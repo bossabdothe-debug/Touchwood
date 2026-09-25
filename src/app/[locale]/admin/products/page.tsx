@@ -2421,13 +2421,13 @@ export default function ProductsPage() {
                   <div className="colors-stock-summary">
                     <div>
                       <span>
-                        إجمالي مخزون
-                        الألوان
-                      </span>
-
-                      <small>
+                        إجمالي المخزون 
                         يتم حسابه تلقائيًا
-                        من مخزون كل لون
+                        من مخزون كل لون من الألوان
+                      </span>
+<br />
+                      <small>
+                       
                       </small>
                     </div>
 

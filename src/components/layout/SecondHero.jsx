@@ -1,5 +1,8 @@
+
 "use client";
 
+import Link from "next/link";
+import { useParams } from "next/navigation";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination } from "swiper/modules";
 
@@ -15,6 +18,11 @@ const heroImages = [
 ];
 
 export default function SecondHero() {
+  const params = useParams();
+
+  const locale =
+    typeof params?.locale === "string" ? params.locale : "en";
+
   return (
     <section className="secondHero">
       <div className="secondHeroContainer">
@@ -28,17 +36,26 @@ export default function SecondHero() {
             delay: 3500,
             disableOnInteraction: false,
           }}
-          
           className="secondHeroSwiper"
         >
           {heroImages.map((image, index) => (
             <SwiperSlide key={index}>
               <div className="secondHeroSlide">
-                <img
-                  src={image}
-                  alt={`Touch Wood ${index + 1}`}
-                  className="secondHeroImage"
-                />
+                <Link
+                  href={`/${locale}/shop`}
+                  className="secondHeroLink"
+                  aria-label={
+                    locale === "ar"
+                      ? `انتقل إلى المتجر - الصورة ${index + 1}`
+                      : `Go to shop - Image ${index + 1}`
+                  }
+                >
+                  <img
+                    src={image}
+                    alt={`Touch Wood ${index + 1}`}
+                    className="secondHeroImage"
+                  />
+                </Link>
               </div>
             </SwiperSlide>
           ))}
