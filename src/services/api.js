@@ -397,7 +397,18 @@ export const deleteAdminNotification = async (
 };
 
 /* التقييمات */
+export const getDemoProductReviews = async (productId) => {
+  const response = await apiRequest(
+    `/demo-reviews/product/${productId}`,
+  );
 
+  return Array.isArray(response)
+    ? response
+    : response?.reviews ||
+        response?.data?.reviews ||
+        response?.data ||
+        [];
+};
 export const getProductReviews = async (
   productId
 ) => {

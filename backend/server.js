@@ -1,5 +1,5 @@
 import "dotenv/config";
-
+import demoReviewRouter from "./routes/demoReviewRoutes.js";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -75,7 +75,7 @@ app.use((req, res) => {
     message: "Route not found",
   });
 });
-
+app.use("/api/demo-reviews", demoReviewRouter);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;

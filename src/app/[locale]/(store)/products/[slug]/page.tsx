@@ -30,7 +30,7 @@ import {
   addFavorite,
   removeFavorite,
   getProducts,
-  getProductReviews,
+  getProductReviews,getDemoProductReviews
 } from "../../../../../services/api";
 
 import ProductCard from "../../../../../components/products/ProductCard";
@@ -65,17 +65,35 @@ type ProductColor = {
   code?: string;
 };
 
+type ReviewUser = {
+  name?: string;
+  firstName?: string;
+  lastName?: string;
+};
+
 type Review = {
   _id: string;
   rating?: number;
   comment?: string;
   createdAt?: string;
-  user?: {
-    name?: string;
-    firstName?: string;
-    lastName?: string;
-  };
+  user?: ReviewUser;
+  isDemo?: false;
 };
+
+type DemoReview = {
+  _id: string;
+  product?: string;
+  name?: string;
+  nameAr?: string;
+  nameEn?: string;
+  rating?: number;
+  comment?: string;
+  language?: "ar" | "en";
+  isDemo: true;
+  createdAt?: string;
+};
+
+type DisplayReview = Review | DemoReview;
 
 type Product = {
   _id: string;
@@ -137,11 +155,11 @@ const money = (
   ).format(value);
 };
 
-const normalizeReviews = (
+const normalizeReviews = <T,>(
   response: unknown,
-): Review[] => {
+): T[] => {
   if (Array.isArray(response)) {
-    return response as Review[];
+    return response as T[];
   }
 
   if (!response || typeof response !== "object") {
@@ -154,11 +172,11 @@ const normalizeReviews = (
   };
 
   if (Array.isArray(value.reviews)) {
-    return value.reviews as Review[];
+    return value.reviews as T[];
   }
 
   if (Array.isArray(value.data)) {
-    return value.data as Review[];
+    return value.data as T[];
   }
 
   if (
@@ -170,7 +188,7 @@ const normalizeReviews = (
     };
 
     if (Array.isArray(nested.reviews)) {
-      return nested.reviews as Review[];
+      return nested.reviews as T[];
     }
   }
 
@@ -231,7 +249,7 @@ export default function ProductDetailsPage() {
     useState<Product[]>([]);
 
   const [reviews, setReviews] =
-    useState<Review[]>([]);
+  useState<DisplayReview[]>([]);
 
   const [selectedImage, setSelectedImage] =
     useState(0);
@@ -270,30 +288,49 @@ export default function ProductDetailsPage() {
         setQuantity(1);
         setSelectedColor(null);
 
-        const [
-          reviewResult,
-          relatedResult,
-        ] = await Promise.allSettled([
-          getProductReviews(item._id),
-          getProducts({
-            category: item.category,
-            active: true,
-          }),
-        ]);
+     const [
+  reviewResult,
+  demoReviewResult,
+  relatedResult,
+] = await Promise.allSettled([
+  getProductReviews(item._id),
+
+  getDemoProductReviews(item._id),
+
+  getProducts({
+    category: item.category,
+    active: true,
+  }),
+]);
 
         if (cancelled) return;
 
-        if (
-          reviewResult.status === "fulfilled"
-        ) {
-          setReviews(
-            normalizeReviews(
-              reviewResult.value,
-            ),
-          );
-        } else {
-          setReviews([]);
-        }
+      const realReviews =
+  reviewResult.status === "fulfilled"
+    ? normalizeReviews<Review>(
+        reviewResult.value,
+      )
+    : [];
+
+const allDemoReviews =
+  demoReviewResult.status === "fulfilled"
+    ? normalizeReviews<DemoReview>(
+        demoReviewResult.value,
+      )
+    : [];
+
+const localizedDemoReviews =
+  allDemoReviews.filter(
+    (review) =>
+      review.isDemo === true &&
+      (!review.language ||
+        review.language === locale),
+  );
+
+setReviews([
+  ...realReviews,
+  ...localizedDemoReviews,
+]);
 
         if (
           relatedResult.status === "fulfilled"
@@ -1101,38 +1138,59 @@ export default function ProductDetailsPage() {
         >
           {reviews.length ? (
             reviews.map((review) => {
-              const name =
-                review.user?.name ||
-                `${review.user?.firstName || t(locale, "عميل", "Customer")} ${
-                  review.user?.lastName || ""
-                }`.trim();
+              const isDemoReview =
+  review.isDemo === true;
 
-              return (
-                <article
-                  className={styles.review}
-                  key={review._id}
-                >
-                  <strong>{name}</strong>
+const name = isDemoReview
+  ? locale === "ar"
+    ? review.nameAr ||
+      review.name ||
+      "عميل تجريبي"
+    : review.nameEn ||
+      review.name ||
+      "Demo customer"
+  : review.user?.name ||
+    `${review.user?.firstName || t(locale, "عميل", "Customer")} ${
+      review.user?.lastName || ""
+    }`.trim();
 
-                  <div
-                    className={
-                      styles.reviewStars
-                    }
-                  >
-                    {"★".repeat(
-                      Math.round(
-                        review.rating || 0,
-                      ),
-                    )}
-                  </div>
+             return (
+  <article
+    className={styles.review}
+    key={`${isDemoReview ? "demo" : "real"}-${review._id}`}
+  >
+    <div className={styles.reviewHeader}>
+      <strong>{name}</strong>
 
-                  {review.comment && (
-                    <p>
-                      {review.comment}
-                    </p>
-                  )}
-                </article>
-              );
+      {isDemoReview && (
+        <span className={styles.demoBadge}>
+          {t(
+            locale,
+            "مراجعة تجريبية",
+            "Demo review",
+          )}
+        </span>
+      )}
+    </div>
+
+    <div
+      className={styles.reviewStars}
+      aria-label={t(
+        locale,
+        `التقييم ${review.rating || 0} من 5`,
+        `Rating ${review.rating || 0} out of 5`,
+      )}
+    >
+      {"★".repeat(
+        Math.round(review.rating || 0),
+      )}
+    </div>
+
+    {review.comment && (
+      <p>{review.comment}</p>
+    )}
+  </article>
+);
             })
           ) : (
             <p
