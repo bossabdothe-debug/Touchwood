@@ -939,4 +939,261 @@
   to {
     transform: rotate(360deg);
   }
+}.inlineMessage {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  font-size: 14px;
+  line-height: 1.6;
+  animation: accountMessageIn 0.25s ease;
+}
+
+.inlineMessage > svg {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+}
+
+.inlineMessage span {
+  flex: 1;
+}
+
+.inlineMessage button {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 8px;
+  padding: 0;
+}
+
+.inlineMessage button svg {
+  width: 16px;
+  height: 16px;
+}
+
+.inlineSuccess {
+  color: #1f6b45;
+  background: #edf8f2;
+  border-color: #ccebd9;
+}
+
+.inlineSuccess > svg {
+  color: #2f8f5b;
+}
+
+.inlineSuccess button {
+  color: #2f8f5b;
+}
+
+.inlineError {
+  color: #9f3434;
+  background: #fff1f1;
+  border-color: #f1cccc;
+}
+
+.inlineError > svg {
+  color: #c34b4b;
+}
+
+.inlineError button {
+  color: #c34b4b;
+}
+
+.inlineMessage button:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(15, 18, 20, 0.58);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: modalOverlayIn 0.2s ease;
+}
+
+.confirmModal {
+  width: min(100%, 440px);
+  padding: 32px 30px 28px;
+  border-radius: 22px;
+  background: #ffffff;
+  box-shadow:
+    0 25px 70px rgba(0, 0, 0, 0.2),
+    0 8px 25px rgba(0, 0, 0, 0.08);
+  text-align: center;
+  animation: confirmModalIn 0.25s ease;
+}
+
+.confirmIcon {
+  width: 62px;
+  height: 62px;
+  margin: 0 auto 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: #a56a16;
+  background: #fff5df;
+  border: 1px solid #f2dfb7;
+}
+
+.confirmIcon svg {
+  width: 29px;
+  height: 29px;
+}
+
+.confirmModal h2 {
+  margin: 0;
+  color: #1d1d1d;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.confirmModal p {
+  margin: 10px auto 0;
+  max-width: 360px;
+  color: #777;
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.confirmActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 26px;
+}
+
+.confirmActions button {
+  min-height: 46px;
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 11px;
+  padding: 0 18px;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease,
+    border-color 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.confirmActions button:active {
+  transform: scale(0.98);
+}
+
+.confirmActions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.confirmCancelButton {
+  color: #333;
+  background: #f5f5f5;
+  border: 1px solid #e5e5e5;
+}
+
+.confirmCancelButton:hover {
+  background: #ededed;
+}
+
+.confirmDangerButton {
+  color: #ffffff;
+  background: #b84747;
+  border: 1px solid #b84747;
+}
+
+.confirmDangerButton:hover {
+  background: #a83e3e;
+  border-color: #a83e3e;
+}
+
+.confirmDangerButton svg {
+  width: 17px;
+  height: 17px;
+}
+
+@keyframes modalOverlayIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes confirmModalIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes accountMessageIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 600px) {
+  .inlineMessage {
+    align-items: flex-start;
+    font-size: 13px;
+  }
+
+  .confirmModal {
+    padding: 28px 20px 22px;
+    border-radius: 18px;
+  }
+
+  .confirmModal h2 {
+    font-size: 20px;
+  }
+
+  .confirmModal p {
+    font-size: 13px;
+  }
+
+  .confirmActions {
+    flex-direction: column-reverse;
+  }
+
+  .confirmActions button {
+    width: 100%;
+  }
 }

@@ -18,6 +18,7 @@ import {
   FiSave,
   FiUser,
   FiX,
+  FiAlertTriangle,
 } from "react-icons/fi";
 
 import {
@@ -141,11 +142,12 @@ const getOrderStatus = (
         "ملغي",
         "Canceled"
       );
-      case "Unauthorized":
+
+    case "Unauthorized":
       return text(
         locale,
-        "هعخسغب",
-        "Canceled"
+        "غير مصرح",
+        "Unauthorized"
       );
 
     default:
@@ -254,8 +256,14 @@ export default function AccountPage() {
 
   const [passwordSaving, setPasswordSaving] =
     useState(false);
-const [loggingOut, setLoggingOut] = useState(false);
+
+  const [loggingOut, setLoggingOut] =
+    useState(false);
+
   const [cancelingOrderId, setCancelingOrderId] =
+    useState<string | null>(null);
+
+  const [cancelConfirmOrderId, setCancelConfirmOrderId] =
     useState<string | null>(null);
 
   const [activeSection, setActiveSection] =
@@ -270,6 +278,18 @@ const [loggingOut, setLoggingOut] = useState(false);
     useState("");
 
   const [error, setError] =
+    useState("");
+
+  const [profileMessage, setProfileMessage] =
+    useState("");
+
+  const [profileError, setProfileError] =
+    useState("");
+
+  const [passwordMessage, setPasswordMessage] =
+    useState("");
+
+  const [passwordError, setPasswordError] =
     useState("");
 
   const [name, setName] =
@@ -306,9 +326,6 @@ const [loggingOut, setLoggingOut] = useState(false);
       : "U";
   }, [user]);
 
-  /*
-   * تحميل بيانات المستخدم
-   */
   useEffect(() => {
     if (!token) {
       router.replace(
@@ -378,9 +395,6 @@ const [loggingOut, setLoggingOut] = useState(false);
     token,
   ]);
 
-  /*
-   * تحميل الطلبات
-   */
   useEffect(() => {
     if (!token) {
       return;
@@ -462,16 +476,25 @@ const [loggingOut, setLoggingOut] = useState(false);
       setError("");
     };
 
-  /*
-   * تحديث بيانات الحساب
-   */
+  const clearProfileMessages =
+    () => {
+      setProfileMessage("");
+      setProfileError("");
+    };
+
+  const clearPasswordMessages =
+    () => {
+      setPasswordMessage("");
+      setPasswordError("");
+    };
+
   const handleProfileSubmit =
     async (
       event: FormEvent<HTMLFormElement>
     ) => {
       event.preventDefault();
 
-      clearMessages();
+      clearProfileMessages();
 
       const cleanName =
         name.trim();
@@ -489,7 +512,7 @@ const [loggingOut, setLoggingOut] = useState(false);
         !cleanEmail ||
         !cleanPhone
       ) {
-        setError(
+        setProfileError(
           text(
             locale,
             "من فضلك أكمل جميع بيانات الحساب",
@@ -563,7 +586,7 @@ const [loggingOut, setLoggingOut] = useState(false);
           )
         );
 
-        setMessage(
+        setProfileMessage(
           text(
             locale,
             "تم تحديث بيانات الحساب بنجاح",
@@ -573,7 +596,7 @@ const [loggingOut, setLoggingOut] = useState(false);
       } catch (
         requestError
       ) {
-        setError(
+        setProfileError(
           requestError instanceof
             Error
             ? requestError.message
@@ -590,151 +613,176 @@ const [loggingOut, setLoggingOut] = useState(false);
       }
     };
 
-  /*
-   * تغيير كلمة السر
-   */
-  const handlePasswordSubmit = async (
-  event: FormEvent<HTMLFormElement>
-) => {
-  event.preventDefault();
+  const handlePasswordSubmit =
+    async (
+      event: FormEvent<HTMLFormElement>
+    ) => {
+      event.preventDefault();
 
-  clearMessages();
+      clearPasswordMessages();
 
-  const cleanCurrentPassword =
-    currentPassword;
+      const cleanCurrentPassword =
+        currentPassword;
 
-  const cleanNewPassword =
-    newPassword;
+      const cleanNewPassword =
+        newPassword;
 
-  const cleanConfirmPassword =
-    confirmPassword;
+      const cleanConfirmPassword =
+        confirmPassword;
 
-  if (
-    !cleanCurrentPassword ||
-    !cleanNewPassword ||
-    !cleanConfirmPassword
-  ) {
-    setError(
-      text(
-        locale,
-        "من فضلك أكمل جميع حقول كلمة السر",
-        "Please complete all password fields"
-      )
-    );
-
-    return;
-  }
-
-  if (
-    cleanNewPassword !==
-    cleanConfirmPassword
-  ) {
-    setError(
-      text(
-        locale,
-        "تأكيد كلمة السر الجديدة غير مطابق",
-        "New password confirmation does not match"
-      )
-    );
-
-    return;
-  }
-
-  const passwordRegex =
-    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d])\S{8,}$/;
-
-  if (
-    !passwordRegex.test(
-      cleanNewPassword
-    )
-  ) {
-    setError(
-      text(
-        locale,
-        "كلمة السر يجب أن تكون 8 أحرف على الأقل وتحتوي على حرف كبير وحرف صغير ورقم ورمز خاص",
-        "Password must be at least 8 characters and contain uppercase, lowercase, number and special character"
-      )
-    );
-
-    return;
-  }
-
-  if (
-    cleanCurrentPassword ===
-    cleanNewPassword
-  ) {
-    setError(
-      text(
-        locale,
-        "كلمة السر الجديدة يجب أن تكون مختلفة عن الحالية",
-        "The new password must be different from the current password"
-      )
-    );
-
-    return;
-  }
-
-  if (!token) {
-    router.replace(
-      `/${locale}/login`
-    );
-
-    return;
-  }
-
-  setPasswordSaving(true);
-
-  try {
-    await changePassword(
-      token,
-      cleanCurrentPassword,
-      cleanNewPassword
-    );
-
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
-
-    setMessage(
-      text(
-        locale,
-        "تم تغيير كلمة السر بنجاح",
-        "Your password has been changed successfully"
-      )
-    );
-  } catch (requestError) {
-  if (
-    requestError instanceof Error &&
-    (requestError as Error & {
-      code?: string;
-    }).code === "CURRENT_PASSWORD_INVALID"
-  ) {
-    setError(
-      text(
-        locale,
-        "كلمة المرور الحالية غير صحيحة",
-        "The current password is incorrect"
-      )
-    );
-  } else {
-    setError(
-      requestError instanceof Error
-        ? requestError.message
-        : text(
+      if (
+        !cleanCurrentPassword ||
+        !cleanNewPassword ||
+        !cleanConfirmPassword
+      ) {
+        setPasswordError(
+          text(
             locale,
-            "تعذر تغيير كلمة السر",
-            "Unable to change your password"
+            "من فضلك أكمل جميع حقول كلمة السر",
+            "Please complete all password fields"
           )
-    );
-  }
-} finally {
-    setPasswordSaving(false);
-  }
-};
+        );
 
-  /*
-   * إلغاء الطلب
-   */
+        return;
+      }
+
+      if (
+        cleanNewPassword !==
+        cleanConfirmPassword
+      ) {
+        setPasswordError(
+          text(
+            locale,
+            "تأكيد كلمة السر الجديدة غير مطابق",
+            "New password confirmation does not match"
+          )
+        );
+
+        return;
+      }
+
+      const passwordRegex =
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d])\S{8,}$/;
+
+      if (
+        !passwordRegex.test(
+          cleanNewPassword
+        )
+      ) {
+        setPasswordError(
+          text(
+            locale,
+            "كلمة السر يجب أن تكون 8 أحرف على الأقل وتحتوي على حرف كبير وحرف صغير ورقم ورمز خاص",
+            "Password must be at least 8 characters and contain uppercase, lowercase, number and special character"
+          )
+        );
+
+        return;
+      }
+
+      if (
+        cleanCurrentPassword ===
+        cleanNewPassword
+      ) {
+        setPasswordError(
+          text(
+            locale,
+            "كلمة السر الجديدة يجب أن تكون مختلفة عن الحالية",
+            "The new password must be different from the current password"
+          )
+        );
+
+        return;
+      }
+
+      if (!token) {
+        router.replace(
+          `/${locale}/login`
+        );
+
+        return;
+      }
+
+      setPasswordSaving(true);
+
+      try {
+        await changePassword(
+          token,
+          cleanCurrentPassword,
+          cleanNewPassword
+        );
+
+        setCurrentPassword("");
+        setNewPassword("");
+        setConfirmPassword("");
+
+        setPasswordMessage(
+          text(
+            locale,
+            "تم تغيير كلمة السر بنجاح",
+            "Your password has been changed successfully"
+          )
+        );
+      } catch (
+        requestError
+      ) {
+        if (
+          requestError instanceof Error &&
+          (
+            requestError as Error & {
+              code?: string;
+            }
+          ).code ===
+            "CURRENT_PASSWORD_INVALID"
+        ) {
+          setPasswordError(
+            text(
+              locale,
+              "كلمة المرور الحالية غير صحيحة",
+              "The current password is incorrect"
+            )
+          );
+        } else {
+          setPasswordError(
+            requestError instanceof
+              Error
+              ? requestError.message
+              : text(
+                  locale,
+                  "تعذر تغيير كلمة السر",
+                  "Unable to change your password"
+                )
+          );
+        }
+      } finally {
+        setPasswordSaving(
+          false
+        );
+      }
+    };
+
+  const openCancelConfirmation =
+    (orderId: string) => {
+      if (cancelingOrderId) {
+        return;
+      }
+
+      setCancelConfirmOrderId(
+        orderId
+      );
+    };
+
+  const closeCancelConfirmation =
+    () => {
+      if (cancelingOrderId) {
+        return;
+      }
+
+      setCancelConfirmOrderId(
+        null
+      );
+    };
+
   const handleCancelOrder =
     async (
       orderId: string
@@ -747,18 +795,9 @@ const [loggingOut, setLoggingOut] = useState(false);
         return;
       }
 
-      const confirmed =
-        window.confirm(
-          text(
-            locale,
-            "هل أنت متأكد من رغبتك في إلغاء هذا الطلب؟",
-            "Are you sure you want to cancel this order?"
-          )
-        );
-
-      if (!confirmed) {
-        return;
-      }
+      setCancelConfirmOrderId(
+        null
+      );
 
       clearMessages();
 
@@ -821,32 +860,35 @@ const [loggingOut, setLoggingOut] = useState(false);
       }
     };
 
-  /*
-   * تسجيل الخروج
-   *
-   * يتم وضع هذه الوظيفة في آخر عنصر
-   * في الصفحة.
-   */
-  const handleLogout = () => {
-  if (loggingOut) return;
+  const handleLogout =
+    () => {
+      if (loggingOut) {
+        return;
+      }
 
-  setLoggingOut(true);
+      setLoggingOut(true);
 
-  window.setTimeout(() => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
+      window.setTimeout(() => {
+        localStorage.removeItem(
+          "token"
+        );
 
-    window.dispatchEvent(
-      new Event("touchwood-auth-change")
-    );
+        localStorage.removeItem(
+          "user"
+        );
 
-    router.replace(`/${locale}/`);
-  }, 1000);
-};
+        window.dispatchEvent(
+          new Event(
+            "touchwood-auth-change"
+          )
+        );
 
-  /*
-   * تحديث الطلبات
-   */
+        router.replace(
+          `/${locale}/`
+        );
+      }, 1000);
+    };
+
   const refreshOrders =
     async () => {
       if (!token) {
@@ -913,9 +955,6 @@ const [loggingOut, setLoggingOut] = useState(false);
       }
     };
 
-  /*
-   * شاشة التحميل
-   */
   if (
     loading &&
     !user
@@ -968,9 +1007,6 @@ const [loggingOut, setLoggingOut] = useState(false);
           styles.container
         }
       >
-        {/* =========================
-            Header
-        ========================== */}
         <section
           className={
             styles.accountHeader
@@ -1016,10 +1052,6 @@ const [loggingOut, setLoggingOut] = useState(false);
             </div>
           </div>
         </section>
-
-        {/* =========================
-            Messages
-        ========================== */}
 
         {message && (
           <div
@@ -1068,7 +1100,7 @@ const [loggingOut, setLoggingOut] = useState(false);
                 "Close"
               )}
             >
-              ×
+              <FiX />
             </button>
           </div>
         )}
@@ -1078,10 +1110,6 @@ const [loggingOut, setLoggingOut] = useState(false);
             styles.layout
           }
         >
-          {/* =========================
-              Sidebar
-          ========================== */}
-
           <aside
             className={
               styles.sidebar
@@ -1097,6 +1125,8 @@ const [loggingOut, setLoggingOut] = useState(false);
               }
               onClick={() => {
                 clearMessages();
+                clearProfileMessages();
+                clearPasswordMessages();
 
                 setActiveSection(
                   "profile"
@@ -1124,6 +1154,8 @@ const [loggingOut, setLoggingOut] = useState(false);
               }
               onClick={() => {
                 clearMessages();
+                clearProfileMessages();
+                clearPasswordMessages();
 
                 setActiveSection(
                   "orders"
@@ -1159,6 +1191,8 @@ const [loggingOut, setLoggingOut] = useState(false);
               }
               onClick={() => {
                 clearMessages();
+                clearProfileMessages();
+                clearPasswordMessages();
 
                 setActiveSection(
                   "password"
@@ -1177,19 +1211,11 @@ const [loggingOut, setLoggingOut] = useState(false);
             </button>
           </aside>
 
-          {/* =========================
-              Content
-          ========================== */}
-
           <section
             className={
               styles.content
             }
           >
-            {/* =====================
-                Profile
-            ====================== */}
-
             {activeSection ===
               "profile" && (
               <div
@@ -1264,9 +1290,7 @@ const [loggingOut, setLoggingOut] = useState(false);
                           event
                         ) =>
                           setName(
-                            event
-                              .target
-                              .value
+                            event.target.value
                           )
                         }
                         autoComplete="name"
@@ -1293,9 +1317,7 @@ const [loggingOut, setLoggingOut] = useState(false);
                           event
                         ) =>
                           setEmail(
-                            event
-                              .target
-                              .value
+                            event.target.value
                           )
                         }
                         autoComplete="email"
@@ -1322,9 +1344,7 @@ const [loggingOut, setLoggingOut] = useState(false);
                           event
                         ) =>
                           setPhone(
-                            event
-                              .target
-                              .value
+                            event.target.value
                           )
                         }
                         autoComplete="tel"
@@ -1372,13 +1392,61 @@ const [loggingOut, setLoggingOut] = useState(false);
                       </span>
                     </button>
                   </div>
+
+                  {profileMessage && (
+                    <div
+                      className={`${styles.inlineMessage} ${styles.inlineSuccess}`}
+                    >
+                      <FiCheck />
+
+                      <span>
+                        {profileMessage}
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setProfileMessage("")
+                        }
+                        aria-label={text(
+                          locale,
+                          "إغلاق",
+                          "Close"
+                        )}
+                      >
+                        <FiX />
+                      </button>
+                    </div>
+                  )}
+
+                  {profileError && (
+                    <div
+                      className={`${styles.inlineMessage} ${styles.inlineError}`}
+                    >
+                      <FiX />
+
+                      <span>
+                        {profileError}
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setProfileError("")
+                        }
+                        aria-label={text(
+                          locale,
+                          "إغلاق",
+                          "Close"
+                        )}
+                      >
+                        <FiX />
+                      </button>
+                    </div>
+                  )}
                 </form>
               </div>
             )}
-
-            {/* =====================
-                Orders
-            ====================== */}
 
             {activeSection ===
               "orders" && (
@@ -1512,7 +1580,7 @@ const [loggingOut, setLoggingOut] = useState(false);
                       {text(
                         locale,
                         "تصفح المنتجات",
-                        " Now"
+                        "Shop Now"
                       )}
                     </button>
                   </div>
@@ -1840,14 +1908,16 @@ const [loggingOut, setLoggingOut] = useState(false);
                                     </h3>
 
                                     <p>
-                                      {order
-                                        .shippingAddress
-                                        .firstName ||
-                                        ""}{" "}
-                                      {order
-                                        .shippingAddress
-                                        .lastName ||
-                                        ""}
+                                      {
+                                        order
+                                          .shippingAddress
+                                          .firstName
+                                      }{" "}
+                                      {
+                                        order
+                                          .shippingAddress
+                                          .lastName
+                                      }
                                     </p>
 
                                     <p>
@@ -1880,7 +1950,7 @@ const [loggingOut, setLoggingOut] = useState(false);
                                         styles.cancelButton
                                       }
                                       onClick={() =>
-                                        handleCancelOrder(
+                                        openCancelConfirmation(
                                           order._id
                                         )
                                       }
@@ -1927,10 +1997,6 @@ const [loggingOut, setLoggingOut] = useState(false);
                 )}
               </div>
             )}
-
-            {/* =====================
-                Password
-            ====================== */}
 
             {activeSection ===
               "password" && (
@@ -2008,9 +2074,7 @@ const [loggingOut, setLoggingOut] = useState(false);
                           event
                         ) =>
                           setCurrentPassword(
-                            event
-                              .target
-                              .value
+                            event.target.value
                           )
                         }
                         autoComplete="current-password"
@@ -2039,9 +2103,7 @@ const [loggingOut, setLoggingOut] = useState(false);
                           event
                         ) =>
                           setNewPassword(
-                            event
-                              .target
-                              .value
+                            event.target.value
                           )
                         }
                         autoComplete="new-password"
@@ -2078,9 +2140,7 @@ const [loggingOut, setLoggingOut] = useState(false);
                           event
                         ) =>
                           setConfirmPassword(
-                            event
-                              .target
-                              .value
+                            event.target.value
                           )
                         }
                         autoComplete="new-password"
@@ -2127,16 +2187,63 @@ const [loggingOut, setLoggingOut] = useState(false);
                       </span>
                     </button>
                   </div>
+
+                  {passwordMessage && (
+                    <div
+                      className={`${styles.inlineMessage} ${styles.inlineSuccess}`}
+                    >
+                      <FiCheck />
+
+                      <span>
+                        {passwordMessage}
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPasswordMessage("")
+                        }
+                        aria-label={text(
+                          locale,
+                          "إغلاق",
+                          "Close"
+                        )}
+                      >
+                        <FiX />
+                      </button>
+                    </div>
+                  )}
+
+                  {passwordError && (
+                    <div
+                      className={`${styles.inlineMessage} ${styles.inlineError}`}
+                    >
+                      <FiX />
+
+                      <span>
+                        {passwordError}
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setPasswordError("")
+                        }
+                        aria-label={text(
+                          locale,
+                          "إغلاق",
+                          "Close"
+                        )}
+                      >
+                        <FiX />
+                      </button>
+                    </div>
+                  )}
                 </form>
               </div>
             )}
           </section>
         </div>
-
-        {/* =========================
-            Logout
-            آخر عنصر في الصفحة
-        ========================== */}
 
         <div
           className={
@@ -2144,39 +2251,153 @@ const [loggingOut, setLoggingOut] = useState(false);
           }
         >
           <button
-  type="button"
-  className={`${styles.logoutButton} ${
-    loggingOut ? styles.logoutButtonLoading : ""
-  }`}
-  onClick={handleLogout}
-  disabled={loggingOut}
->
-  {loggingOut ? (
-    <>
-      <span className={styles.logoutSpinner} />
-      <span>
-        {text(
-          locale,
-          "جاري تسجيل الخروج...",
-          "Logging out..."
-        )}
-      </span>
-    </>
-  ) : (
-    <>
-      <FiLogOut />
-      <span>
-        {text(
-          locale,
-          "تسجيل الخروج",
-          "Log Out"
-        )}
-      </span>
-    </>
-  )}
-</button>
+            type="button"
+            className={`${styles.logoutButton} ${
+              loggingOut
+                ? styles.logoutButtonLoading
+                : ""
+            }`}
+            onClick={
+              handleLogout
+            }
+            disabled={
+              loggingOut
+            }
+          >
+            {loggingOut ? (
+              <>
+                <span
+                  className={
+                    styles.logoutSpinner
+                  }
+                />
+
+                <span>
+                  {text(
+                    locale,
+                    "جاري تسجيل الخروج...",
+                    "Logging out..."
+                  )}
+                </span>
+              </>
+            ) : (
+              <>
+                <FiLogOut />
+
+                <span>
+                  {text(
+                    locale,
+                    "تسجيل الخروج",
+                    "Log Out"
+                  )}
+                </span>
+              </>
+            )}
+          </button>
         </div>
       </div>
+
+      {cancelConfirmOrderId && (
+        <div
+          className={
+            styles.modalOverlay
+          }
+          role="presentation"
+          onMouseDown={(
+            event
+          ) => {
+            if (
+              event.target ===
+              event.currentTarget
+            ) {
+              closeCancelConfirmation();
+            }
+          }}
+        >
+          <div
+            className={
+              styles.confirmModal
+            }
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="cancel-order-title"
+          >
+            <div
+              className={
+                styles.confirmIcon
+              }
+            >
+              <FiAlertTriangle />
+            </div>
+
+            <h2 id="cancel-order-title">
+              {text(
+                locale,
+                "هل أنت متأكد؟",
+                "Are you sure?"
+              )}
+            </h2>
+
+            <p>
+              {text(
+                locale,
+                "هل أنت متأكد من رغبتك في إلغاء هذا الطلب؟ لا يمكن التراجع عن هذا الإجراء.",
+                "Are you sure you want to cancel this order? This action cannot be undone."
+              )}
+            </p>
+
+            <div
+              className={
+                styles.confirmActions
+              }
+            >
+              <button
+                type="button"
+                className={
+                  styles.confirmCancelButton
+                }
+                onClick={
+                  closeCancelConfirmation
+                }
+                disabled={
+                  !!cancelingOrderId
+                }
+              >
+                {text(
+                  locale,
+                  "إلغاء",
+                  "Cancel"
+                )}
+              </button>
+
+              <button
+                type="button"
+                className={
+                  styles.confirmDangerButton
+                }
+                onClick={() =>
+                  handleCancelOrder(
+                    cancelConfirmOrderId
+                  )
+                }
+                disabled={
+                  !!cancelingOrderId
+                }
+              >
+                <FiCheck />
+
+                <span>
+                  {text(
+                    locale,
+                    "متأكد",
+                    "Confirm"
+                  )}
+                </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
