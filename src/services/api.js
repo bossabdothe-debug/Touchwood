@@ -585,3 +585,27 @@ export const getRelatedProducts = async (
       product._id !== currentProductId
   );
 };
+export const getAdminSettings = async (
+  token
+) => {
+  return apiRequest(
+    "/admin/settings",
+    {
+      token,
+    }
+  );
+};
+
+export const updateAdminSettings = async (
+  token,
+  settings
+) => {
+  return apiRequest(
+    "/admin/settings",
+    {
+      method: "PATCH",
+      token,
+      body: settings,
+    }
+  );
+};

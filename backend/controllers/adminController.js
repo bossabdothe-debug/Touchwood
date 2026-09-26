@@ -3,7 +3,7 @@ import Product from "../models/Product.js";
 import Order from "../models/Orders.js";
 import mongoose from "mongoose";
 import createNotification from "../utils/createNotification.js";
-
+import bcrypt from "bcryptjs";
 
 
 const ALLOWED_STATUS_TRANSITIONS = {
@@ -1962,3 +1962,216 @@ export const getAdminUsers = async (
   }
 };
 
+export const getAdminSettings = async (
+  req,
+  res
+) => {
+  try {
+    const userId = req.user?.id;
+
+    if (
+      !userId ||
+      !mongoose.Types.ObjectId.isValid(userId)
+    ) {
+      return res.status(401).json({
+        message: "Unauthorized",
+      });
+    }
+
+    const user = await User.findById(userId)
+      .select("name email role")
+      .lean();
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    return res.status(200).json({
+      user,
+    });
+  } catch (error) {
+    console.error(
+      "Get admin settings error:",
+      error
+    );
+
+    return res.status(500).json({
+      message:
+        "Server error, please try again later",
+    });
+  }
+};
+
+export const updateAdminSettings = async (
+  req,
+  res
+) => {
+  try {
+    const userId = req.user?.id;
+
+    if (
+      !userId ||
+      !mongoose.Types.ObjectId.isValid(userId)
+    ) {
+      return res.status(401).json({
+        message: "Unauthorized",
+      });
+    }
+
+    const {
+      name,
+      email,
+      currentPassword,
+      newPassword,
+    } = req.body;
+
+    const user = await User.findById(userId).select(
+      "+password"
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    if (
+      name !== undefined
+    ) {
+      const normalizedName = String(name).trim();
+
+      if (
+        normalizedName.length < 2 ||
+        normalizedName.length > 50
+      ) {
+        return res.status(400).json({
+          message:
+            "Name must be between 2 and 50 characters",
+        });
+      }
+
+      user.name = normalizedName;
+    }
+
+    if (
+      email !== undefined
+    ) {
+      const normalizedEmail = String(email)
+        .trim()
+        .toLowerCase();
+
+      if (
+        normalizedEmail.length < 5 ||
+        normalizedEmail.length > 150 ||
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+          normalizedEmail
+        )
+      ) {
+        return res.status(400).json({
+          message: "Invalid email address",
+        });
+      }
+
+      const existingUser =
+        await User.findOne({
+          email: normalizedEmail,
+          _id: {
+            $ne: userId,
+          },
+        });
+
+      if (existingUser) {
+        return res.status(409).json({
+          message:
+            "This email is already in use",
+        });
+      }
+
+      user.email = normalizedEmail;
+    }
+
+    if (
+      newPassword !== undefined &&
+      String(newPassword).length > 0
+    ) {
+      if (
+        !currentPassword ||
+        String(currentPassword).length === 0
+      ) {
+        return res.status(400).json({
+          message:
+            "Current password is required",
+        });
+      }
+
+      const passwordMatches =
+        await bcrypt.compare(
+          String(currentPassword),
+          user.password
+        );
+
+      if (!passwordMatches) {
+        return res.status(400).json({
+          message:
+            "Current password is incorrect",
+        });
+      }
+
+      if (
+        String(newPassword).length < 8
+      ) {
+        return res.status(400).json({
+          message:
+            "New password must be at least 8 characters",
+        });
+      }
+
+      user.password =
+        await bcrypt.hash(
+          String(newPassword),
+          12
+        );
+    }
+
+    await user.save();
+
+    return res.status(200).json({
+      message:
+        "Settings updated successfully",
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    console.error(
+      "Update admin settings error:",
+      error
+    );
+
+    if (error.code === 11000) {
+      return res.status(409).json({
+        message:
+          "This email is already in use",
+      });
+    }
+
+    const message =
+      validationMessage(error);
+
+    if (message) {
+      return res.status(400).json({
+        message,
+      });
+    }
+
+    return res.status(500).json({
+      message:
+        "Server error, please try again later",
+    });
+  }
+};

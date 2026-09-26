@@ -1,0 +1,249 @@
+.settings-page {
+  min-height: 100%;
+  background: #f5f7f3;
+  padding: 34px;
+}
+
+.settings-container {
+  width: min(100%, 1050px);
+  margin: 0 auto;
+}
+
+.settings-header {
+  margin-bottom: 28px;
+}
+
+.settings-eyebrow {
+  display: inline-block;
+  margin-bottom: 8px;
+  color: #405d3a;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 2px;
+}
+
+.settings-header h1 {
+  margin: 0;
+  color: #1f2a1d;
+  font-size: 32px;
+  font-weight: 800;
+}
+
+.settings-header p {
+  margin: 8px 0 0;
+  color: #71806d;
+  font-size: 14px;
+}
+
+.settings-form {
+  display: grid;
+  gap: 20px;
+}
+
+.settings-card {
+  padding: 26px;
+  border: 1px solid #e1e7de;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 8px 30px rgba(49, 67, 43, 0.05);
+}
+
+.settings-card-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid #edf0eb;
+  margin-bottom: 24px;
+}
+
+.settings-card-icon {
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 44px;
+  border-radius: 12px;
+  background: #edf3e9;
+  color: #405d3a;
+}
+
+.settings-card-header h2 {
+  margin: 0;
+  color: #253022;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.settings-card-header p {
+  margin: 5px 0 0;
+  color: #7b8677;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.settings-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.settings-field > span {
+  color: #34412f;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.settings-input {
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 0 14px;
+  border: 1px solid #dce3d8;
+  border-radius: 11px;
+  background: #ffffff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.settings-input:focus-within {
+  border-color: #405d3a;
+  box-shadow: 0 0 0 3px rgba(64, 93, 58, 0.1);
+}
+
+.settings-input > svg {
+  flex: 0 0 auto;
+  color: #7a8875;
+}
+
+.settings-input input {
+  width: 100%;
+  min-width: 0;
+  height: 48px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #253022;
+  font: inherit;
+  font-size: 14px;
+}
+
+.settings-password-toggle {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #74806f;
+  cursor: pointer;
+}
+
+.settings-password-toggle:hover {
+  background: #f0f3ee;
+  color: #405d3a;
+}
+
+.settings-message {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 12px 15px;
+  border-radius: 11px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.settings-message-error {
+  color: #a12f2f;
+  border: 1px solid #f0caca;
+  background: #fff4f4;
+}
+
+.settings-message-success {
+  color: #35632f;
+  border: 1px solid #cfe0c9;
+  background: #f0f7ed;
+}
+
+.settings-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.settings-save {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 0 22px;
+  border: 0;
+  border-radius: 11px;
+  background: #405d3a;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.settings-save:hover:not(:disabled) {
+  background: #334c2f;
+  transform: translateY(-1px);
+}
+
+.settings-save:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.settings-loading {
+  min-height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #687463;
+  font-size: 14px;
+}
+
+@media (max-width: 760px) {
+  .settings-page {
+    padding: 20px 14px;
+  }
+
+  .settings-header h1 {
+    font-size: 27px;
+  }
+
+  .settings-card {
+    padding: 20px;
+    border-radius: 15px;
+  }
+
+  .settings-fields {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .settings-actions {
+    justify-content: stretch;
+  }
+
+  .settings-save {
+    width: 100%;
+  }
+}

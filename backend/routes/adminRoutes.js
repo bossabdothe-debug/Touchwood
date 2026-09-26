@@ -13,7 +13,7 @@ import {
   createAdminProduct,
   updateAdminProduct,
   deleteAdminProduct,
-  getAdminUsers
+  getAdminUsers,updateAdminSettings,getAdminSettings
 } from "../controllers/adminController.js";
 
 import { authMiddleware } from "../middleware/authMiddleware.js";
@@ -84,5 +84,13 @@ adminRouter.get(
   "/users",
   getAdminUsers
 );
+adminRouter.get(
+  "/settings",
+  getAdminSettings
+);
 
+adminRouter.patch(
+  "/settings",
+  updateAdminSettings
+);
 export default adminRouter;
