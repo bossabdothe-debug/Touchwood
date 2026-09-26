@@ -387,7 +387,59 @@ export const getAdminDashboard = async (token) => {
 export const getAdminOrders = async (token) => {
   return apiRequest("/admin/orders", { token });
 };
+export const getAdminOrderById = async (
+  token,
+  orderId
+) => {
+  return apiRequest(
+    `/admin/orders/${orderId}`,
+    {
+      token,
+    }
+  );
+};
 
+export const createAdminOrder = async (
+  token,
+  orderData
+) => {
+  return apiRequest(
+    "/admin/orders",
+    {
+      method: "POST",
+      token,
+      body: orderData,
+    }
+  );
+};
+
+export const updateAdminOrder = async (
+  token,
+  orderId,
+  orderData
+) => {
+  return apiRequest(
+    `/admin/orders/${orderId}`,
+    {
+      method: "PUT",
+      token,
+      body: orderData,
+    }
+  );
+};
+
+export const deleteAdminOrder = async (
+  token,
+  orderId
+) => {
+  return apiRequest(
+    `/admin/orders/${orderId}`,
+    {
+      method: "DELETE",
+      token,
+    }
+  );
+};
 export const updateAdminOrderStatus = async (
   token,
   orderId,
@@ -402,7 +454,16 @@ export const updateAdminOrderStatus = async (
     }
   );
 };
-
+export const getAdminProducts = async (
+  token
+) => {
+  return apiRequest(
+    "/admin/products",
+    {
+      token,
+    }
+  );
+};
 export const getAdminUsers = async (token) => {
   return apiRequest("/admin/users", { token });
 };

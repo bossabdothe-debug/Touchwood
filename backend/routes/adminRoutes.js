@@ -3,6 +3,10 @@ import express from "express";
 import {
   getDashboardStats,
   getAdminOrders,
+  getAdminOrderById,
+  createAdminOrder,
+  updateAdminOrder,
+  deleteAdminOrder,
   updateAdminOrderStatus,
   getAdminProducts,
   getAdminProductById,
@@ -10,7 +14,6 @@ import {
   updateAdminProduct,
   deleteAdminProduct,
   getAdminUsers
-
 } from "../controllers/adminController.js";
 
 import { authMiddleware } from "../middleware/authMiddleware.js";
@@ -39,7 +42,25 @@ adminRouter.get(
   "/products",
   getAdminProducts
 );
+adminRouter.get(
+  "/orders/:id",
+  getAdminOrderById
+);
 
+adminRouter.post(
+  "/orders",
+  createAdminOrder
+);
+
+adminRouter.put(
+  "/orders/:id",
+  updateAdminOrder
+);
+
+adminRouter.delete(
+  "/orders/:id",
+  deleteAdminOrder
+);
 adminRouter.get(
   "/products/:id",
   getAdminProductById

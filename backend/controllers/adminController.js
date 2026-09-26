@@ -4,13 +4,7 @@ import Order from "../models/Orders.js";
 import mongoose from "mongoose";
 import createNotification from "../utils/createNotification.js";
 
-const ORDER_STATUSES = [
-  "Pending",
-  "Processing",
-  "Out for Delivery",
-  "Delivered",
-  "Canceled",
-];
+
 
 const ALLOWED_STATUS_TRANSITIONS = {
   Pending: ["Processing", "Canceled"],
@@ -789,22 +783,303 @@ export const deleteAdminProduct = async (
    ORDERS
 ========================================================= */
 
+/* =========================================================
+   ORDERS
+========================================================= */
+
+const ORDER_STATUSES = [
+  "Pending",
+  "Processing",
+  "Out for Delivery",
+  "Delivered",
+  "Canceled",
+];
+
+const PAYMENT_METHODS = [
+  "Cash On Delivery",
+  "Vodafone Cash",
+];
+
+const RESERVED_ORDER_STATUSES = [
+  "Pending",
+  "Processing",
+  "Out for Delivery",
+];
+
+const normalizeAddress = (address = {}) => ({
+  firstName: String(address.firstName || "").trim(),
+  lastName: String(address.lastName || "").trim(),
+  phone: String(address.phone || "").trim(),
+  email: String(address.email || "").trim().toLowerCase(),
+  address: String(address.address || "").trim(),
+});
+
+const validateAddress = (address) => {
+  const normalized = normalizeAddress(address);
+
+  const fields = [
+    "firstName",
+    "lastName",
+    "phone",
+    "email",
+    "address",
+  ];
+
+  for (const field of fields) {
+    if (!normalized[field]) {
+      return `${field} is required`;
+    }
+  }
+
+  return null;
+};
+
+const normalizeOrderProducts = (products) => {
+  if (!Array.isArray(products) || products.length === 0) {
+    return null;
+  }
+
+  const normalized = [];
+
+  for (const item of products) {
+    if (
+      !item ||
+      !item.product ||
+      !mongoose.Types.ObjectId.isValid(item.product)
+    ) {
+      throw new Error("Invalid product ID");
+    }
+
+    const quantity = Number(item.quantity);
+
+    if (!Number.isInteger(quantity) || quantity < 1) {
+      throw new Error("Invalid product quantity");
+    }
+
+    let colorId = null;
+
+    if (
+      item.colorId !== undefined &&
+      item.colorId !== null &&
+      item.colorId !== ""
+    ) {
+      if (!mongoose.Types.ObjectId.isValid(item.colorId)) {
+        throw new Error("Invalid color ID");
+      }
+
+      colorId = item.colorId;
+    }
+
+    normalized.push({
+      product: item.product,
+      colorId,
+      quantity,
+    });
+  }
+
+  return normalized;
+};
+
+const restoreOrderStock = async (
+  order,
+  session
+) => {
+  for (const item of order.products || []) {
+    const product = await Product.findById(
+      item.product
+    ).session(session);
+
+    if (!product) {
+      continue;
+    }
+
+    const quantity = Number(item.quantity || 0);
+
+    if (item.colorId) {
+      const color = product.colors.id(
+        item.colorId
+      );
+
+      if (color) {
+        color.stock += quantity;
+      }
+    } else {
+      product.stock += quantity;
+    }
+
+    await product.save({
+      session,
+      validateBeforeSave: true,
+    });
+  }
+};
+
+const reserveOrderStock = async (
+  products,
+  session
+) => {
+  const normalized =
+    normalizeOrderProducts(products);
+
+  if (!normalized) {
+    throw new Error(
+      "Order products are required"
+    );
+  }
+
+  const orderProducts = [];
+  let subtotal = 0;
+
+  for (const item of normalized) {
+    const product =
+      await Product.findById(
+        item.product
+      ).session(session);
+
+    if (!product) {
+      throw new Error(
+        "Product not found"
+      );
+    }
+
+    let selectedColor = null;
+
+    if (item.colorId) {
+      selectedColor =
+        product.colors.id(
+          item.colorId
+        );
+
+      if (!selectedColor) {
+        throw new Error(
+          "Selected product color was not found"
+        );
+      }
+
+      if (
+        selectedColor.stock <
+        item.quantity
+      ) {
+        throw new Error(
+          `Insufficient stock for ${product.name?.en || product.name?.ar || "product"}`
+        );
+      }
+
+      selectedColor.stock -=
+        item.quantity;
+    } else {
+      if (
+        product.stock <
+        item.quantity
+      ) {
+        throw new Error(
+          `Insufficient stock for ${product.name?.en || product.name?.ar || "product"}`
+        );
+      }
+
+      product.stock -=
+        item.quantity;
+    }
+
+    await product.save({
+      session,
+      validateBeforeSave: true,
+    });
+
+    subtotal +=
+      Number(product.price || 0) *
+      item.quantity;
+
+    orderProducts.push({
+      product: product._id,
+      colorId: selectedColor
+        ? selectedColor._id
+        : null,
+      colorName: selectedColor
+        ? {
+            ar:
+              selectedColor.name?.ar ||
+              "",
+            en:
+              selectedColor.name?.en ||
+              "",
+          }
+        : {
+            ar: "",
+            en: "",
+          },
+      colorHex:
+        selectedColor?.hex || "",
+      quantity: item.quantity,
+      priceAtPurchase:
+        Number(product.price || 0),
+    });
+  }
+
+  return {
+    orderProducts,
+    subtotal,
+  };
+};
+
+const generateOrderNumber = async (
+  session
+) => {
+  let orderNumber;
+  let exists = true;
+
+  while (exists) {
+    orderNumber =
+      Math.floor(
+        100000 +
+          Math.random() * 900000
+      );
+
+    exists =
+      Boolean(
+        await Order.findOne({
+          orderNumber,
+        }).session(session)
+      );
+  }
+
+  return orderNumber;
+};
+
+const populateAdminOrder = async (
+  orderId
+) => {
+  return Order.findById(orderId)
+    .populate(
+      "user",
+      "name email phone role"
+    )
+    .populate(
+      "products.product",
+      "name slug price media stock colors"
+    )
+    .lean();
+};
+
 export const getAdminOrders = async (
   req,
   res
 ) => {
   try {
-    const orders = await Order.find()
-      .populate(
-        "user",
-        "name email phone"
-      )
-      .populate(
-        "products.product",
-        "name slug price media"
-      )
-      .sort({ createdAt: -1 })
-      .lean();
+    const orders =
+      await Order.find()
+        .populate(
+          "user",
+          "name email phone role"
+        )
+        .populate(
+          "products.product",
+          "name slug price media stock colors"
+        )
+        .sort({
+          createdAt: -1,
+        })
+        .lean();
 
     return res.status(200).json({
       orders,
@@ -822,148 +1097,820 @@ export const getAdminOrders = async (
   }
 };
 
-export const updateAdminOrderStatus =
+export const getAdminOrderById =
   async (req, res) => {
-    const { status } = req.body;
-    const { id: orderId } = req.params;
+    const { id } = req.params;
 
     if (
-      !mongoose.Types.ObjectId.isValid(
-        orderId
-      )
+      !mongoose.Types.ObjectId.isValid(id)
     ) {
       return res.status(400).json({
         message: "Invalid order ID",
       });
     }
 
-    if (!ORDER_STATUSES.includes(status)) {
-      return res.status(400).json({
-        message: "Invalid order status",
-      });
-    }
-
-    const session =
-      await mongoose.startSession();
-
     try {
-      session.startTransaction();
-
       const order =
-        await Order.findById(orderId)
-          .session(session);
+        await populateAdminOrder(id);
 
       if (!order) {
-        await session.abortTransaction();
-
         return res.status(404).json({
           message: "Order not found",
         });
       }
 
-      if (order.status === status) {
-        await session.abortTransaction();
+      return res.status(200).json({
+        order,
+      });
+    } catch (error) {
+      console.error(
+        "Get admin order error:",
+        error
+      );
 
-        return res.status(200).json({
-          message:
-            "Order status is already up to date",
-        });
-      }
+      return res.status(500).json({
+        message:
+          "Server error, please try again later",
+      });
+    }
+  };
 
-      const allowedStatuses =
-        ALLOWED_STATUS_TRANSITIONS[
-          order.status
-        ] || [];
+export const createAdminOrder =
+  async (req, res) => {
+    const session =
+      await mongoose.startSession();
 
-      if (!allowedStatuses.includes(status)) {
-        await session.abortTransaction();
+    try {
+      const {
+        user = null,
+        products,
+        shippingAddress,
+        paymentMethod,
+        shipping = 250,
+        discount = 0,
+        status = "Pending",
+      } = req.body;
 
+      if (
+        user !== null &&
+        user !== "" &&
+        !mongoose.Types.ObjectId.isValid(user)
+      ) {
         return res.status(400).json({
-          message: `Cannot change order status from ${order.status} to ${status}`,
+          message: "Invalid user ID",
         });
       }
 
-      if (status === "Canceled") {
-        for (const item of order.products) {
+      if (
+        !PAYMENT_METHODS.includes(
+          paymentMethod
+        )
+      ) {
+        return res.status(400).json({
+          message: "Invalid payment method",
+        });
+      }
+
+      if (
+        !ORDER_STATUSES.includes(status)
+      ) {
+        return res.status(400).json({
+          message: "Invalid order status",
+        });
+      }
+
+      const addressError =
+        validateAddress(
+          shippingAddress
+        );
+
+      if (addressError) {
+        return res.status(400).json({
+          message: addressError,
+        });
+      }
+
+      const shippingValue =
+        Number(shipping);
+
+      const discountValue =
+        Number(discount);
+
+      if (
+        !Number.isFinite(
+          shippingValue
+        ) ||
+        shippingValue < 0
+      ) {
+        return res.status(400).json({
+          message:
+            "Invalid shipping amount",
+        });
+      }
+
+      if (
+        !Number.isFinite(
+          discountValue
+        ) ||
+        discountValue < 0
+      ) {
+        return res.status(400).json({
+          message:
+            "Invalid discount amount",
+        });
+      }
+
+      session.startTransaction();
+
+      let orderProducts = [];
+      let subtotal = 0;
+
+      if (
+        status !== "Canceled"
+      ) {
+        const result =
+          await reserveOrderStock(
+            products,
+            session
+          );
+
+        orderProducts =
+          result.orderProducts;
+
+        subtotal =
+          result.subtotal;
+      } else {
+        const normalized =
+          normalizeOrderProducts(
+            products
+          );
+
+        if (!normalized) {
+          throw new Error(
+            "Order products are required"
+          );
+        }
+
+        for (const item of normalized) {
           const product =
             await Product.findById(
               item.product
             ).session(session);
 
           if (!product) {
-            continue;
-          }
-
-          if (item.colorId) {
-            const color =
-              product.colors.id(
-                item.colorId
-              );
-
-            if (color) {
-              color.stock += Number(
-                item.quantity || 0
-              );
-            }
-          } else {
-            product.stock += Number(
-              item.quantity || 0
+            throw new Error(
+              "Product not found"
             );
           }
 
-          await product.save({
-            session,
-            validateBeforeSave: true,
+          const color =
+            item.colorId
+              ? product.colors.id(
+                  item.colorId
+                )
+              : null;
+
+          if (
+            item.colorId &&
+            !color
+          ) {
+            throw new Error(
+              "Selected product color was not found"
+            );
+          }
+
+          orderProducts.push({
+            product:
+              product._id,
+            colorId:
+              color?._id || null,
+            colorName: color
+              ? {
+                  ar:
+                    color.name?.ar ||
+                    "",
+                  en:
+                    color.name?.en ||
+                    "",
+                }
+              : {
+                  ar: "",
+                  en: "",
+                },
+            colorHex:
+              color?.hex || "",
+            quantity:
+              item.quantity,
+            priceAtPurchase:
+              Number(
+                product.price || 0
+              ),
           });
+
+          subtotal +=
+            Number(
+              product.price || 0
+            ) *
+            item.quantity;
         }
       }
 
-      order.status = status;
+      const totalPrice =
+        subtotal +
+        shippingValue -
+        discountValue;
+
+      if (totalPrice < 0) {
+        throw new Error(
+          "Invalid order total"
+        );
+      }
+
+      const orderNumber =
+        await generateOrderNumber(
+          session
+        );
+
+      const [order] =
+        await Order.create(
+          [
+            {
+              user:
+                user || null,
+              products:
+                orderProducts,
+              subtotal,
+              shipping:
+                shippingValue,
+              discount:
+                discountValue,
+              totalPrice,
+              shippingAddress:
+                normalizeAddress(
+                  shippingAddress
+                ),
+              orderNumber,
+              paymentMethod,
+              status,
+            },
+          ],
+          {
+            session,
+          }
+        );
+
+      await session.commitTransaction();
+
+      const populatedOrder =
+        await populateAdminOrder(
+          order._id
+        );
+
+      return res.status(201).json({
+        message:
+          "Order created successfully",
+        order:
+          populatedOrder,
+      });
+    } catch (error) {
+      if (
+        session.inTransaction()
+      ) {
+        await session.abortTransaction();
+      }
+
+      console.error(
+        "Create admin order error:",
+        error
+      );
+
+      return res.status(400).json({
+        message:
+          error.message ||
+          "Unable to create order",
+      });
+    } finally {
+      await session.endSession();
+    }
+  };
+
+export const updateAdminOrder =
+  async (req, res) => {
+    const session =
+      await mongoose.startSession();
+
+    try {
+      const { id } =
+        req.params;
+
+      if (
+        !mongoose.Types.ObjectId.isValid(
+          id
+        )
+      ) {
+        return res.status(400).json({
+          message: "Invalid order ID",
+        });
+      }
+
+      const {
+        user = null,
+        products,
+        shippingAddress,
+        paymentMethod,
+        shipping = 250,
+        discount = 0,
+        status = "Pending",
+      } = req.body;
+
+      if (
+        user !== null &&
+        user !== "" &&
+        !mongoose.Types.ObjectId.isValid(user)
+      ) {
+        return res.status(400).json({
+          message: "Invalid user ID",
+        });
+      }
+
+      if (
+        !PAYMENT_METHODS.includes(
+          paymentMethod
+        )
+      ) {
+        return res.status(400).json({
+          message:
+            "Invalid payment method",
+        });
+      }
+
+      if (
+        !ORDER_STATUSES.includes(
+          status
+        )
+      ) {
+        return res.status(400).json({
+          message:
+            "Invalid order status",
+        });
+      }
+
+      const addressError =
+        validateAddress(
+          shippingAddress
+        );
+
+      if (addressError) {
+        return res.status(400).json({
+          message:
+            addressError,
+        });
+      }
+
+      const shippingValue =
+        Number(shipping);
+
+      const discountValue =
+        Number(discount);
+
+      if (
+        !Number.isFinite(
+          shippingValue
+        ) ||
+        shippingValue < 0
+      ) {
+        return res.status(400).json({
+          message:
+            "Invalid shipping amount",
+        });
+      }
+
+      if (
+        !Number.isFinite(
+          discountValue
+        ) ||
+        discountValue < 0
+      ) {
+        return res.status(400).json({
+          message:
+            "Invalid discount amount",
+        });
+      }
+
+      session.startTransaction();
+
+      const order =
+        await Order.findById(id)
+          .session(session);
+
+      if (!order) {
+        await session.abortTransaction();
+
+        return res.status(404).json({
+          message:
+            "Order not found",
+        });
+      }
+
+      const oldStatus =
+        order.status;
+
+      if (
+        RESERVED_ORDER_STATUSES.includes(
+          oldStatus
+        )
+      ) {
+        await restoreOrderStock(
+          order,
+          session
+        );
+      }
+
+      const normalized =
+        normalizeOrderProducts(
+          products
+        );
+
+      if (!normalized) {
+        throw new Error(
+          "Order products are required"
+        );
+      }
+
+      let orderProducts = [];
+      let subtotal = 0;
+
+      if (
+        status !== "Canceled"
+      ) {
+        const result =
+          await reserveOrderStock(
+            normalized,
+            session
+          );
+
+        orderProducts =
+          result.orderProducts;
+
+        subtotal =
+          result.subtotal;
+      } else {
+        for (const item of normalized) {
+          const product =
+            await Product.findById(
+              item.product
+            ).session(session);
+
+          if (!product) {
+            throw new Error(
+              "Product not found"
+            );
+          }
+
+          const color =
+            item.colorId
+              ? product.colors.id(
+                  item.colorId
+                )
+              : null;
+
+          if (
+            item.colorId &&
+            !color
+          ) {
+            throw new Error(
+              "Selected product color was not found"
+            );
+          }
+
+          orderProducts.push({
+            product:
+              product._id,
+            colorId:
+              color?._id || null,
+            colorName: color
+              ? {
+                  ar:
+                    color.name?.ar ||
+                    "",
+                  en:
+                    color.name?.en ||
+                    "",
+                }
+              : {
+                  ar: "",
+                  en: "",
+                },
+            colorHex:
+              color?.hex || "",
+            quantity:
+              item.quantity,
+            priceAtPurchase:
+              Number(
+                product.price || 0
+              ),
+          });
+
+          subtotal +=
+            Number(
+              product.price || 0
+            ) *
+            item.quantity;
+        }
+      }
+
+      const totalPrice =
+        subtotal +
+        shippingValue -
+        discountValue;
+
+      if (totalPrice < 0) {
+        throw new Error(
+          "Invalid order total"
+        );
+      }
+
+      order.user =
+        user || null;
+
+      order.products =
+        orderProducts;
+
+      order.subtotal =
+        subtotal;
+
+      order.shipping =
+        shippingValue;
+
+      order.discount =
+        discountValue;
+
+      order.totalPrice =
+        totalPrice;
+
+      order.shippingAddress =
+        normalizeAddress(
+          shippingAddress
+        );
+
+      order.paymentMethod =
+        paymentMethod;
+
+      order.status =
+        status;
 
       await order.save({
         session,
-        validateBeforeSave: true,
+        validateBeforeSave:
+          true,
       });
 
       await session.commitTransaction();
 
       const updatedOrder =
-        await Order.findById(orderId)
-          .populate(
-            "user",
-            "name email phone"
-          )
-          .populate(
-            "products.product",
-            "name slug price media stock colors"
-          )
-          .lean();
+        await populateAdminOrder(
+          order._id
+        );
 
-      try {
-        await createNotification({
-          type: "order_status",
-          title:
-            "Order Status Updated",
-          message: `Order #${updatedOrder.orderNumber} is now ${updatedOrder.status}.`,
-          order: updatedOrder._id,
-          user:
-            updatedOrder.user?._id ||
-            updatedOrder.user,
+      return res.status(200).json({
+        message:
+          "Order updated successfully",
+        order:
+          updatedOrder,
+      });
+    } catch (error) {
+      if (
+        session.inTransaction()
+      ) {
+        await session.abortTransaction();
+      }
+
+      console.error(
+        "Update admin order error:",
+        error
+      );
+
+      return res.status(400).json({
+        message:
+          error.message ||
+          "Unable to update order",
+      });
+    } finally {
+      await session.endSession();
+    }
+  };
+
+export const deleteAdminOrder =
+  async (req, res) => {
+    const session =
+      await mongoose.startSession();
+
+    try {
+      const { id } =
+        req.params;
+
+      if (
+        !mongoose.Types.ObjectId.isValid(
+          id
+        )
+      ) {
+        return res.status(400).json({
+          message: "Invalid order ID",
         });
-      } catch (notificationError) {
-        console.error(
-          "Create order status notification error:",
-          notificationError
+      }
+
+      session.startTransaction();
+
+      const order =
+        await Order.findById(id)
+          .session(session);
+
+      if (!order) {
+        await session.abortTransaction();
+
+        return res.status(404).json({
+          message:
+            "Order not found",
+        });
+      }
+
+      if (
+        RESERVED_ORDER_STATUSES.includes(
+          order.status
+        )
+      ) {
+        await restoreOrderStock(
+          order,
+          session
         );
       }
+
+      await Order.findByIdAndDelete(
+        id
+      ).session(session);
+
+      await session.commitTransaction();
+
+      return res.status(200).json({
+        message:
+          "Order deleted successfully",
+      });
+    } catch (error) {
+      if (
+        session.inTransaction()
+      ) {
+        await session.abortTransaction();
+      }
+
+      console.error(
+        "Delete admin order error:",
+        error
+      );
+
+      return res.status(500).json({
+        message:
+          "Server error, please try again later",
+      });
+    } finally {
+      await session.endSession();
+    }
+  };
+
+export const updateAdminOrderStatus =
+  async (req, res) => {
+    const session =
+      await mongoose.startSession();
+
+    try {
+      const { id } =
+        req.params;
+
+      const { status } =
+        req.body;
+
+      if (
+        !mongoose.Types.ObjectId.isValid(
+          id
+        )
+      ) {
+        return res.status(400).json({
+          message:
+            "Invalid order ID",
+        });
+      }
+
+      if (
+        !ORDER_STATUSES.includes(
+          status
+        )
+      ) {
+        return res.status(400).json({
+          message:
+            "Invalid order status",
+        });
+      }
+
+      session.startTransaction();
+
+      const order =
+        await Order.findById(id)
+          .session(session);
+
+      if (!order) {
+        await session.abortTransaction();
+
+        return res.status(404).json({
+          message:
+            "Order not found",
+        });
+      }
+
+      if (
+        order.status === status
+      ) {
+        await session.commitTransaction();
+
+        const sameOrder =
+          await populateAdminOrder(
+            id
+          );
+
+        return res.status(200).json({
+          message:
+            "Order status is already up to date",
+          order: sameOrder,
+        });
+      }
+
+      const oldReserved =
+        RESERVED_ORDER_STATUSES.includes(
+          order.status
+        );
+
+      const newReserved =
+        RESERVED_ORDER_STATUSES.includes(
+          status
+        );
+
+      if (
+        oldReserved &&
+        !newReserved
+      ) {
+        await restoreOrderStock(
+          order,
+          session
+        );
+      }
+
+      if (
+        !oldReserved &&
+        newReserved
+      ) {
+        const result =
+          await reserveOrderStock(
+            order.products.map(
+              (item) => ({
+                product:
+                  item.product,
+                colorId:
+                  item.colorId,
+                quantity:
+                  item.quantity,
+              })
+            ),
+            session
+          );
+
+        order.products =
+          result.orderProducts;
+      }
+
+      order.status =
+        status;
+
+      await order.save({
+        session,
+        validateBeforeSave:
+          true,
+      });
+
+      await session.commitTransaction();
+
+      const updatedOrder =
+        await populateAdminOrder(
+          id
+        );
 
       return res.status(200).json({
         message:
           "Order status updated successfully",
-        order: updatedOrder,
+        order:
+          updatedOrder,
       });
     } catch (error) {
-      if (session.inTransaction()) {
+      if (
+        session.inTransaction()
+      ) {
         await session.abortTransaction();
       }
 
@@ -972,9 +1919,10 @@ export const updateAdminOrderStatus =
         error
       );
 
-      return res.status(500).json({
+      return res.status(400).json({
         message:
-          "Server error, please try again later",
+          error.message ||
+          "Unable to update order status",
       });
     } finally {
       await session.endSession();
