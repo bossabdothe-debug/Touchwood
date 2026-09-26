@@ -1,109 +1,238 @@
 "use client";
 
 import {
+  FormEvent,
   useEffect,
+  useMemo,
   useState,
 } from "react";
-
-import Link from "next/link";
+import { useParams, useRouter } from "next/navigation";
 import {
-  useParams,
-  useRouter,
-} from "next/navigation";
+  FiCheck,
+  FiChevronDown,
+  FiEdit3,
+  FiLogOut,
+  FiLock,
+  FiPackage,
+  FiRefreshCw,
+  FiSave,
+  FiUser,
+  FiX,
+} from "react-icons/fi";
 
 import {
   getOrders,
+  updateProfile,
+  changePassword,
+  cancelOrder,
 } from "@/services/api";
 
 import styles from "./AccountPage.module.css";
 
-type Order = {
-  _id: string;
-  orderNumber: number;
-  subtotal: number;
-  shipping: number;
-  discount: number;
-  totalPrice: number;
-  status: string;
-  createdAt: string;
-  products?: Array<{
-    quantity: number;
-    priceAtPurchase: number;
-    product?: {
-      name?: {
-        ar?: string;
-        en?: string;
-      };
-      media?: Array<{
-        url?: string;
-      }>;
-    };
-  }>;
+type Locale = "ar" | "en";
+
+type User = {
+  id?: string;
+  name?: string;
+  email?: string;
+  phone?: string;
+  role?: string;
 };
 
-function formatPrice(
-  value: number,
-  locale: string
-) {
+type OrderProduct = {
+  product?: {
+    _id?: string;
+    name?: {
+      ar?: string;
+      en?: string;
+    };
+    media?: Array<{
+      url?: string;
+      thumbnail?: string;
+      isPrimary?: boolean;
+    }>;
+  };
+  quantity?: number;
+  priceAtPurchase?: number;
+  colorName?: {
+    ar?: string;
+    en?: string;
+  };
+};
+
+type Order = {
+  _id: string;
+  orderNumber?: number;
+  status?: string;
+  subtotal?: number;
+  shipping?: number;
+  discount?: number;
+  totalPrice?: number;
+  paymentMethod?: string;
+  createdAt?: string;
+  shippingAddress?: {
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+    email?: string;
+    address?: string;
+  };
+  products?: OrderProduct[];
+};
+
+const text = (
+  locale: Locale,
+  ar: string,
+  en: string
+) => {
+  return locale === "ar" ? ar : en;
+};
+
+const money = (
+  value: number | undefined,
+  locale: Locale
+) => {
   return new Intl.NumberFormat(
-    locale === "ar"
-      ? "ar-EG"
-      : "en-US",
+    locale === "ar" ? "ar-EG" : "en-EG",
     {
+      style: "currency",
+      currency: "EGP",
       maximumFractionDigits: 0,
     }
-  ).format(value);
-}
+  ).format(value || 0);
+};
 
-function getStatusLabel(
-  status: string,
-  isArabic: boolean
-) {
-  const labels: Record<
-    string,
-    [string, string]
-  > = {
-    Pending: [
-      "قيد المراجعة",
-      "Pending",
-    ],
-    Processing: [
-      "جاري التجهيز",
-      "Processing",
-    ],
-    "Out for Delivery": [
-      "خرج للتوصيل",
-      "Out for Delivery",
-    ],
-    Delivered: [
-      "تم التسليم",
-      "Delivered",
-    ],
-    Canceled: [
-      "ملغي",
-      "Canceled",
-    ],
-  };
+const getOrderStatus = (
+  status: string | undefined,
+  locale: Locale
+) => {
+  switch (status) {
+    case "Pending":
+      return text(
+        locale,
+        "قيد المراجعة",
+        "Pending"
+      );
+
+    case "Processing":
+      return text(
+        locale,
+        "جاري التجهيز",
+        "Processing"
+      );
+
+    case "Out for Delivery":
+      return text(
+        locale,
+        "خرج للتوصيل",
+        "Out for Delivery"
+      );
+
+    case "Delivered":
+      return text(
+        locale,
+        "تم التسليم",
+        "Delivered"
+      );
+
+    case "Canceled":
+      return text(
+        locale,
+        "ملغي",
+        "Canceled"
+      );
+
+    default:
+      return (
+        status ||
+        text(
+          locale,
+          "غير معروف",
+          "Unknown"
+        )
+      );
+  }
+};
+
+const getPaymentMethod = (
+  method: string | undefined,
+  locale: Locale
+) => {
+  switch (method) {
+    case "Cash On Delivery":
+      return text(
+        locale,
+        "الدفع عند الاستلام",
+        "Cash On Delivery"
+      );
+
+    case "Vodafone Cash":
+      return text(
+        locale,
+        "فودافون كاش",
+        "Vodafone Cash"
+      );
+
+    case "Visa":
+      return "Visa";
+
+    default:
+      return method || "-";
+  }
+};
+
+const getProductName = (
+  product: OrderProduct["product"],
+  locale: Locale
+) => {
+  return (
+    product?.name?.[locale] ||
+    product?.name?.ar ||
+    product?.name?.en ||
+    text(
+      locale,
+      "منتج",
+      "Product"
+    )
+  );
+};
+
+const getProductImage = (
+  product: OrderProduct["product"]
+) => {
+  const media = product?.media || [];
 
   return (
-    labels[status]?.[
-      isArabic ? 0 : 1
-    ] || status
+    media.find(
+      (item) => item.isPrimary
+    )?.url ||
+    media.find(
+      (item) => item.url
+    )?.url ||
+    media.find(
+      (item) => item.thumbnail
+    )?.thumbnail ||
+    "/logo/logo.jpeg"
   );
-}
+};
 
 export default function AccountPage() {
-  const params = useParams();
+  const params = useParams<{
+    locale?: string;
+  }>();
+
   const router = useRouter();
 
-  const locale =
-    typeof params?.locale ===
-    "string"
-      ? params.locale
+  const locale: Locale =
+    params.locale === "en"
+      ? "en"
       : "ar";
 
   const isArabic =
     locale === "ar";
+
+  const [user, setUser] =
+    useState<User | null>(null);
 
   const [orders, setOrders] =
     useState<Order[]>([]);
@@ -111,23 +240,151 @@ export default function AccountPage() {
   const [loading, setLoading] =
     useState(true);
 
+  const [ordersLoading, setOrdersLoading] =
+    useState(true);
+
+  const [profileSaving, setProfileSaving] =
+    useState(false);
+
+  const [passwordSaving, setPasswordSaving] =
+    useState(false);
+const [loggingOut, setLoggingOut] = useState(false);
+  const [cancelingOrderId, setCancelingOrderId] =
+    useState<string | null>(null);
+
+  const [activeSection, setActiveSection] =
+    useState<
+      "profile" | "orders" | "password"
+    >("profile");
+
+  const [expandedOrderId, setExpandedOrderId] =
+    useState<string | null>(null);
+
+  const [message, setMessage] =
+    useState("");
+
   const [error, setError] =
     useState("");
 
+  const [name, setName] =
+    useState("");
+
+  const [email, setEmail] =
+    useState("");
+
+  const [phone, setPhone] =
+    useState("");
+
+  const [currentPassword, setCurrentPassword] =
+    useState("");
+
+  const [newPassword, setNewPassword] =
+    useState("");
+
+  const [confirmPassword, setConfirmPassword] =
+    useState("");
+
+  const token =
+    typeof window !== "undefined"
+      ? localStorage.getItem("token")
+      : null;
+
+  const userInitial = useMemo(() => {
+    const value =
+      user?.name?.trim() || "";
+
+    return value
+      ? value
+          .charAt(0)
+          .toUpperCase()
+      : "U";
+  }, [user]);
+
+  /*
+   * تحميل بيانات المستخدم
+   */
   useEffect(() => {
+    if (!token) {
+      router.replace(
+        `/${locale}/login`
+      );
+
+      return;
+    }
+
+    const storedUser =
+      localStorage.getItem("user");
+
+    if (!storedUser) {
+      router.replace(
+        `/${locale}/login`
+      );
+
+      return;
+    }
+
+    try {
+      const parsedUser =
+        JSON.parse(
+          storedUser
+        ) as User;
+
+      if (
+        parsedUser?.role ===
+        "admin"
+      ) {
+        router.replace(
+          `/${locale}/admin`
+        );
+
+        return;
+      }
+
+      setUser(parsedUser);
+
+      setName(
+        parsedUser.name || ""
+      );
+
+      setEmail(
+        parsedUser.email || ""
+      );
+
+      setPhone(
+        parsedUser.phone || ""
+      );
+    } catch {
+      localStorage.removeItem(
+        "token"
+      );
+
+      localStorage.removeItem(
+        "user"
+      );
+
+      router.replace(
+        `/${locale}/login`
+      );
+    }
+  }, [
+    locale,
+    router,
+    token,
+  ]);
+
+  /*
+   * تحميل الطلبات
+   */
+  useEffect(() => {
+    if (!token) {
+      return;
+    }
+
+    let mounted = true;
+
     const loadOrders =
       async () => {
-        const token =
-          localStorage.getItem(
-            "token"
-          );
-
-        if (!token) {
-          router.replace(
-            `/${locale}/login`
-          );
-          return;
-        }
+        setOrdersLoading(true);
 
         try {
           const response =
@@ -135,33 +392,546 @@ export default function AccountPage() {
               token
             );
 
-          setOrders(
+          if (!mounted) {
+            return;
+          }
+
+          const list =
             Array.isArray(
-              response?.orders
+              response
             )
+              ? response
+              : Array.isArray(
+                  response?.orders
+                )
               ? response.orders
-              : []
-          );
-        } catch (err) {
-          console.error(
-            "Get orders error:",
-            err
-          );
+              : Array.isArray(
+                  response?.data
+                )
+              ? response.data
+              : [];
+
+          setOrders(list);
+        } catch (
+          requestError
+        ) {
+          if (!mounted) {
+            return;
+          }
 
           setError(
-            err instanceof Error
-              ? err.message
-              : isArabic
-              ? "تعذر تحميل الطلبات."
-              : "Unable to load orders."
+            requestError instanceof
+              Error
+              ? requestError.message
+              : text(
+                  locale,
+                  "تعذر تحميل الطلبات",
+                  "Unable to load orders"
+                )
           );
         } finally {
-          setLoading(false);
+          if (mounted) {
+            setOrdersLoading(
+              false
+            );
+
+            setLoading(false);
+          }
         }
       };
 
     loadOrders();
-  }, [locale, router, isArabic]);
+
+    return () => {
+      mounted = false;
+    };
+  }, [
+    locale,
+    token,
+  ]);
+
+  const clearMessages =
+    () => {
+      setMessage("");
+      setError("");
+    };
+
+  /*
+   * تحديث بيانات الحساب
+   */
+  const handleProfileSubmit =
+    async (
+      event: FormEvent<HTMLFormElement>
+    ) => {
+      event.preventDefault();
+
+      clearMessages();
+
+      const cleanName =
+        name.trim();
+
+      const cleanEmail =
+        email
+          .trim()
+          .toLowerCase();
+
+      const cleanPhone =
+        phone.trim();
+
+      if (
+        !cleanName ||
+        !cleanEmail ||
+        !cleanPhone
+      ) {
+        setError(
+          text(
+            locale,
+            "من فضلك أكمل جميع بيانات الحساب",
+            "Please complete all account fields"
+          )
+        );
+
+        return;
+      }
+
+      if (!token) {
+        router.replace(
+          `/${locale}/login`
+        );
+
+        return;
+      }
+
+      setProfileSaving(
+        true
+      );
+
+      try {
+        const response =
+          await updateProfile(
+            token,
+            {
+              name: cleanName,
+              email: cleanEmail,
+              phone: cleanPhone,
+            }
+          );
+
+        const updatedUser =
+          response?.user || {
+            ...user,
+            name: cleanName,
+            email: cleanEmail,
+            phone: cleanPhone,
+          };
+
+        localStorage.setItem(
+          "user",
+          JSON.stringify(
+            updatedUser
+          )
+        );
+
+        setUser(
+          updatedUser
+        );
+
+        setName(
+          updatedUser.name ||
+            cleanName
+        );
+
+        setEmail(
+          updatedUser.email ||
+            cleanEmail
+        );
+
+        setPhone(
+          updatedUser.phone ||
+            cleanPhone
+        );
+
+        window.dispatchEvent(
+          new Event(
+            "touchwood-auth-change"
+          )
+        );
+
+        setMessage(
+          text(
+            locale,
+            "تم تحديث بيانات الحساب بنجاح",
+            "Your account information has been updated successfully"
+          )
+        );
+      } catch (
+        requestError
+      ) {
+        setError(
+          requestError instanceof
+            Error
+            ? requestError.message
+            : text(
+                locale,
+                "تعذر تحديث بيانات الحساب",
+                "Unable to update your account"
+              )
+        );
+      } finally {
+        setProfileSaving(
+          false
+        );
+      }
+    };
+
+  /*
+   * تغيير كلمة السر
+   */
+  const handlePasswordSubmit = async (
+  event: FormEvent<HTMLFormElement>
+) => {
+  event.preventDefault();
+
+  clearMessages();
+
+  const cleanCurrentPassword =
+    currentPassword;
+
+  const cleanNewPassword =
+    newPassword;
+
+  const cleanConfirmPassword =
+    confirmPassword;
+
+  if (
+    !cleanCurrentPassword ||
+    !cleanNewPassword ||
+    !cleanConfirmPassword
+  ) {
+    setError(
+      text(
+        locale,
+        "من فضلك أكمل جميع حقول كلمة السر",
+        "Please complete all password fields"
+      )
+    );
+
+    return;
+  }
+
+  if (
+    cleanNewPassword !==
+    cleanConfirmPassword
+  ) {
+    setError(
+      text(
+        locale,
+        "تأكيد كلمة السر الجديدة غير مطابق",
+        "New password confirmation does not match"
+      )
+    );
+
+    return;
+  }
+
+  const passwordRegex =
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d])\S{8,}$/;
+
+  if (
+    !passwordRegex.test(
+      cleanNewPassword
+    )
+  ) {
+    setError(
+      text(
+        locale,
+        "كلمة السر يجب أن تكون 8 أحرف على الأقل وتحتوي على حرف كبير وحرف صغير ورقم ورمز خاص",
+        "Password must be at least 8 characters and contain uppercase, lowercase, number and special character"
+      )
+    );
+
+    return;
+  }
+
+  if (
+    cleanCurrentPassword ===
+    cleanNewPassword
+  ) {
+    setError(
+      text(
+        locale,
+        "كلمة السر الجديدة يجب أن تكون مختلفة عن الحالية",
+        "The new password must be different from the current password"
+      )
+    );
+
+    return;
+  }
+
+  if (!token) {
+    router.replace(
+      `/${locale}/login`
+    );
+
+    return;
+  }
+
+  setPasswordSaving(true);
+
+  try {
+    await changePassword(
+      token,
+      cleanCurrentPassword,
+      cleanNewPassword
+    );
+
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+
+    setMessage(
+      text(
+        locale,
+        "تم تغيير كلمة السر بنجاح",
+        "Your password has been changed successfully"
+      )
+    );
+  } catch (requestError) {
+    setError(
+      requestError instanceof Error
+        ? requestError.message
+        : text(
+            locale,
+            "كلمة السر الحالية غير صحيحة أو تعذر تغيير كلمة السر",
+            "The current password is incorrect or the password could not be changed"
+          )
+    );
+  } finally {
+    setPasswordSaving(false);
+  }
+};
+
+  /*
+   * إلغاء الطلب
+   */
+  const handleCancelOrder =
+    async (
+      orderId: string
+    ) => {
+      if (!token) {
+        router.replace(
+          `/${locale}/login`
+        );
+
+        return;
+      }
+
+      const confirmed =
+        window.confirm(
+          text(
+            locale,
+            "هل أنت متأكد من رغبتك في إلغاء هذا الطلب؟",
+            "Are you sure you want to cancel this order?"
+          )
+        );
+
+      if (!confirmed) {
+        return;
+      }
+
+      clearMessages();
+
+      setCancelingOrderId(
+        orderId
+      );
+
+      try {
+        const response =
+          await cancelOrder(
+            token,
+            orderId
+          );
+
+        const updatedOrder =
+          response?.order;
+
+        setOrders(
+          (currentOrders) =>
+            currentOrders.map(
+              (order) =>
+                order._id ===
+                orderId
+                  ? {
+                      ...order,
+                      ...(updatedOrder ||
+                        {}),
+                      status:
+                        updatedOrder?.status ||
+                        "Canceled",
+                    }
+                  : order
+            )
+        );
+
+        setMessage(
+          text(
+            locale,
+            "تم إلغاء الطلب بنجاح",
+            "Your order has been canceled successfully"
+          )
+        );
+      } catch (
+        requestError
+      ) {
+        setError(
+          requestError instanceof
+            Error
+            ? requestError.message
+            : text(
+                locale,
+                "تعذر إلغاء الطلب",
+                "Unable to cancel the order"
+              )
+        );
+      } finally {
+        setCancelingOrderId(
+          null
+        );
+      }
+    };
+
+  /*
+   * تسجيل الخروج
+   *
+   * يتم وضع هذه الوظيفة في آخر عنصر
+   * في الصفحة.
+   */
+  const handleLogout = () => {
+  if (loggingOut) return;
+
+  setLoggingOut(true);
+
+  window.setTimeout(() => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+
+    window.dispatchEvent(
+      new Event("touchwood-auth-change")
+    );
+
+    router.replace(`/${locale}/`);
+  }, 1000);
+};
+
+  /*
+   * تحديث الطلبات
+   */
+  const refreshOrders =
+    async () => {
+      if (!token) {
+        router.replace(
+          `/${locale}/login`
+        );
+
+        return;
+      }
+
+      clearMessages();
+
+      setOrdersLoading(
+        true
+      );
+
+      try {
+        const response =
+          await getOrders(
+            token
+          );
+
+        const list =
+          Array.isArray(
+            response
+          )
+            ? response
+            : Array.isArray(
+                response?.orders
+              )
+            ? response.orders
+            : Array.isArray(
+                response?.data
+              )
+            ? response.data
+            : [];
+
+        setOrders(list);
+
+        setMessage(
+          text(
+            locale,
+            "تم تحديث الطلبات",
+            "Orders have been refreshed"
+          )
+        );
+      } catch (
+        requestError
+      ) {
+        setError(
+          requestError instanceof
+            Error
+            ? requestError.message
+            : text(
+                locale,
+                "تعذر تحديث الطلبات",
+                "Unable to refresh orders"
+              )
+        );
+      } finally {
+        setOrdersLoading(
+          false
+        );
+      }
+    };
+
+  /*
+   * شاشة التحميل
+   */
+  if (
+    loading &&
+    !user
+  ) {
+    return (
+      <main
+        className={
+          styles.page
+        }
+        dir={
+          isArabic
+            ? "rtl"
+            : "ltr"
+        }
+      >
+        <div
+          className={
+            styles.loadingCard
+          }
+        >
+          <FiRefreshCw
+            className={
+              styles.loadingIcon
+            }
+          />
+
+          <p>
+            {text(
+              locale,
+              "جاري تحميل حسابك...",
+              "Loading your account..."
+            )}
+          </p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main
@@ -177,277 +947,1214 @@ export default function AccountPage() {
           styles.container
         }
       >
-        <nav
+        {/* =========================
+            Header
+        ========================== */}
+        <section
           className={
-            styles.breadcrumb
+            styles.accountHeader
           }
         >
-          <Link
-            href={`/${locale}`}
-          >
-            {isArabic
-              ? "الرئيسية"
-              : "Home"}
-          </Link>
-
-          <span>/</span>
-
-          <strong>
-            {isArabic
-              ? "حسابي"
-              : "My Account"}
-          </strong>
-        </nav>
-
-        <header
-          className={styles.header}
-        >
-          <div>
-            <span
-              className={
-                styles.eyebrow
-              }
-            >
-              TOUCHWOOD
-            </span>
-
-            <h1>
-              {isArabic
-                ? "حسابي"
-                : "My Account"}
-            </h1>
-
-            <p>
-              {isArabic
-                ? "يمكنك هنا متابعة جميع طلباتك وحالة كل طلب."
-                : "Track all your orders and their current status here."}
-            </p>
-          </div>
-        </header>
-
-        {loading ? (
           <div
             className={
-              styles.loading
+              styles.headerIdentity
             }
           >
             <div
               className={
-                styles.spinner
-              }
-            />
-
-            <p>
-              {isArabic
-                ? "جاري تحميل الطلبات..."
-                : "Loading orders..."}
-            </p>
-          </div>
-        ) : error ? (
-          <div
-            className={
-              styles.error
-            }
-          >
-            {error}
-          </div>
-        ) : orders.length ===
-          0 ? (
-          <div
-            className={
-              styles.empty
-            }
-          >
-            <div
-              className={
-                styles.emptyIcon
+                styles.avatar
               }
             >
-              #
+              {userInitial}
             </div>
 
-            <h2>
-              {isArabic
-                ? "لا توجد طلبات بعد"
-                : "No orders yet"}
-            </h2>
+            <div>
+              <span
+                className={
+                  styles.eyebrow
+                }
+              >
+                TOUCHWOOD
+              </span>
 
-            <p>
-              {isArabic
-                ? "عندما تقوم بإنشاء طلب سيظهر هنا."
-                : "Your orders will appear here once you place one."}
-            </p>
+              <h1>
+                {text(
+                  locale,
+                  "حسابي",
+                  "My Account"
+                )}
+              </h1>
 
-            <Link
-              href={`/${locale}/shop`}
-              className={
-                styles.primaryButton
-              }
-            >
-              {isArabic
-                ? "تصفح المنتجات"
-                : "Browse Products"}
-            </Link>
+              <p>
+                {text(
+                  locale,
+                  `مرحبًا ${user?.name || ""}`,
+                  `Welcome ${user?.name || ""}`
+                )}
+              </p>
+            </div>
           </div>
-        ) : (
+        </section>
+
+        {/* =========================
+            Messages
+        ========================== */}
+
+        {message && (
           <div
-            className={
-              styles.ordersList
-            }
+            className={`${styles.message} ${styles.successMessage}`}
           >
-            {orders.map(
-              (order) => {
-                const firstProduct =
-                  order.products?.[0]
-                    ?.product;
+            <FiCheck />
 
-                const productName =
-                  firstProduct
-                    ?.name?.[
-                      locale as
-                        | "ar"
-                        | "en"
-                    ] ||
-                  firstProduct
-                    ?.name?.ar ||
-                  firstProduct
-                    ?.name?.en ||
-                  (isArabic
-                    ? "منتجات الطلب"
-                    : "Order items");
+            <span>
+              {message}
+            </span>
 
-                return (
-                  <article
-                    key={
-                      order._id
-                    }
-                    className={
-                      styles.orderCard
-                    }
-                  >
-                    <div
-                      className={
-                        styles.orderTop
-                      }
-                    >
-                      <div>
-                        <span
-                          className={
-                            styles.orderLabel
-                          }
-                        >
-                          {isArabic
-                            ? "رقم الطلب"
-                            : "Order Number"}
-                        </span>
-
-                        <strong
-                          className={
-                            styles.orderNumber
-                          }
-                        >
-                          #
-                          {
-                            order.orderNumber
-                          }
-                        </strong>
-                      </div>
-
-                      <span
-                        className={`${styles.status} ${
-                          styles[
-                            `status${order.status.replace(
-                              /[^a-zA-Z]/g,
-                              ""
-                            )}`
-                          ] || ""
-                        }`}
-                      >
-                        {getStatusLabel(
-                          order.status,
-                          isArabic
-                        )}
-                      </span>
-                    </div>
-
-                    <div
-                      className={
-                        styles.orderBody
-                      }
-                    >
-                      <div>
-                        <span>
-                          {isArabic
-                            ? "تاريخ الطلب"
-                            : "Order Date"}
-                        </span>
-
-                        <strong>
-                          {new Date(
-                            order.createdAt
-                          ).toLocaleDateString(
-                            isArabic
-                              ? "ar-EG"
-                              : "en-US"
-                          )}
-                        </strong>
-                      </div>
-
-                      <div>
-                        <span>
-                          {isArabic
-                            ? "المنتجات"
-                            : "Products"}
-                        </span>
-
-                        <strong>
-                          {productName}
-                          {order.products &&
-                          order.products.length >
-                            1
-                            ? ` + ${
-                                order.products.length -
-                                1
-                              }`
-                            : ""}
-                        </strong>
-                      </div>
-
-                      <div>
-                        <span>
-                          {isArabic
-                            ? "الإجمالي"
-                            : "Total"}
-                        </span>
-
-                        <strong>
-                          {formatPrice(
-                            order.totalPrice,
-                            locale
-                          )}{" "}
-                          {isArabic
-                            ? "ج.م"
-                            : "EGP"}
-                        </strong>
-                      </div>
-                    </div>
-
-                    <Link
-                      href={`/${locale}/account/orders/${order._id}`}
-                      className={
-                        styles.detailsButton
-                      }
-                    >
-                      {isArabic
-                        ? "عرض تفاصيل الطلب"
-                        : "View Order Details"}
-                    </Link>
-                  </article>
-                );
+            <button
+              type="button"
+              onClick={() =>
+                setMessage("")
               }
-            )}
+              aria-label={text(
+                locale,
+                "إغلاق",
+                "Close"
+              )}
+            >
+              <FiX />
+            </button>
           </div>
         )}
+
+        {error && (
+          <div
+            className={`${styles.message} ${styles.errorMessage}`}
+          >
+            <FiX />
+
+            <span>
+              {error}
+            </span>
+
+            <button
+              type="button"
+              onClick={() =>
+                setError("")
+              }
+              aria-label={text(
+                locale,
+                "إغلاق",
+                "Close"
+              )}
+            >
+              ×
+            </button>
+          </div>
+        )}
+
+        <div
+          className={
+            styles.layout
+          }
+        >
+          {/* =========================
+              Sidebar
+          ========================== */}
+
+          <aside
+            className={
+              styles.sidebar
+            }
+          >
+            <button
+              type="button"
+              className={
+                activeSection ===
+                "profile"
+                  ? styles.sidebarItemActive
+                  : styles.sidebarItem
+              }
+              onClick={() => {
+                clearMessages();
+
+                setActiveSection(
+                  "profile"
+                );
+              }}
+            >
+              <FiUser />
+
+              <span>
+                {text(
+                  locale,
+                  "بيانات الحساب",
+                  "Account Information"
+                )}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              className={
+                activeSection ===
+                "orders"
+                  ? styles.sidebarItemActive
+                  : styles.sidebarItem
+              }
+              onClick={() => {
+                clearMessages();
+
+                setActiveSection(
+                  "orders"
+                );
+              }}
+            >
+              <FiPackage />
+
+              <span>
+                {text(
+                  locale,
+                  "طلباتي",
+                  "My Orders"
+                )}
+              </span>
+
+              <span
+                className={
+                  styles.orderCount
+                }
+              >
+                {orders.length}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              className={
+                activeSection ===
+                "password"
+                  ? styles.sidebarItemActive
+                  : styles.sidebarItem
+              }
+              onClick={() => {
+                clearMessages();
+
+                setActiveSection(
+                  "password"
+                );
+              }}
+            >
+              <FiLock />
+
+              <span>
+                {text(
+                  locale,
+                  "تغيير كلمة السر",
+                  "Change Password"
+                )}
+              </span>
+            </button>
+          </aside>
+
+          {/* =========================
+              Content
+          ========================== */}
+
+          <section
+            className={
+              styles.content
+            }
+          >
+            {/* =====================
+                Profile
+            ====================== */}
+
+            {activeSection ===
+              "profile" && (
+              <div
+                className={
+                  styles.sectionCard
+                }
+              >
+                <div
+                  className={
+                    styles.sectionHeader
+                  }
+                >
+                  <div>
+                    <span
+                      className={
+                        styles.sectionIcon
+                      }
+                    >
+                      <FiEdit3 />
+                    </span>
+
+                    <div>
+                      <h2>
+                        {text(
+                          locale,
+                          "بيانات الحساب",
+                          "Account Information"
+                        )}
+                      </h2>
+
+                      <p>
+                        {text(
+                          locale,
+                          "قم بتعديل بياناتك الشخصية",
+                          "Update your personal information"
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <form
+                  className={
+                    styles.form
+                  }
+                  onSubmit={
+                    handleProfileSubmit
+                  }
+                >
+                  <div
+                    className={
+                      styles.formGrid
+                    }
+                  >
+                    <label
+                      className={
+                        styles.field
+                      }
+                    >
+                      <span>
+                        {text(
+                          locale,
+                          "الاسم",
+                          "Name"
+                        )}
+                      </span>
+
+                      <input
+                        type="text"
+                        value={name}
+                        onChange={(
+                          event
+                        ) =>
+                          setName(
+                            event
+                              .target
+                              .value
+                          )
+                        }
+                        autoComplete="name"
+                      />
+                    </label>
+
+                    <label
+                      className={
+                        styles.field
+                      }
+                    >
+                      <span>
+                        {text(
+                          locale,
+                          "البريد الإلكتروني",
+                          "Email"
+                        )}
+                      </span>
+
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(
+                          event
+                        ) =>
+                          setEmail(
+                            event
+                              .target
+                              .value
+                          )
+                        }
+                        autoComplete="email"
+                      />
+                    </label>
+
+                    <label
+                      className={
+                        styles.field
+                      }
+                    >
+                      <span>
+                        {text(
+                          locale,
+                          "رقم الهاتف",
+                          "Phone"
+                        )}
+                      </span>
+
+                      <input
+                        type="tel"
+                        value={phone}
+                        onChange={(
+                          event
+                        ) =>
+                          setPhone(
+                            event
+                              .target
+                              .value
+                          )
+                        }
+                        autoComplete="tel"
+                        inputMode="numeric"
+                      />
+                    </label>
+                  </div>
+
+                  <div
+                    className={
+                      styles.formFooter
+                    }
+                  >
+                    <button
+                      type="submit"
+                      className={
+                        styles.primaryButton
+                      }
+                      disabled={
+                        profileSaving
+                      }
+                    >
+                      {profileSaving ? (
+                        <FiRefreshCw
+                          className={
+                            styles.spin
+                          }
+                        />
+                      ) : (
+                        <FiSave />
+                      )}
+
+                      <span>
+                        {profileSaving
+                          ? text(
+                              locale,
+                              "جاري الحفظ...",
+                              "Saving..."
+                            )
+                          : text(
+                              locale,
+                              "حفظ التعديلات",
+                              "Save Changes"
+                            )}
+                      </span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* =====================
+                Orders
+            ====================== */}
+
+            {activeSection ===
+              "orders" && (
+              <div
+                className={
+                  styles.sectionCard
+                }
+              >
+                <div
+                  className={
+                    styles.sectionHeader
+                  }
+                >
+                  <div>
+                    <span
+                      className={
+                        styles.sectionIcon
+                      }
+                    >
+                      <FiPackage />
+                    </span>
+
+                    <div>
+                      <h2>
+                        {text(
+                          locale,
+                          "طلباتي",
+                          "My Orders"
+                        )}
+                      </h2>
+
+                      <p>
+                        {text(
+                          locale,
+                          "تابع جميع طلباتك وحالتها",
+                          "Track all your orders and their status"
+                        )}
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    className={
+                      styles.refreshButton
+                    }
+                    onClick={
+                      refreshOrders
+                    }
+                    disabled={
+                      ordersLoading
+                    }
+                    aria-label={text(
+                      locale,
+                      "تحديث الطلبات",
+                      "Refresh orders"
+                    )}
+                  >
+                    <FiRefreshCw
+                      className={
+                        ordersLoading
+                          ? styles.spin
+                          : ""
+                      }
+                    />
+                  </button>
+                </div>
+
+                {ordersLoading ? (
+                  <div
+                    className={
+                      styles.ordersLoading
+                    }
+                  >
+                    <FiRefreshCw
+                      className={
+                        styles.spin
+                      }
+                    />
+
+                    <p>
+                      {text(
+                        locale,
+                        "جاري تحميل الطلبات...",
+                        "Loading orders..."
+                      )}
+                    </p>
+                  </div>
+                ) : orders.length ===
+                  0 ? (
+                  <div
+                    className={
+                      styles.emptyOrders
+                    }
+                  >
+                    <span
+                      className={
+                        styles.emptyIcon
+                      }
+                    >
+                      <FiPackage />
+                    </span>
+
+                    <h3>
+                      {text(
+                        locale,
+                        "لا توجد طلبات حتى الآن",
+                        "No orders yet"
+                      )}
+                    </h3>
+
+                    <p>
+                      {text(
+                        locale,
+                        "عندما تقوم بإجراء طلب سيظهر هنا.",
+                        "Your orders will appear here once you place an order."
+                      )}
+                    </p>
+
+                    <button
+                      type="button"
+                      className={
+                        styles.primaryButton
+                      }
+                      onClick={() =>
+                        router.push(
+                          `/${locale}/`
+                        )
+                      }
+                    >
+                      {text(
+                        locale,
+                        "تصفح المنتجات",
+                        " Now"
+                      )}
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    className={
+                      styles.ordersList
+                    }
+                  >
+                    {orders.map(
+                      (order) => {
+                        const isExpanded =
+                          expandedOrderId ===
+                          order._id;
+
+                        const canCancel =
+                          order.status ===
+                          "Pending";
+
+                        return (
+                          <article
+                            key={
+                              order._id
+                            }
+                            className={
+                              styles.orderCard
+                            }
+                          >
+                            <button
+                              type="button"
+                              className={
+                                styles.orderSummary
+                              }
+                              onClick={() =>
+                                setExpandedOrderId(
+                                  isExpanded
+                                    ? null
+                                    : order._id
+                                )
+                              }
+                            >
+                              <div
+                                className={
+                                  styles.orderMain
+                                }
+                              >
+                                <span
+                                  className={
+                                    styles.orderIcon
+                                  }
+                                >
+                                  <FiPackage />
+                                </span>
+
+                                <div>
+                                  <strong>
+                                    {text(
+                                      locale,
+                                      "طلب رقم",
+                                      "Order"
+                                    )}{" "}
+                                    #
+                                    {order.orderNumber ||
+                                      order._id
+                                        .slice(
+                                          -6
+                                        )
+                                        .toUpperCase()}
+                                  </strong>
+
+                                  <small>
+                                    {order.createdAt
+                                      ? new Date(
+                                          order.createdAt
+                                        ).toLocaleDateString(
+                                          locale ===
+                                            "ar"
+                                            ? "ar-EG"
+                                            : "en-EG",
+                                          {
+                                            year: "numeric",
+                                            month: "long",
+                                            day: "numeric",
+                                          }
+                                        )
+                                      : ""}
+                                  </small>
+                                </div>
+                              </div>
+
+                              <div
+                                className={
+                                  styles.orderMeta
+                                }
+                              >
+                                <span
+                                  className={`${styles.status} ${
+                                    styles[
+                                      `status${(
+                                        order.status ||
+                                        "Pending"
+                                      ).replace(
+                                        /\s/g,
+                                        ""
+                                      )}`
+                                    ] || ""
+                                  }`}
+                                >
+                                  {getOrderStatus(
+                                    order.status,
+                                    locale
+                                  )}
+                                </span>
+
+                                <strong
+                                  className={
+                                    styles.orderTotal
+                                  }
+                                >
+                                  {money(
+                                    order.totalPrice,
+                                    locale
+                                  )}
+                                </strong>
+
+                                <FiChevronDown
+                                  className={
+                                    isExpanded
+                                      ? styles.chevronOpen
+                                      : styles.chevron
+                                  }
+                                />
+                              </div>
+                            </button>
+
+                            {isExpanded && (
+                              <div
+                                className={
+                                  styles.orderDetails
+                                }
+                              >
+                                <div
+                                  className={
+                                    styles.orderInfoGrid
+                                  }
+                                >
+                                  <div>
+                                    <span>
+                                      {text(
+                                        locale,
+                                        "طريقة الدفع",
+                                        "Payment Method"
+                                      )}
+                                    </span>
+
+                                    <strong>
+                                      {getPaymentMethod(
+                                        order.paymentMethod,
+                                        locale
+                                      )}
+                                    </strong>
+                                  </div>
+
+                                  <div>
+                                    <span>
+                                      {text(
+                                        locale,
+                                        "الإجمالي الفرعي",
+                                        "Subtotal"
+                                      )}
+                                    </span>
+
+                                    <strong>
+                                      {money(
+                                        order.subtotal,
+                                        locale
+                                      )}
+                                    </strong>
+                                  </div>
+
+                                  <div>
+                                    <span>
+                                      {text(
+                                        locale,
+                                        "الشحن",
+                                        "Shipping"
+                                      )}
+                                    </span>
+
+                                    <strong>
+                                      {money(
+                                        order.shipping,
+                                        locale
+                                      )}
+                                    </strong>
+                                  </div>
+
+                                  <div>
+                                    <span>
+                                      {text(
+                                        locale,
+                                        "الإجمالي",
+                                        "Total"
+                                      )}
+                                    </span>
+
+                                    <strong>
+                                      {money(
+                                        order.totalPrice,
+                                        locale
+                                      )}
+                                    </strong>
+                                  </div>
+                                </div>
+
+                                {order.products &&
+                                  order.products.length >
+                                    0 && (
+                                    <div
+                                      className={
+                                        styles.productsList
+                                      }
+                                    >
+                                      <h3>
+                                        {text(
+                                          locale,
+                                          "المنتجات",
+                                          "Products"
+                                        )}
+                                      </h3>
+
+                                      {order.products.map(
+                                        (
+                                          item,
+                                          index
+                                        ) => (
+                                          <div
+                                            key={`${order._id}-${index}`}
+                                            className={
+                                              styles.productRow
+                                            }
+                                          >
+                                            <img
+                                              src={getProductImage(
+                                                item.product
+                                              )}
+                                              alt=""
+                                            />
+
+                                            <div
+                                              className={
+                                                styles.productInfo
+                                              }
+                                            >
+                                              <strong>
+                                                {getProductName(
+                                                  item.product,
+                                                  locale
+                                                )}
+                                              </strong>
+
+                                              {item
+                                                .colorName?.[
+                                                locale
+                                              ] && (
+                                                <small>
+                                                  {text(
+                                                    locale,
+                                                    "اللون",
+                                                    "Color"
+                                                  )}
+                                                  :{" "}
+                                                  {
+                                                    item
+                                                      .colorName[
+                                                      locale
+                                                    ]
+                                                  }
+                                                </small>
+                                              )}
+
+                                              <small>
+                                                {text(
+                                                  locale,
+                                                  "الكمية",
+                                                  "Quantity"
+                                                )}
+                                                :{" "}
+                                                {item.quantity ||
+                                                  1}
+                                              </small>
+                                            </div>
+
+                                            <strong
+                                              className={
+                                                styles.productPrice
+                                              }
+                                            >
+                                              {money(
+                                                (item.priceAtPurchase ||
+                                                  0) *
+                                                  (item.quantity ||
+                                                    1),
+                                                locale
+                                              )}
+                                            </strong>
+                                          </div>
+                                        )
+                                      )}
+                                    </div>
+                                  )}
+
+                                {order.shippingAddress && (
+                                  <div
+                                    className={
+                                      styles.addressBox
+                                    }
+                                  >
+                                    <h3>
+                                      {text(
+                                        locale,
+                                        "عنوان الشحن",
+                                        "Shipping Address"
+                                      )}
+                                    </h3>
+
+                                    <p>
+                                      {order
+                                        .shippingAddress
+                                        .firstName ||
+                                        ""}{" "}
+                                      {order
+                                        .shippingAddress
+                                        .lastName ||
+                                        ""}
+                                    </p>
+
+                                    <p>
+                                      {
+                                        order
+                                          .shippingAddress
+                                          .address
+                                      }
+                                    </p>
+
+                                    <p>
+                                      {
+                                        order
+                                          .shippingAddress
+                                          .phone
+                                      }
+                                    </p>
+                                  </div>
+                                )}
+
+                                {canCancel && (
+                                  <div
+                                    className={
+                                      styles.orderActions
+                                    }
+                                  >
+                                    <button
+                                      type="button"
+                                      className={
+                                        styles.cancelButton
+                                      }
+                                      onClick={() =>
+                                        handleCancelOrder(
+                                          order._id
+                                        )
+                                      }
+                                      disabled={
+                                        cancelingOrderId ===
+                                        order._id
+                                      }
+                                    >
+                                      {cancelingOrderId ===
+                                      order._id ? (
+                                        <FiRefreshCw
+                                          className={
+                                            styles.spin
+                                          }
+                                        />
+                                      ) : (
+                                        <FiX />
+                                      )}
+
+                                      <span>
+                                        {cancelingOrderId ===
+                                        order._id
+                                          ? text(
+                                              locale,
+                                              "جاري الإلغاء...",
+                                              "Canceling..."
+                                            )
+                                          : text(
+                                              locale,
+                                              "إلغاء الطلب",
+                                              "Cancel Order"
+                                            )}
+                                      </span>
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </article>
+                        );
+                      }
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* =====================
+                Password
+            ====================== */}
+
+            {activeSection ===
+              "password" && (
+              <div
+                className={
+                  styles.sectionCard
+                }
+              >
+                <div
+                  className={
+                    styles.sectionHeader
+                  }
+                >
+                  <div>
+                    <span
+                      className={
+                        styles.sectionIcon
+                      }
+                    >
+                      <FiLock />
+                    </span>
+
+                    <div>
+                      <h2>
+                        {text(
+                          locale,
+                          "تغيير كلمة السر",
+                          "Change Password"
+                        )}
+                      </h2>
+
+                      <p>
+                        {text(
+                          locale,
+                          "استخدم كلمة سر قوية لحماية حسابك",
+                          "Use a strong password to protect your account"
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <form
+                  className={
+                    styles.form
+                  }
+                  onSubmit={
+                    handlePasswordSubmit
+                  }
+                >
+                  <div
+                    className={
+                      styles.passwordBox
+                    }
+                  >
+                    <label
+                      className={
+                        styles.field
+                      }
+                    >
+                      <span>
+                        {text(
+                          locale,
+                          "كلمة السر الحالية",
+                          "Current Password"
+                        )}
+                      </span>
+
+                      <input
+                        type="password"
+                        value={
+                          currentPassword
+                        }
+                        onChange={(
+                          event
+                        ) =>
+                          setCurrentPassword(
+                            event
+                              .target
+                              .value
+                          )
+                        }
+                        autoComplete="current-password"
+                      />
+                    </label>
+
+                    <label
+                      className={
+                        styles.field
+                      }
+                    >
+                      <span>
+                        {text(
+                          locale,
+                          "كلمة السر الجديدة",
+                          "New Password"
+                        )}
+                      </span>
+
+                      <input
+                        type="password"
+                        value={
+                          newPassword
+                        }
+                        onChange={(
+                          event
+                        ) =>
+                          setNewPassword(
+                            event
+                              .target
+                              .value
+                          )
+                        }
+                        autoComplete="new-password"
+                      />
+
+                      <small>
+                        {text(
+                          locale,
+                          "يجب أن تحتوي على 8 أحرف على الأقل، حرف كبير، حرف صغير، رقم ورمز خاص.",
+                          "At least 8 characters with uppercase, lowercase, number and special character."
+                        )}
+                      </small>
+                    </label>
+
+                    <label
+                      className={
+                        styles.field
+                      }
+                    >
+                      <span>
+                        {text(
+                          locale,
+                          "تأكيد كلمة السر الجديدة",
+                          "Confirm New Password"
+                        )}
+                      </span>
+
+                      <input
+                        type="password"
+                        value={
+                          confirmPassword
+                        }
+                        onChange={(
+                          event
+                        ) =>
+                          setConfirmPassword(
+                            event
+                              .target
+                              .value
+                          )
+                        }
+                        autoComplete="new-password"
+                      />
+                    </label>
+                  </div>
+
+                  <div
+                    className={
+                      styles.formFooter
+                    }
+                  >
+                    <button
+                      type="submit"
+                      className={
+                        styles.primaryButton
+                      }
+                      disabled={
+                        passwordSaving
+                      }
+                    >
+                      {passwordSaving ? (
+                        <FiRefreshCw
+                          className={
+                            styles.spin
+                          }
+                        />
+                      ) : (
+                        <FiSave />
+                      )}
+
+                      <span>
+                        {passwordSaving
+                          ? text(
+                              locale,
+                              "جاري الحفظ...",
+                              "Saving..."
+                            )
+                          : text(
+                              locale,
+                              "تغيير كلمة السر",
+                              "Change Password"
+                            )}
+                      </span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+          </section>
+        </div>
+
+        {/* =========================
+            Logout
+            آخر عنصر في الصفحة
+        ========================== */}
+
+        <div
+          className={
+            styles.logoutSection
+          }
+        >
+          <button
+  type="button"
+  className={`${styles.logoutButton} ${
+    loggingOut ? styles.logoutButtonLoading : ""
+  }`}
+  onClick={handleLogout}
+  disabled={loggingOut}
+>
+  {loggingOut ? (
+    <>
+      <span className={styles.logoutSpinner} />
+      <span>
+        {text(
+          locale,
+          "جاري تسجيل الخروج...",
+          "Logging out..."
+        )}
+      </span>
+    </>
+  ) : (
+    <>
+      <FiLogOut />
+      <span>
+        {text(
+          locale,
+          "تسجيل الخروج",
+          "Log Out"
+        )}
+      </span>
+    </>
+  )}
+</button>
+        </div>
       </div>
     </main>
   );

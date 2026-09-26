@@ -1,1 +1,4 @@
-import jwt from "jsonwebtoken"; export const authMiddleware = (req, res, next) => { try { const authToken = req.headers.authorization; if (!authToken || !authToken.startsWith("Bearer ")) { return res.status(401).json({ message: "Authorization header is missing", }); } const token = authToken.split(" ")[1]; if (!token) { return res.status(401).json({ message: "Authorization failed", }); } const decoded = jwt.verify( token, process.env.SECRET_KEY ); req.user = decoded; next(); } catch (error) { return res.status(401).json({ message: "Unauthorized", }); } };
+import jwt from "jsonwebtoken"; export const authMiddleware = (req, res, next) => { try { const authToken = req.headers.authorization; if (!authToken || !authToken.startsWith("Bearer ")) { return res.status(401).json({ message: "Authorization header is missing", }); } const token = authToken.split(" ")[1]; if (!token) { return res.status(401).json({ message: "Authorization failed", }); } const decoded = jwt.verify( token, process.env.SECRET_KEY ); req.user = decoded; next(); } catch (error) { return res.status(401).json({
+  code: "AUTH_TOKEN_INVALID",
+  message: "Unauthorized",
+}); } };

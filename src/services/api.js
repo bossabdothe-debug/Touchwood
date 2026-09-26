@@ -54,24 +54,28 @@ const apiRequest = async (
    * such as "Invalid email or password"
    * from opening the expiration popup.
    */
-  if (
-    response.status === 401 &&
-    token &&
-    typeof window !==
-      "undefined"
-  ) {
+if (
+  response.status === 401 &&
+  token &&
+  typeof window !== "undefined"
+) {
+  const shouldLogout =
+    data?.code === "AUTH_TOKEN_INVALID" ||
+    data?.code === "AUTH_TOKEN_EXPIRED";
+
+  if (shouldLogout) {
     window.dispatchEvent(
-      new CustomEvent(
-        "touchwood-session-expired",
-        {
-          detail: {
-            reason:
-              "unauthorized",
-          },
-        }
-      )
+      new CustomEvent("touchwood-session-expired", {
+        detail: {
+          reason:
+            data?.code === "AUTH_TOKEN_EXPIRED"
+              ? "expired"
+              : "unauthorized",
+        },
+      })
     );
   }
+}
 
   if (!response.ok) {
     throw new Error(
@@ -237,7 +241,7 @@ export const updateProfile = async (
   });
 };
 
-export const changePassword = async (
+export const changePassword = (
   token,
   currentPassword,
   newPassword

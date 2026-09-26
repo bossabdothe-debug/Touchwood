@@ -366,10 +366,11 @@ const user = await User.findById(userId).select("+password");
       );
 
     if (!isCurrentPasswordValid) {
-      return res.status(401).json({
-        message: "Current password is incorrect",
-      });
-    }
+  return res.status(401).json({
+    code: "CURRENT_PASSWORD_INVALID",
+    message: "Current password is incorrect",
+  });
+}
 
     const hashedPassword = await bcrypt.hash(
       newPassword,
