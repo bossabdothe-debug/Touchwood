@@ -3,11 +3,41 @@ import Product from "../models/Product.js";
 import Order from "../models/Orders.js";
 import createNotification from "../utils/createNotification.js";
 
-export const checkout = async (req, res) => {
-  const session = await mongoose.startSession();
+const SHIPPING_COST = 250;
+
+const PAYMENT_METHODS = [
+  "Cash On Delivery",
+  "Vodafone Cash",
+];
+
+export const checkout = async (
+  req,
+  res
+) => {
+  const session =
+    await mongoose.startSession();
 
   try {
-    const userId = req.user.id;
+    /*
+     * Registered user:
+     * req.user exists because of optionalAuthMiddleware
+     *
+     * Guest:
+     * req.user === null
+     */
+    const userId =
+      req.user?.id || null;
+
+    if (
+      userId &&
+      !mongoose.Types.ObjectId.isValid(
+        userId
+      )
+    ) {
+      return res.status(400).json({
+        message: "Invalid user",
+      });
+    }
 
     const {
       products,
@@ -16,24 +46,30 @@ export const checkout = async (req, res) => {
       couponCode,
     } = req.body;
 
-    if (!mongoose.Types.ObjectId.isValid(userId)) {
-      return res.status(400).json({
-        message: "Invalid user",
-      });
-    }
+    /* =========================
+       PRODUCTS
+    ========================= */
 
-    if (!Array.isArray(products) || products.length === 0) {
+    if (
+      !Array.isArray(products) ||
+      products.length === 0
+    ) {
       return res.status(400).json({
         message: "Your cart is empty",
       });
     }
+
+    /* =========================
+       SHIPPING ADDRESS
+    ========================= */
 
     if (
       !shippingAddress ||
       typeof shippingAddress !== "object"
     ) {
       return res.status(400).json({
-        message: "Shipping information is required",
+        message:
+          "Shipping information is required",
       });
     }
 
@@ -48,7 +84,9 @@ export const checkout = async (req, res) => {
     for (const field of requiredAddressFields) {
       if (
         !shippingAddress[field] ||
-        String(shippingAddress[field]).trim() === ""
+        String(
+          shippingAddress[field]
+        ).trim() === ""
       ) {
         return res.status(400).json({
           message: `${field} is required`,
@@ -56,17 +94,24 @@ export const checkout = async (req, res) => {
       }
     }
 
-    const validPaymentMethods = [
-      "Cash On Delivery",
-      
-      "Vodafone Cash",
-    ];
+    /* =========================
+       PAYMENT
+    ========================= */
 
-    if (!validPaymentMethods.includes(paymentMethod)) {
+    if (
+      !PAYMENT_METHODS.includes(
+        paymentMethod
+      )
+    ) {
       return res.status(400).json({
-        message: "Invalid payment method",
+        message:
+          "Invalid payment method",
       });
     }
+
+    /* =========================
+       NORMALIZE CART
+    ========================= */
 
     const normalizedItems = [];
 
@@ -79,31 +124,40 @@ export const checkout = async (req, res) => {
         )
       ) {
         return res.status(400).json({
-          message: "Invalid product ID",
+          message:
+            "Invalid product ID",
         });
       }
 
-      const quantity = Number(item.quantity);
+      const quantity = Number(
+        item.quantity
+      );
 
       if (
         !Number.isInteger(quantity) ||
         quantity < 1
       ) {
         return res.status(400).json({
-          message: "Invalid product quantity",
+          message:
+            "Invalid product quantity",
         });
       }
 
       let colorId = null;
 
-      if (item.colorId !== null && item.colorId !== undefined) {
+      if (
+        item.colorId !== null &&
+        item.colorId !== undefined &&
+        item.colorId !== ""
+      ) {
         if (
           !mongoose.Types.ObjectId.isValid(
             item.colorId
           )
         ) {
           return res.status(400).json({
-            message: "Invalid color ID",
+            message:
+              "Invalid color ID",
           });
         }
 
@@ -117,13 +171,20 @@ export const checkout = async (req, res) => {
       });
     }
 
+    /*
+     * Merge duplicate product/color items.
+     */
     const uniqueItems = new Map();
 
     for (const item of normalizedItems) {
-      const key = `${item.productId}_${item.colorId || "default"}`;
+      const key = `${item.productId}_${
+        item.colorId || "default"
+      }`;
 
       if (uniqueItems.has(key)) {
-        uniqueItems.get(key).quantity += item.quantity;
+        uniqueItems.get(
+          key
+        ).quantity += item.quantity;
       } else {
         uniqueItems.set(key, {
           ...item,
@@ -131,7 +192,14 @@ export const checkout = async (req, res) => {
       }
     }
 
-    const cartItems = Array.from(uniqueItems.values());
+    const cartItems =
+      Array.from(
+        uniqueItems.values()
+      );
+
+    /* =========================
+       TRANSACTION
+    ========================= */
 
     session.startTransaction();
 
@@ -141,27 +209,39 @@ export const checkout = async (req, res) => {
 
     let subtotal = 0;
 
+    /* =========================
+       VALIDATE PRODUCTS + STOCK
+    ========================= */
+
     for (const item of cartItems) {
-      const product = await Product.findOne({
-        _id: item.productId,
-        active: true,
-      }).session(session);
+      const product =
+        await Product.findOne({
+          _id: item.productId,
+          active: true,
+        }).session(session);
 
       if (!product) {
         await session.abortTransaction();
 
         return res.status(404).json({
-          message: "One of the products is no longer available",
-          productId: item.productId,
+          message:
+            "One of the products is no longer available",
+          productId:
+            item.productId,
         });
       }
 
       let selectedColor = null;
 
+      /* =========================
+         COLOR PRODUCT
+      ========================= */
+
       if (item.colorId) {
-        selectedColor = product.colors.id(
-          item.colorId
-        );
+        selectedColor =
+          product.colors.id(
+            item.colorId
+          );
 
         if (!selectedColor) {
           await session.abortTransaction();
@@ -169,52 +249,84 @@ export const checkout = async (req, res) => {
           return res.status(400).json({
             message:
               "The selected color is no longer available",
-            productId: product._id,
-            colorId: item.colorId,
+            productId:
+              product._id,
+            colorId:
+              item.colorId,
           });
         }
 
-        if (selectedColor.stock < item.quantity) {
+        if (
+          selectedColor.stock <
+          item.quantity
+        ) {
           await session.abortTransaction();
 
           return res.status(400).json({
-            message: "Insufficient stock for selected color",
-            productId: product._id,
-            colorId: selectedColor._id,
-            availableStock: selectedColor.stock,
+            message:
+              "Insufficient stock for selected color",
+            productId:
+              product._id,
+            colorId:
+              selectedColor._id,
+            availableStock:
+              selectedColor.stock,
           });
         }
 
-        selectedColor.stock -= item.quantity;
+        selectedColor.stock -=
+          item.quantity;
 
-        if (selectedColor.stock === 0) {
+        if (
+          selectedColor.stock === 0
+        ) {
           outOfStockProducts.push({
             id: product._id,
             name: product.name,
-            colorId: selectedColor._id,
-            colorName: selectedColor.name,
+            colorId:
+              selectedColor._id,
+            colorName:
+              selectedColor.name,
           });
-        } else if (selectedColor.stock <= 5) {
+        } else if (
+          selectedColor.stock <= 5
+        ) {
           lowStockProducts.push({
             id: product._id,
             name: product.name,
-            colorId: selectedColor._id,
-            colorName: selectedColor.name,
-            stock: selectedColor.stock,
+            colorId:
+              selectedColor._id,
+            colorName:
+              selectedColor.name,
+            stock:
+              selectedColor.stock,
           });
         }
-      } else {
-        if (product.stock < item.quantity) {
+      }
+
+      /* =========================
+         NORMAL PRODUCT
+      ========================= */
+
+      else {
+        if (
+          product.stock <
+          item.quantity
+        ) {
           await session.abortTransaction();
 
           return res.status(400).json({
-            message: "Insufficient product stock",
-            productId: product._id,
-            availableStock: product.stock,
+            message:
+              "Insufficient product stock",
+            productId:
+              product._id,
+            availableStock:
+              product.stock,
           });
         }
 
-        product.stock -= item.quantity;
+        product.stock -=
+          item.quantity;
 
         if (product.stock === 0) {
           outOfStockProducts.push({
@@ -223,7 +335,9 @@ export const checkout = async (req, res) => {
             colorId: null,
             colorName: null,
           });
-        } else if (product.stock <= 5) {
+        } else if (
+          product.stock <= 5
+        ) {
           lowStockProducts.push({
             id: product._id,
             name: product.name,
@@ -238,56 +352,96 @@ export const checkout = async (req, res) => {
         session,
       });
 
+      /*
+       * IMPORTANT:
+       * Price is always taken from DB.
+       * Never trust frontend price.
+       */
       const itemTotal =
-        product.price * item.quantity;
+        product.price *
+        item.quantity;
 
       subtotal += itemTotal;
 
       orderProducts.push({
         product: product._id,
+
         colorId: selectedColor
           ? selectedColor._id
           : null,
+
         colorName: selectedColor
           ? {
-              ar: selectedColor.name.ar,
-              en: selectedColor.name.en,
+              ar:
+                selectedColor.name.ar,
+              en:
+                selectedColor.name.en,
             }
           : {
               ar: "",
               en: "",
             },
-        colorHex: selectedColor
-          ? selectedColor.hex
-          : "",
-        quantity: item.quantity,
-        priceAtPurchase: product.price,
+
+        colorHex:
+          selectedColor
+            ? selectedColor.hex
+            : "",
+
+        quantity:
+          item.quantity,
+
+        priceAtPurchase:
+          product.price,
       });
     }
 
-    const shipping = subtotal >= 2000 ? 0 : 100;
+    /* =========================
+       SHIPPING
+    ========================= */
+
+    const shipping =
+      SHIPPING_COST;
+
+    /* =========================
+       DISCOUNT
+    ========================= */
 
     let discount = 0;
     let appliedCouponCode = null;
 
     if (
       couponCode &&
-      typeof couponCode === "string" &&
+      typeof couponCode ===
+        "string" &&
       couponCode.trim()
     ) {
-      const code = couponCode.trim().toUpperCase();
+      const code =
+        couponCode
+          .trim()
+          .toUpperCase();
 
+      /*
+       * Existing project coupon.
+       */
       if (code === "WELCOME10") {
-        discount = subtotal * 0.1;
-        appliedCouponCode = code;
+        discount =
+          subtotal * 0.1;
+
+        appliedCouponCode =
+          code;
       } else {
         await session.abortTransaction();
 
         return res.status(400).json({
-          message: "Invalid discount code",
+          message:
+            "Invalid discount code",
         });
       }
     }
+
+    /* =========================
+       TOTAL
+    ========================= */
 
     const totalPrice =
       subtotal +
@@ -298,67 +452,127 @@ export const checkout = async (req, res) => {
       await session.abortTransaction();
 
       return res.status(400).json({
-        message: "Invalid order total",
+        message:
+          "Invalid order total",
       });
     }
+
+    /* =========================
+       UNIQUE ORDER NUMBER
+    ========================= */
 
     let orderNumber;
     let orderNumberExists = true;
 
     while (orderNumberExists) {
-      orderNumber = Math.floor(
-        100000 + Math.random() * 900000
-      );
+      orderNumber =
+        Math.floor(
+          100000 +
+            Math.random() *
+              900000
+        );
 
-      const existingOrder = await Order.findOne({
-        orderNumber,
-      }).session(session);
+      const existingOrder =
+        await Order.findOne({
+          orderNumber,
+        }).session(session);
 
-      orderNumberExists = Boolean(existingOrder);
+      orderNumberExists =
+        Boolean(existingOrder);
     }
 
-    const [newOrder] = await Order.create(
-      [
-        {
-          user: userId,
-          orderNumber,
-          products: orderProducts,
-          subtotal,
-          shipping,
-          discount,
-          couponCode: appliedCouponCode,
-          totalPrice,
-          shippingAddress: {
-            firstName:
-              shippingAddress.firstName.trim(),
-            lastName:
-              shippingAddress.lastName.trim(),
-            phone:
-              shippingAddress.phone.trim(),
-            email:
-              shippingAddress.email
-                .trim()
-                .toLowerCase(),
-            address:
-              shippingAddress.address.trim(),
+    /* =========================
+       CREATE ORDER
+    ========================= */
+
+    const [newOrder] =
+      await Order.create(
+        [
+          {
+            /*
+             * Guest:
+             * null
+             *
+             * Registered:
+             * authenticated user id
+             */
+            user: userId,
+
+            orderNumber,
+
+            products:
+              orderProducts,
+
+            subtotal,
+
+            shipping,
+
+            discount,
+
+            couponCode:
+              appliedCouponCode,
+
+            totalPrice,
+
+            shippingAddress: {
+              firstName:
+                shippingAddress
+                  .firstName
+                  .trim(),
+
+              lastName:
+                shippingAddress
+                  .lastName
+                  .trim(),
+
+              phone:
+                shippingAddress
+                  .phone
+                  .trim(),
+
+              email:
+                shippingAddress
+                  .email
+                  .trim()
+                  .toLowerCase(),
+
+              address:
+                shippingAddress
+                  .address
+                  .trim(),
+            },
+
+            paymentMethod,
+
+            status:
+              "Pending",
           },
-          paymentMethod,
-          status: "Pending",
-        },
-      ],
-      {
-        session,
-      }
-    );
+        ],
+        {
+          session,
+        }
+      );
 
     await session.commitTransaction();
+
+    /* =========================
+       STOCK NOTIFICATIONS
+    ========================= */
 
     for (const product of outOfStockProducts) {
       await createNotification({
         type: "out_of_stock",
-        title: "Product Out of Stock",
-        message: `${product.name.en || product.name.ar} is now out of stock.`,
-        product: product.id,
+
+        title:
+          "Product Out of Stock",
+
+        message: `${
+          product.name.en ||
+          product.name.ar
+        } is now out of stock.`,
+
+        product:
+          product.id,
       });
     }
 
@@ -372,41 +586,89 @@ export const checkout = async (req, res) => {
       ) {
         await createNotification({
           type: "low_stock",
-          title: "Low Product Stock",
-          message: `${product.name.en || product.name.ar} has only ${product.stock} items left.`,
-          product: product.id,
+
+          title:
+            "Low Product Stock",
+
+          message: `${
+            product.name.en ||
+            product.name.ar
+          } has only ${
+            product.stock
+          } items left.`,
+
+          product:
+            product.id,
         });
       }
     }
 
+    /* =========================
+       NEW ORDER NOTIFICATION
+    ========================= */
+
     await createNotification({
       type: "new_order",
-      title: "New Order Received",
-      message: `New order #${newOrder.orderNumber} has been placed.`,
-      order: newOrder._id,
-      user: userId,
+
+      title:
+        "New Order Received",
+
+      message:
+        `New order #${newOrder.orderNumber} has been placed.`,
+
+      order:
+        newOrder._id,
+
+      /*
+       * Guest => null
+       * User  => ObjectId
+       */
+      user:
+        userId,
     });
+
+    /* =========================
+       POPULATE ORDER
+    ========================= */
 
     const populatedOrder =
-      await Order.findById(newOrder._id)
-        .populate(
-          "products.product",
-          "name slug price media"
-        );
+      await Order.findById(
+        newOrder._id
+      ).populate(
+        "products.product",
+        "name slug price media"
+      );
 
     return res.status(201).json({
-      message: "Order has been placed",
-      order: populatedOrder,
+      message:
+        "Order has been placed",
+
+      order:
+        populatedOrder,
+
       pricing: {
         subtotal,
+
         shipping,
+
         discount,
-        couponCode: appliedCouponCode,
-        total: totalPrice,
+
+        couponCode:
+          appliedCouponCode,
+
+        total:
+          totalPrice,
       },
+
+      customerType:
+        userId
+          ? "user"
+          : "guest",
     });
   } catch (error) {
-    if (session.inTransaction()) {
+    if (
+      session.inTransaction()
+    ) {
       await session.abortTransaction();
     }
 
@@ -415,14 +677,18 @@ export const checkout = async (req, res) => {
       error
     );
 
-    if (error.code === 11000) {
+    if (
+      error.code === 11000
+    ) {
       return res.status(409).json({
-        message: "Order number already exists",
+        message:
+          "Order number already exists",
       });
     }
 
     return res.status(500).json({
-      message: "Server error",
+      message:
+        "Server error",
     });
   } finally {
     await session.endSession();

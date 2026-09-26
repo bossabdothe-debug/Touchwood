@@ -1,0 +1,848 @@
+.page {
+  width: 100%;
+  min-height: 100vh;
+
+  background: #ffffff;
+  color: #183d2b;
+
+  overflow: hidden;
+}
+
+/* =========================================================
+   Breadcrumb
+========================================================= */
+
+.breadcrumb {
+  width: min(1240px, calc(100% - 48px));
+  height: 72px;
+
+  margin: 0 auto;
+
+  display: flex;
+  align-items: center;
+  gap: 9px;
+
+  color: #8a968f;
+
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.breadcrumb a {
+  color: #68786f;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.breadcrumb a:hover {
+  color: #315f2b;
+}
+
+.breadcrumb span:last-child {
+  color: #183d2b;
+}
+
+/* =========================================================
+   Hero
+========================================================= */
+
+.hero {
+  width: 100%;
+  min-height: 540px;
+
+  display: grid;
+  grid-template-columns: 47% 53%;
+
+  background: #183d2b;
+}
+
+.heroContent {
+  position: relative;
+  z-index: 2;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+  padding: 70px max(35px, calc((100vw - 1240px) / 2));
+
+  background:
+    radial-gradient(
+      circle at 0% 100%,
+      #315f2b 0,
+      transparent 40%
+    ),
+    #183d2b;
+}
+
+.eyebrow {
+  margin-bottom: 16px;
+
+  color: #ef8116;
+
+  font-size: 11px;
+  font-weight: 900;
+
+  letter-spacing: 0.18em;
+}
+
+.heroContent h1 {
+  max-width: 620px;
+
+  margin: 0;
+
+  color: #ffffff;
+
+  font-size: clamp(43px, 5vw, 70px);
+  line-height: 1.08;
+
+  font-weight: 800;
+
+  letter-spacing: -0.045em;
+}
+
+.orangeLine {
+  width: 43px;
+  height: 3px;
+
+  margin: 25px 0;
+
+  background: #ef8116;
+}
+
+.heroContent > p {
+  max-width: 570px;
+
+  margin: 0;
+
+  color: rgba(255, 255, 255, 0.78);
+
+  font-size: 16px;
+  line-height: 2;
+}
+
+/* Hero numbers */
+
+.heroInfo {
+  display: flex;
+  align-items: center;
+
+  margin-top: 38px;
+}
+
+.heroInfo > div:not(.heroInfoDivider) {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.heroInfo strong {
+  color: #ffffff;
+
+  font-size: 42px;
+  line-height: 1;
+
+  font-weight: 900;
+}
+
+.heroInfo span {
+  color: #efb26f;
+
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.heroInfoDivider {
+  width: 1px;
+  height: 43px;
+
+  margin: 0 28px;
+
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* =========================================================
+   SVG Illustration
+========================================================= */
+
+.heroIllustration {
+  position: relative;
+
+  min-height: 540px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background:
+    radial-gradient(
+      circle at 70% 45%,
+      #f1f6f2 0,
+      #e5eee7 42%,
+      #d6e4d9 100%
+    );
+
+  overflow: hidden;
+}
+
+.circleOne {
+  position: absolute;
+
+  width: 430px;
+  height: 430px;
+
+  right: -130px;
+  top: -150px;
+
+  border: 1px solid rgba(49, 95, 43, 0.12);
+
+  border-radius: 50%;
+}
+
+.circleTwo {
+  position: absolute;
+
+  width: 330px;
+  height: 330px;
+
+  left: -170px;
+  bottom: -180px;
+
+  border: 1px solid rgba(239, 129, 22, 0.2);
+
+  border-radius: 50%;
+}
+
+.truckSvg {
+  position: relative;
+  z-index: 2;
+
+  width: 90%;
+  max-width: 680px;
+  height: auto;
+
+  overflow: visible;
+}
+
+.deliveryBadge {
+  position: absolute;
+
+  right: 8%;
+  top: 12%;
+
+  z-index: 4;
+
+  display: flex;
+  align-items: center;
+  gap: 9px;
+
+  padding: 11px 16px;
+
+  background: #183d2b;
+  color: #ffffff;
+
+  border-radius: 30px;
+
+  box-shadow: 0 12px 30px rgba(24, 61, 43, 0.18);
+
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.deliveryBadge svg {
+  width: 18px;
+  height: 18px;
+
+  color: #ef8116;
+}
+
+/* =========================================================
+   Information
+========================================================= */
+
+.shippingInfo {
+  width: min(1240px, calc(100% - 48px));
+
+  margin: 0 auto;
+
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+
+  gap: 80px;
+
+  padding: 90px 0;
+}
+
+.infoIntro {
+  align-self: center;
+}
+
+.sectionLabel {
+  display: block;
+
+  margin-bottom: 14px;
+
+  color: #315f2b;
+
+  font-size: 13px;
+  font-weight: 900;
+
+  letter-spacing: 0.04em;
+}
+
+.infoIntro h2 {
+  margin: 0;
+
+  color: #183d2b;
+
+  font-size: clamp(35px, 4vw, 53px);
+  line-height: 1.1;
+
+  font-weight: 800;
+
+  letter-spacing: -0.045em;
+}
+
+.smallLine {
+  width: 43px;
+  height: 3px;
+
+  margin: 23px 0 25px;
+
+  background: #ef8116;
+}
+
+.infoIntro > p {
+  max-width: 520px;
+
+  margin: 0;
+
+  color: #69776f;
+
+  font-size: 15px;
+  line-height: 2;
+}
+
+/* Cards */
+
+.infoCards {
+  display: flex;
+  flex-direction: column;
+
+  gap: 0;
+
+  border-top: 1px solid #dce4de;
+}
+
+.infoCard {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+
+  gap: 20px;
+
+  padding: 25px 0;
+
+  border-bottom: 1px solid #dce4de;
+}
+
+.cardIcon {
+  width: 58px;
+  height: 58px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: #edf4ee;
+  color: #315f2b;
+
+  border-radius: 50%;
+}
+
+.cardIcon svg {
+  width: 26px;
+  height: 26px;
+
+  stroke-width: 1.7;
+}
+
+.infoCard span {
+  display: block;
+
+  margin-bottom: 4px;
+
+  color: #ef8116;
+
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.infoCard h3 {
+  margin: 0 0 6px;
+
+  color: #183d2b;
+
+  font-size: 17px;
+  font-weight: 800;
+}
+
+.infoCard p {
+  margin: 0;
+
+  color: #7b8780;
+
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+/* =========================================================
+   Cost
+========================================================= */
+
+.costSection {
+  width: 100%;
+
+  padding: 75px 24px;
+
+  background: #f3f7f4;
+}
+
+.costBox {
+  width: min(850px, 100%);
+
+  min-height: 190px;
+
+  margin: 0 auto;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: #ffffff;
+
+  border: 1px solid #dce5de;
+
+  box-shadow: 0 18px 45px rgba(24, 61, 43, 0.07);
+}
+
+.costIcon {
+  width: 75px;
+  height: 75px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  margin-inline-end: 45px;
+
+  background: #315f2b;
+  color: #ffffff;
+
+  border-radius: 50%;
+}
+
+.costIcon svg {
+  width: 34px;
+  height: 34px;
+}
+
+.costText {
+  text-align: center;
+}
+
+.costText > span {
+  display: block;
+
+  margin-bottom: 7px;
+
+  color: #7d8982;
+
+  font-size: 10px;
+  font-weight: 900;
+
+  letter-spacing: 0.08em;
+}
+
+.costText strong {
+  color: #183d2b;
+
+  font-size: 46px;
+  line-height: 1;
+
+  font-weight: 900;
+}
+
+.costText small {
+  margin-inline-start: 6px;
+
+  color: #315f2b;
+
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.costDivider {
+  width: 1px;
+  height: 75px;
+
+  margin: 0 55px;
+
+  background: #dce4de;
+}
+
+/* =========================================================
+   CTA
+========================================================= */
+
+.cta {
+  position: relative;
+
+  width: 100%;
+  min-height: 310px;
+
+  display: grid;
+  grid-template-columns: 150px 1fr;
+
+  align-items: center;
+
+  padding: 55px max(24px, calc((100% - 1050px) / 2));
+
+  background:
+    radial-gradient(
+      circle at 0% 100%,
+      #315f2b 0,
+      transparent 32%
+    ),
+    #183d2b;
+
+  overflow: hidden;
+}
+
+.ctaCircle {
+  position: absolute;
+
+  width: 500px;
+  height: 500px;
+
+  left: -190px;
+  bottom: -270px;
+
+  border: 1px solid rgba(255, 255, 255, 0.1);
+
+  border-radius: 50%;
+}
+
+.ctaLogo {
+  position: relative;
+  z-index: 2;
+
+  width: 105px;
+  height: 105px;
+
+  overflow: hidden;
+
+  border: 3px solid #ef8116;
+}
+
+.ctaLogo img {
+  width: 100%;
+  height: 100%;
+
+  object-fit: cover;
+}
+
+.ctaContent {
+  position: relative;
+  z-index: 2;
+
+  text-align: center;
+}
+
+.ctaContent > span {
+  display: block;
+
+  margin-bottom: 9px;
+
+  color: #efb26f;
+
+  font-size: 11px;
+  font-weight: 900;
+
+  letter-spacing: 0.2em;
+}
+
+.ctaContent h2 {
+  margin: 0;
+
+  color: #ffffff;
+
+  font-size: clamp(30px, 4vw, 48px);
+  line-height: 1.1;
+
+  font-weight: 800;
+
+  letter-spacing: -0.04em;
+}
+
+.ctaContent p {
+  margin: 13px 0 0;
+
+  color: rgba(255, 255, 255, 0.68);
+
+  font-size: 14px;
+}
+
+.ctaLine {
+  width: 38px;
+  height: 3px;
+
+  margin: 20px auto;
+
+  background: #ef8116;
+}
+
+.productsButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 11px;
+
+  min-height: 48px;
+
+  padding: 0 25px;
+
+  background: #ffffff;
+  color: #183d2b;
+
+  border-radius: 25px;
+
+  text-decoration: none;
+
+  font-size: 13px;
+  font-weight: 800;
+
+  transition: 0.2s ease;
+}
+
+.productsButton:hover {
+  background: #ef8116;
+  color: #ffffff;
+}
+
+.productsButton svg {
+  width: 17px;
+  height: 17px;
+}
+
+/* =========================================================
+   Tablet
+========================================================= */
+
+@media (max-width: 1000px) {
+  .hero {
+    grid-template-columns: 1fr;
+  }
+
+  .heroContent {
+    min-height: 440px;
+
+    padding: 65px 35px;
+  }
+
+  .heroIllustration {
+    min-height: 450px;
+  }
+
+  .shippingInfo {
+    grid-template-columns: 1fr;
+
+    gap: 55px;
+  }
+
+  .infoIntro {
+    max-width: 700px;
+  }
+
+  .costBox {
+    padding: 30px;
+  }
+}
+
+/* =========================================================
+   Mobile
+========================================================= */
+
+@media (max-width: 700px) {
+  .breadcrumb {
+    width: calc(100% - 32px);
+    height: 60px;
+
+    font-size: 12px;
+  }
+
+  .heroContent {
+    min-height: auto;
+
+    padding: 55px 20px 50px;
+  }
+
+  .heroContent h1 {
+    font-size: 40px;
+  }
+
+  .heroContent > p {
+    font-size: 14px;
+    line-height: 1.9;
+  }
+
+  .heroInfo {
+    margin-top: 30px;
+  }
+
+  .heroInfo strong {
+    font-size: 34px;
+  }
+
+  .heroInfoDivider {
+    margin: 0 18px;
+  }
+
+  .heroIllustration {
+    min-height: 330px;
+  }
+
+  .truckSvg {
+    width: 100%;
+  }
+
+  .deliveryBadge {
+    right: 18px;
+    top: 18px;
+
+    padding: 9px 12px;
+
+    font-size: 10px;
+  }
+
+  .shippingInfo {
+    width: calc(100% - 32px);
+
+    padding: 65px 0;
+  }
+
+  .infoIntro h2 {
+    font-size: 35px;
+  }
+
+  .infoIntro > p {
+    font-size: 14px;
+  }
+
+  .infoCard {
+    grid-template-columns: 55px 1fr;
+
+    gap: 15px;
+
+    padding: 21px 0;
+  }
+
+  .cardIcon {
+    width: 48px;
+    height: 48px;
+  }
+
+  .cardIcon svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .infoCard h3 {
+    font-size: 15px;
+  }
+
+  .infoCard p {
+    font-size: 12px;
+  }
+
+  .costSection {
+    padding: 55px 16px;
+  }
+
+  .costBox {
+    min-height: 230px;
+
+    flex-direction: column;
+
+    padding: 30px 20px;
+  }
+
+  .costIcon {
+    width: 62px;
+    height: 62px;
+
+    margin: 0 0 22px;
+  }
+
+  .costIcon svg {
+    width: 29px;
+    height: 29px;
+  }
+
+  .costText strong {
+    font-size: 39px;
+  }
+
+  .costDivider {
+    width: 75px;
+    height: 1px;
+
+    margin: 23px 0;
+  }
+
+  .cta {
+    min-height: 400px;
+
+    grid-template-columns: 1fr;
+
+    justify-items: center;
+
+    padding: 55px 20px;
+  }
+
+  .ctaLogo {
+    width: 90px;
+    height: 90px;
+  }
+
+  .ctaContent {
+    width: 100%;
+  }
+
+  .ctaContent h2 {
+    font-size: 32px;
+  }
+
+  .productsButton {
+    width: 100%;
+  }
+}
+
+@media (max-width: 420px) {
+  .heroContent h1,
+  .infoIntro h2,
+  .ctaContent h2 {
+    font-size: 31px;
+  }
+
+  .heroIllustration {
+    min-height: 290px;
+  }
+
+  .heroInfo strong {
+    font-size: 30px;
+  }
+
+  .heroInfo span {
+    font-size: 11px;
+  }
+}

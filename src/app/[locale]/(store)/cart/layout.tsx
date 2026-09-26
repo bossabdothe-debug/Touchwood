@@ -4,20 +4,14 @@ import Navbar from "@/components/layout/Navbar";
 import MobileBottomNavbar from "@/components/layout/MobileBottomNavbar";
 import MobileTopNavbar from "@/components/layout/MobileTopNavbar";
 import Footer from "@/components/layout/Footer";
-type WishlistLayoutProps = {
+
+type CartLayoutProps = {
   children: ReactNode;
 };
 
-export default function WishlistLayout({
-  children,
-}: WishlistLayoutProps) {
-  return (
-    <main className="wishlistLayout">
-      <Navbar></Navbar>
-<MobileTopNavbar></MobileTopNavbar>
-<MobileSearchNavbar></MobileSearchNavbar>
-      {children}
-      <MobileBottomNavbar></MobileBottomNavbar><Footer></Footer>
-    </main>
-  );
+export default function CartLayout({ children }: CartLayoutProps) {
+  return <main><Navbar></Navbar>
+    <MobileTopNavbar></MobileTopNavbar>
+   <MobileSearchNavbar></MobileSearchNavbar>
+    {children} <Footer></Footer> <MobileBottomNavbar></MobileBottomNavbar></main>;
 }

@@ -1,9 +1,9 @@
-
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import Link from "next/navigation";
 import { FiHeart, FiArrowLeft, FiArrowRight } from "react-icons/fi";
+import { useParams } from "next/navigation";
 
 import ProductCard from "@/components/products/ProductCard";
 import { getProducts } from "@/services/api";
@@ -214,7 +214,43 @@ export default function WishlistPage() {
       className={styles.page}
       dir={isArabic ? "rtl" : "ltr"}
     >
-      
+      {/* Breadcrumb */}
+      <nav
+        className={styles.breadcrumb}
+        aria-label={
+          isArabic
+            ? "مسار التنقل"
+            : "Breadcrumb"
+        }
+      >
+        <a href={`/${locale}`}>
+          {isArabic
+            ? "الرئيسية"
+            : "Home"}
+        </a>
+
+        <span
+          className={
+            styles.breadcrumbSeparator
+          }
+        >
+          /
+        </span>
+
+        <span>
+          {pageTitle}
+        </span>
+      </nav>
+
+      {/* Page Header */}
+      <section className={styles.header}>
+        <span className={styles.eyebrow}>
+          Touchwood
+        </span>
+
+        <h1>{pageTitle}</h1>
+
+      </section>
 
       {loading ? (
         <section className={styles.state}>

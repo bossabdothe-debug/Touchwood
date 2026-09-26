@@ -422,7 +422,7 @@ export default function Navbar() {
           </a>
 
           {/* السلة */}
-          <Link
+          <a
             href={`/${currentLocale}/cart`}
             className={styles.cart}
           >
@@ -446,7 +446,7 @@ export default function Navbar() {
             <span className={styles.cartIcon}>
               <FiShoppingCart />
             </span>
-          </Link>
+          </a>
         </div>
       </div>
 

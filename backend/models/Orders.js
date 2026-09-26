@@ -45,23 +45,34 @@ const orderProductSchema = new Schema(
       min: 0,
     },
   },
-  { _id: false }
+  {
+    _id: false,
+  }
 );
 
 const ordersSchema = new Schema(
   {
+    /*
+     * User ID:
+     *
+     * - Registered user => ObjectId
+     * - Guest => null
+     */
     user: {
       type: Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      default: null,
+      required: false,
     },
 
     products: {
       type: [orderProductSchema],
       required: true,
       validate: {
-        validator: (products) => products.length > 0,
-        message: "Order must contain at least one product",
+        validator: (products) =>
+          products.length > 0,
+        message:
+          "Order must contain at least one product",
       },
     },
 
@@ -75,7 +86,7 @@ const ordersSchema = new Schema(
       type: Number,
       required: true,
       min: 0,
-      default: 0,
+      default: 250,
     },
 
     discount: {
@@ -131,6 +142,12 @@ const ordersSchema = new Schema(
       },
     },
 
+    /*
+     * Human-readable unique order number.
+     *
+     * Example:
+     * 384921
+     */
     orderNumber: {
       type: Number,
       required: true,
@@ -164,11 +181,30 @@ const ordersSchema = new Schema(
   }
 );
 
-ordersSchema.index({ user: 1, createdAt: -1 });
-ordersSchema.index({ orderNumber: 1 }, { unique: true });
-ordersSchema.index({ status: 1, createdAt: -1 });
+ordersSchema.index({
+  user: 1,
+  createdAt: -1,
+});
+
+ordersSchema.index(
+  {
+    orderNumber: 1,
+  },
+  {
+    unique: true,
+  }
+);
+
+ordersSchema.index({
+  status: 1,
+  createdAt: -1,
+});
 
 const Orders =
-  mongoose.models.Order || mongoose.model("Order", ordersSchema);
+  mongoose.models.Order ||
+  mongoose.model(
+    "Order",
+    ordersSchema
+  );
 
 export default Orders;
