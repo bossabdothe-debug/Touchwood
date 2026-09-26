@@ -59,7 +59,10 @@ const validationMessage = (error) => {
    DASHBOARD
 ========================================================= */
 
-export const getDashboardStats = async (req, res) => {
+export const getDashboardStats = async (
+  req,
+  res
+) => {
   try {
     const [
       totalOrders,
@@ -67,8 +70,8 @@ export const getDashboardStats = async (req, res) => {
       totalProducts,
       deliveredSalesResult,
       recentOrders,
-      salesOverview,
       statusCountsResult,
+      salesOverview,
     ] = await Promise.all([
       Order.countDocuments(),
 
@@ -95,10 +98,30 @@ export const getDashboardStats = async (req, res) => {
       ]),
 
       Order.find()
-        .populate("user", "name email phone")
-        .sort({ createdAt: -1 })
+        .sort({
+          createdAt: -1,
+        })
         .limit(5)
+        .populate(
+          "user",
+          "name email phone role"
+        )
+        .populate(
+          "products.product",
+          "name price images"
+        )
         .lean(),
+
+      Order.aggregate([
+        {
+          $group: {
+            _id: "$status",
+            count: {
+              $sum: 1,
+            },
+          },
+        },
+      ]),
 
       Order.aggregate([
         {
@@ -107,19 +130,12 @@ export const getDashboardStats = async (req, res) => {
           },
         },
         {
-          $project: {
-            totalPrice: 1,
-            orderDate: "$createdAt",
-          },
-        },
-        {
           $group: {
             _id: {
-              year: {
-                $year: "$orderDate",
-              },
-              month: {
-                $month: "$orderDate",
+              $dateToString: {
+                format: "%Y-%m-%d",
+                date: "$createdAt",
+                timezone: "Africa/Cairo",
               },
             },
             sales: {
@@ -132,28 +148,11 @@ export const getDashboardStats = async (req, res) => {
         },
         {
           $sort: {
-            "_id.year": 1,
-            "_id.month": 1,
-          },
-        },
-      ]),
-
-      Order.aggregate([
-        {
-          $group: {
-            _id: "$status",
-            count: {
-              $sum: 1,
-            },
+            _id: 1,
           },
         },
       ]),
     ]);
-
-    const totalSales =
-      deliveredSalesResult.length > 0
-        ? deliveredSalesResult[0].totalSales
-        : 0;
 
     const orderStatusStats = {
       Pending: 0,
@@ -163,44 +162,53 @@ export const getDashboardStats = async (req, res) => {
       Canceled: 0,
     };
 
-    statusCountsResult.forEach((item) => {
-      if (
-        Object.prototype.hasOwnProperty.call(
-          orderStatusStats,
-          item._id
-        )
-      ) {
-        orderStatusStats[item._id] = item.count;
+    statusCountsResult.forEach(
+      (item) => {
+        if (
+          Object.prototype.hasOwnProperty.call(
+            orderStatusStats,
+            item._id
+          )
+        ) {
+          orderStatusStats[item._id] =
+            item.count;
+        }
       }
-    });
-
-    const formattedSalesOverview = salesOverview.map(
-      (item) => ({
-        year: item._id.year,
-        month: item._id.month,
-        sales: item.sales,
-        orders: item.orders,
-      })
     );
 
     return res.status(200).json({
-      totalSales,
+      totalSales:
+        deliveredSalesResult[0]
+          ?.totalSales || 0,
+
       totalOrders,
+
       totalUsers,
+
       totalProducts,
+
       recentOrders,
-      salesOverview: formattedSalesOverview,
+
+      salesOverview:
+        salesOverview.map(
+          (item) => ({
+            date: item._id,
+            sales: item.sales,
+            orders: item.orders,
+          })
+        ),
+
       orderStatusStats,
     });
   } catch (error) {
     console.error(
-      "Admin dashboard error:",
+      "Get dashboard stats error:",
       error
     );
 
     return res.status(500).json({
       message:
-        "Server error, please try again later",
+        "حدث خطأ في الخادم، يرجى المحاولة مرة أخرى لاحقًا",
     });
   }
 };

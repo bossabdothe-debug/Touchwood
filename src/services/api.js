@@ -380,8 +380,15 @@ export const removeFavorite = async (
 
 /* لوحة الأدمن */
 
-export const getAdminDashboard = async (token) => {
-  return apiRequest("/admin/dashboard", { token });
+export const getAdminDashboard = async (
+  token
+) => {
+  return apiRequest(
+    "/admin/dashboard",
+    {
+      token,
+    }
+  );
 };
 
 export const getAdminOrders = async (token) => {

@@ -147,9 +147,7 @@ export default function AdminSettingsPage() {
     loadSettings();
   }, []);
 
-  const handleSubmit = async (
-    event: React.FormEvent
-  ) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
     setMessage("");
@@ -260,14 +258,52 @@ export default function AdminSettingsPage() {
         )
       );
     } catch (requestError) {
-      setError(
+      const serverMessage =
         requestError instanceof Error
           ? requestError.message
-          : text(
-              locale,
-              "تعذر حفظ التغييرات",
-              "Unable to save changes"
-            )
+          : "";
+
+      const errorTranslations: Record<
+        string,
+        string
+      > = {
+        "Unauthorized":
+          "غير مصرح لك بتنفيذ هذا الإجراء",
+
+        "User not found":
+          "المستخدم غير موجود",
+
+        "Name is required":
+          "الاسم مطلوب",
+
+        "Name must be between 2 and 50 characters":
+          "الاسم يجب أن يكون بين حرفين و50 حرفًا",
+
+        "Invalid email address":
+          "البريد الإلكتروني غير صالح",
+
+        "This email is already in use":
+          "هذا البريد الإلكتروني مستخدم بالفعل",
+
+        "Current password is required":
+          "كلمة السر الحالية مطلوبة",
+
+        "Current password is incorrect":
+          "كلمة السر الحالية غير صحيحة",
+
+        "New password must be at least 8 characters":
+          "كلمة السر الجديدة يجب أن تكون 8 أحرف على الأقل",
+
+        "Settings updated successfully":
+          "تم تحديث الإعدادات بنجاح",
+
+        "Server error, please try again later":
+          "حدث خطأ في الخادم، يرجى المحاولة مرة أخرى لاحقًا",
+      };
+
+      setError(
+        errorTranslations[serverMessage] ||
+          "حدث خطأ أثناء حفظ الإعدادات"
       );
     } finally {
       setSaving(false);
