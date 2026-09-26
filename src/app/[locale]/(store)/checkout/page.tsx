@@ -97,6 +97,310 @@ function formatPrice(
   ).format(value);
 }
 
+function getErrorMessage(
+  error: unknown,
+  isArabic: boolean
+) {
+  const code =
+    error &&
+    typeof error === "object" &&
+    "code" in error
+      ? String(
+          (error as { code?: unknown })
+            .code || ""
+        )
+      : "";
+
+  const message =
+    error instanceof Error
+      ? error.message
+      : "";
+
+  if (code === "INVALID_FIRST_NAME") {
+    return isArabic
+      ? "الاسم الأول يجب أن يحتوي على حروف فقط."
+      : "First name must contain letters only.";
+  }
+
+  if (code === "INVALID_LAST_NAME") {
+    return isArabic
+      ? "اسم العائلة يجب أن يحتوي على حروف فقط."
+      : "Last name must contain letters only.";
+  }
+
+  if (code === "INVALID_PHONE") {
+    return isArabic
+      ? "رقم الهاتف يجب أن يتكون من 11 رقمًا فقط."
+      : "Phone number must contain exactly 11 digits.";
+  }
+
+  if (code === "INVALID_EMAIL") {
+    return isArabic
+      ? "يرجى إدخال بريد إلكتروني صحيح."
+      : "Please enter a valid email address.";
+  }
+
+  if (code === "INVALID_ADDRESS") {
+    return isArabic
+      ? "يرجى إدخال عنوان صحيح من 5 إلى 300 حرف."
+      : "Please enter a valid address between 5 and 300 characters.";
+  }
+
+  if (message) {
+    if (
+      message ===
+      "Phone number must contain exactly 11 digits"
+    ) {
+      return isArabic
+        ? "رقم الهاتف يجب أن يتكون من 11 رقمًا فقط."
+        : message;
+    }
+
+    if (
+      message ===
+      "Invalid email address"
+    ) {
+      return isArabic
+        ? "يرجى إدخال بريد إلكتروني صحيح."
+        : message;
+    }
+
+    if (
+      message ===
+      "First name contains invalid characters"
+    ) {
+      return isArabic
+        ? "الاسم الأول يحتوي على أحرف أو رموز غير صحيحة."
+        : message;
+    }
+
+    if (
+      message ===
+      "Last name contains invalid characters"
+    ) {
+      return isArabic
+        ? "اسم العائلة يحتوي على أحرف أو رموز غير صحيحة."
+        : message;
+    }
+
+    if (
+      message ===
+      "Invalid address"
+    ) {
+      return isArabic
+        ? "العنوان المدخل غير صحيح."
+        : message;
+    }
+
+    if (
+      message ===
+      "First name is required"
+    ) {
+      return isArabic
+        ? "الاسم الأول مطلوب."
+        : message;
+    }
+
+    if (
+      message ===
+      "Last name is required"
+    ) {
+      return isArabic
+        ? "اسم العائلة مطلوب."
+        : message;
+    }
+
+    if (
+      message ===
+      "Phone number is required"
+    ) {
+      return isArabic
+        ? "رقم الهاتف مطلوب."
+        : message;
+    }
+
+    if (
+      message ===
+      "Email is required"
+    ) {
+      return isArabic
+        ? "البريد الإلكتروني مطلوب."
+        : message;
+    }
+
+    if (
+      message ===
+      "Address is required"
+    ) {
+      return isArabic
+        ? "العنوان مطلوب."
+        : message;
+    }
+
+    if (
+      message ===
+      "Your cart is empty"
+    ) {
+      return isArabic
+        ? "السلة فارغة."
+        : message;
+    }
+
+    if (
+      message ===
+      "Invalid payment method"
+    ) {
+      return isArabic
+        ? "طريقة الدفع غير صحيحة."
+        : message;
+    }
+
+    if (
+      message ===
+      "One of the products is no longer available"
+    ) {
+      return isArabic
+        ? "أحد المنتجات لم يعد متاحًا."
+        : message;
+    }
+
+    if (
+      message ===
+      "Insufficient product stock"
+    ) {
+      return isArabic
+        ? "الكمية المطلوبة غير متوفرة في المخزون."
+        : message;
+    }
+
+    if (
+      message ===
+      "Insufficient stock for selected color"
+    ) {
+      return isArabic
+        ? "الكمية المطلوبة من اللون المحدد غير متوفرة."
+        : message;
+    }
+
+    if (
+      message ===
+      "The selected color is no longer available"
+    ) {
+      return isArabic
+        ? "اللون المحدد لم يعد متاحًا."
+        : message;
+    }
+
+    if (
+      message ===
+      "Invalid discount code"
+    ) {
+      return isArabic
+        ? "كود الخصم غير صحيح."
+        : message;
+    }
+  }
+
+  return isArabic
+    ? "حدث خطأ أثناء إنشاء الطلب. يرجى المحاولة مرة أخرى."
+    : "Something went wrong while creating the order. Please try again.";
+}
+
+function validateForm(
+  formData: {
+    firstName: string;
+    lastName: string;
+    phone: string;
+    email: string;
+    address: string;
+    paymentMethod: string;
+  },
+  isArabic: boolean
+) {
+  const firstName =
+    formData.firstName.trim();
+
+  const lastName =
+    formData.lastName.trim();
+
+  const phone =
+    formData.phone.trim();
+
+  const email =
+    formData.email.trim();
+
+  const address =
+    formData.address.trim();
+
+  if (!firstName) {
+    return isArabic
+      ? "الاسم الأول مطلوب."
+      : "First name is required.";
+  }
+
+  if (
+    firstName.length < 2 ||
+    firstName.length > 50 ||
+    !/^[\p{L}\s'-]+$/u.test(
+      firstName
+    )
+  ) {
+    return isArabic
+      ? "الاسم الأول يجب أن يحتوي على حروف فقط."
+      : "First name must contain letters only.";
+  }
+
+  if (!lastName) {
+    return isArabic
+      ? "اسم العائلة مطلوب."
+      : "Last name is required.";
+  }
+
+  if (
+    lastName.length < 2 ||
+    lastName.length > 50 ||
+    !/^[\p{L}\s'-]+$/u.test(
+      lastName
+    )
+  ) {
+    return isArabic
+      ? "اسم العائلة يجب أن يحتوي على حروف فقط."
+      : "Last name must contain letters only.";
+  }
+
+  if (!/^\d{11}$/.test(phone)) {
+    return isArabic
+      ? "رقم الهاتف يجب أن يتكون من 11 رقمًا فقط."
+      : "Phone number must contain exactly 11 digits.";
+  }
+
+  if (
+    email.length < 5 ||
+    email.length > 150 ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+      email
+    )
+  ) {
+    return isArabic
+      ? "يرجى إدخال بريد إلكتروني صحيح."
+      : "Please enter a valid email address.";
+  }
+
+  if (
+    address.length < 5 ||
+    address.length > 300 ||
+    /[\u0000-\u001F\u007F]/.test(
+      address
+    )
+  ) {
+    return isArabic
+      ? "يرجى إدخال عنوان صحيح من 5 إلى 300 حرف."
+      : "Please enter a valid address between 5 and 300 characters.";
+  }
+
+  return "";
+}
+
 export default function CheckoutPage() {
   const params = useParams();
   const router = useRouter();
@@ -121,6 +425,15 @@ export default function CheckoutPage() {
 
   const [error, setError] =
     useState("");
+
+  const [fieldErrors, setFieldErrors] =
+    useState({
+      firstName: "",
+      lastName: "",
+      phone: "",
+      email: "",
+      address: "",
+    });
 
   const [formData, setFormData] =
     useState({
@@ -168,7 +481,9 @@ export default function CheckoutPage() {
 
   const handleChange = (
     event: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+      HTMLInputElement |
+        HTMLSelectElement |
+        HTMLTextAreaElement
     >
   ) => {
     const {
@@ -181,9 +496,17 @@ export default function CheckoutPage() {
       [name]: value,
     }));
 
-    if (error) {
-      setError("");
-    }
+    setError("");
+
+    setFieldErrors((prev) => ({
+      ...prev,
+      [name]:
+        name in prev
+          ? ""
+          : prev[
+              name as keyof typeof prev
+            ],
+    }));
   };
 
   const handleSubmit = async (
@@ -205,8 +528,28 @@ export default function CheckoutPage() {
       return;
     }
 
+    const validationError =
+      validateForm(
+        formData,
+        isArabic
+      );
+
+    if (validationError) {
+      setError(validationError);
+
+      return;
+    }
+
     setLoading(true);
     setError("");
+
+    setFieldErrors({
+      firstName: "",
+      lastName: "",
+      phone: "",
+      email: "",
+      address: "",
+    });
 
     try {
       const token =
@@ -271,10 +614,6 @@ export default function CheckoutPage() {
         );
       }
 
-      /*
-       * Clear local cart only AFTER
-       * successful backend order creation.
-       */
       clearCart();
 
       router.replace(
@@ -289,11 +628,10 @@ export default function CheckoutPage() {
       );
 
       setError(
-        err instanceof Error
-          ? err.message
-          : isArabic
-          ? "حدث خطأ أثناء إنشاء الطلب."
-          : "Something went wrong while creating the order."
+        getErrorMessage(
+          err,
+          isArabic
+        )
       );
     } finally {
       setLoading(false);
@@ -379,7 +717,9 @@ export default function CheckoutPage() {
           className={styles.header}
         >
           <span
-            className={styles.eyebrow}
+            className={
+              styles.eyebrow
+            }
           >
             TOUCHWOOD
           </span>
@@ -402,10 +742,14 @@ export default function CheckoutPage() {
           onSubmit={handleSubmit}
         >
           <section
-            className={styles.formCard}
+            className={
+              styles.formCard
+            }
           >
             <div
-              className={styles.cardHeader}
+              className={
+                styles.cardHeader
+              }
             >
               <div>
                 <span
@@ -425,7 +769,9 @@ export default function CheckoutPage() {
             </div>
 
             <div
-              className={styles.fieldsGrid}
+              className={
+                styles.fieldsGrid
+              }
             >
               <label
                 className={
@@ -499,6 +845,8 @@ export default function CheckoutPage() {
                 <input
                   name="phone"
                   type="tel"
+                  inputMode="numeric"
+                  maxLength={11}
                   value={
                     formData.phone
                   }
@@ -507,11 +855,7 @@ export default function CheckoutPage() {
                   }
                   required
                   autoComplete="tel"
-                  placeholder={
-                    isArabic
-                      ? "01xxxxxxxxx"
-                      : "01xxxxxxxxx"
-                  }
+                  placeholder="01xxxxxxxxx"
                 />
               </label>
 
@@ -537,11 +881,7 @@ export default function CheckoutPage() {
                   }
                   required
                   autoComplete="email"
-                  placeholder={
-                    isArabic
-                      ? "example@email.com"
-                      : "example@email.com"
-                  }
+                  placeholder="example@email.com"
                 />
               </label>
 
@@ -564,6 +904,7 @@ export default function CheckoutPage() {
                   }
                   required
                   rows={4}
+                  maxLength={300}
                   autoComplete="street-address"
                   placeholder={
                     isArabic
@@ -693,8 +1034,8 @@ export default function CheckoutPage() {
               }
             >
               {isArabic
-                ? "سيتم التحقق من الأسعار والمخزون على الخادم قبل إنشاء الطلب."
-                : "Prices and stock are verified on the server before your order is created."}
+                ? "سيتم التحقق من البيانات والأسعار والمخزون على الخادم قبل إنشاء الطلب."
+                : "Your information, prices, and stock are verified on the server before your order is created."}
             </p>
           </section>
 

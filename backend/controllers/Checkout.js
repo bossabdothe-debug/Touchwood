@@ -10,6 +10,49 @@ const PAYMENT_METHODS = [
   "Vodafone Cash",
 ];
 
+const normalizeText = (value) =>
+  String(value || "").trim();
+
+const isValidName = (value) => {
+  const name = normalizeText(value);
+
+  return (
+    name.length >= 2 &&
+    name.length <= 50 &&
+    /^[\p{L}\s'-]+$/u.test(name)
+  );
+};
+
+const isValidEmail = (value) => {
+  const email = normalizeText(value);
+
+  return (
+    email.length >= 5 &&
+    email.length <= 150 &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+      email
+    )
+  );
+};
+
+const isValidPhone = (value) => {
+  const phone = normalizeText(value);
+
+  return /^\d{11}$/.test(phone);
+};
+
+const isValidAddress = (value) => {
+  const address = normalizeText(value);
+
+  return (
+    address.length >= 5 &&
+    address.length <= 300 &&
+    !/[\u0000-\u001F\u007F]/.test(
+      address
+    )
+  );
+};
+
 export const checkout = async (
   req,
   res
@@ -18,13 +61,6 @@ export const checkout = async (
     await mongoose.startSession();
 
   try {
-    /*
-     * Registered user:
-     * req.user exists because of optionalAuthMiddleware
-     *
-     * Guest:
-     * req.user === null
-     */
     const userId =
       req.user?.id || null;
 
@@ -46,10 +82,6 @@ export const checkout = async (
       couponCode,
     } = req.body;
 
-    /* =========================
-       PRODUCTS
-    ========================= */
-
     if (
       !Array.isArray(products) ||
       products.length === 0
@@ -58,10 +90,6 @@ export const checkout = async (
         message: "Your cart is empty",
       });
     }
-
-    /* =========================
-       SHIPPING ADDRESS
-    ========================= */
 
     if (
       !shippingAddress ||
@@ -73,30 +101,110 @@ export const checkout = async (
       });
     }
 
-    const requiredAddressFields = [
-      "firstName",
-      "lastName",
-      "phone",
-      "email",
-      "address",
-    ];
+    const firstName =
+      normalizeText(
+        shippingAddress.firstName
+      );
 
-    for (const field of requiredAddressFields) {
-      if (
-        !shippingAddress[field] ||
-        String(
-          shippingAddress[field]
-        ).trim() === ""
-      ) {
-        return res.status(400).json({
-          message: `${field} is required`,
-        });
-      }
+    const lastName =
+      normalizeText(
+        shippingAddress.lastName
+      );
+
+    const phone =
+      normalizeText(
+        shippingAddress.phone
+      );
+
+    const email =
+      normalizeText(
+        shippingAddress.email
+      ).toLowerCase();
+
+    const address =
+      normalizeText(
+        shippingAddress.address
+      );
+
+    if (!firstName) {
+      return res.status(400).json({
+        message:
+          "First name is required",
+        code: "INVALID_FIRST_NAME",
+      });
     }
 
-    /* =========================
-       PAYMENT
-    ========================= */
+    if (!isValidName(firstName)) {
+      return res.status(400).json({
+        message:
+          "First name contains invalid characters",
+        code: "INVALID_FIRST_NAME",
+      });
+    }
+
+    if (!lastName) {
+      return res.status(400).json({
+        message:
+          "Last name is required",
+        code: "INVALID_LAST_NAME",
+      });
+    }
+
+    if (!isValidName(lastName)) {
+      return res.status(400).json({
+        message:
+          "Last name contains invalid characters",
+        code: "INVALID_LAST_NAME",
+      });
+    }
+
+    if (!phone) {
+      return res.status(400).json({
+        message:
+          "Phone number is required",
+        code: "INVALID_PHONE",
+      });
+    }
+
+    if (!isValidPhone(phone)) {
+      return res.status(400).json({
+        message:
+          "Phone number must contain exactly 11 digits",
+        code: "INVALID_PHONE",
+      });
+    }
+
+    if (!email) {
+      return res.status(400).json({
+        message:
+          "Email is required",
+        code: "INVALID_EMAIL",
+      });
+    }
+
+    if (!isValidEmail(email)) {
+      return res.status(400).json({
+        message:
+          "Invalid email address",
+        code: "INVALID_EMAIL",
+      });
+    }
+
+    if (!address) {
+      return res.status(400).json({
+        message:
+          "Address is required",
+        code: "INVALID_ADDRESS",
+      });
+    }
+
+    if (!isValidAddress(address)) {
+      return res.status(400).json({
+        message:
+          "Invalid address",
+        code: "INVALID_ADDRESS",
+      });
+    }
 
     if (
       !PAYMENT_METHODS.includes(
@@ -108,10 +216,6 @@ export const checkout = async (
           "Invalid payment method",
       });
     }
-
-    /* =========================
-       NORMALIZE CART
-    ========================= */
 
     const normalizedItems = [];
 
@@ -171,9 +275,6 @@ export const checkout = async (
       });
     }
 
-    /*
-     * Merge duplicate product/color items.
-     */
     const uniqueItems = new Map();
 
     for (const item of normalizedItems) {
@@ -197,10 +298,6 @@ export const checkout = async (
         uniqueItems.values()
       );
 
-    /* =========================
-       TRANSACTION
-    ========================= */
-
     session.startTransaction();
 
     const orderProducts = [];
@@ -208,10 +305,6 @@ export const checkout = async (
     const lowStockProducts = [];
 
     let subtotal = 0;
-
-    /* =========================
-       VALIDATE PRODUCTS + STOCK
-    ========================= */
 
     for (const item of cartItems) {
       const product =
@@ -232,10 +325,6 @@ export const checkout = async (
       }
 
       let selectedColor = null;
-
-      /* =========================
-         COLOR PRODUCT
-      ========================= */
 
       if (item.colorId) {
         selectedColor =
@@ -302,13 +391,7 @@ export const checkout = async (
               selectedColor.stock,
           });
         }
-      }
-
-      /* =========================
-         NORMAL PRODUCT
-      ========================= */
-
-      else {
+      } else {
         if (
           product.stock <
           item.quantity
@@ -352,11 +435,6 @@ export const checkout = async (
         session,
       });
 
-      /*
-       * IMPORTANT:
-       * Price is always taken from DB.
-       * Never trust frontend price.
-       */
       const itemTotal =
         product.price *
         item.quantity;
@@ -395,16 +473,8 @@ export const checkout = async (
       });
     }
 
-    /* =========================
-       SHIPPING
-    ========================= */
-
     const shipping =
       SHIPPING_COST;
-
-    /* =========================
-       DISCOUNT
-    ========================= */
 
     let discount = 0;
     let appliedCouponCode = null;
@@ -420,9 +490,6 @@ export const checkout = async (
           .trim()
           .toUpperCase();
 
-      /*
-       * Existing project coupon.
-       */
       if (code === "WELCOME10") {
         discount =
           subtotal * 0.1;
@@ -439,10 +506,6 @@ export const checkout = async (
       }
     }
 
-    /* =========================
-       TOTAL
-    ========================= */
-
     const totalPrice =
       subtotal +
       shipping -
@@ -456,10 +519,6 @@ export const checkout = async (
           "Invalid order total",
       });
     }
-
-    /* =========================
-       UNIQUE ORDER NUMBER
-    ========================= */
 
     let orderNumber;
     let orderNumberExists = true;
@@ -481,21 +540,10 @@ export const checkout = async (
         Boolean(existingOrder);
     }
 
-    /* =========================
-       CREATE ORDER
-    ========================= */
-
     const [newOrder] =
       await Order.create(
         [
           {
-            /*
-             * Guest:
-             * null
-             *
-             * Registered:
-             * authenticated user id
-             */
             user: userId,
 
             orderNumber,
@@ -515,31 +563,15 @@ export const checkout = async (
             totalPrice,
 
             shippingAddress: {
-              firstName:
-                shippingAddress
-                  .firstName
-                  .trim(),
+              firstName,
 
-              lastName:
-                shippingAddress
-                  .lastName
-                  .trim(),
+              lastName,
 
-              phone:
-                shippingAddress
-                  .phone
-                  .trim(),
+              phone,
 
-              email:
-                shippingAddress
-                  .email
-                  .trim()
-                  .toLowerCase(),
+              email,
 
-              address:
-                shippingAddress
-                  .address
-                  .trim(),
+              address,
             },
 
             paymentMethod,
@@ -554,10 +586,6 @@ export const checkout = async (
       );
 
     await session.commitTransaction();
-
-    /* =========================
-       STOCK NOTIFICATIONS
-    ========================= */
 
     for (const product of outOfStockProducts) {
       await createNotification({
@@ -603,10 +631,6 @@ export const checkout = async (
       }
     }
 
-    /* =========================
-       NEW ORDER NOTIFICATION
-    ========================= */
-
     await createNotification({
       type: "new_order",
 
@@ -619,17 +643,9 @@ export const checkout = async (
       order:
         newOrder._id,
 
-      /*
-       * Guest => null
-       * User  => ObjectId
-       */
       user:
         userId,
     });
-
-    /* =========================
-       POPULATE ORDER
-    ========================= */
 
     const populatedOrder =
       await Order.findById(
