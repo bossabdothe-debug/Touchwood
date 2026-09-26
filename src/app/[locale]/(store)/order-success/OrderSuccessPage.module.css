@@ -1,0 +1,153 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 35px 18px;
+  background:
+    radial-gradient(
+      circle at 15% 10%,
+      rgba(49, 95, 43, 0.12),
+      transparent 28%
+    ),
+    #f5f7f3;
+}
+
+.card {
+  width: min(620px, 100%);
+  padding: 45px 35px;
+  border: 1px solid #dce4de;
+  border-radius: 28px;
+  background: #fff;
+  box-shadow: 0 25px 65px rgba(24, 61, 43, 0.1);
+  text-align: center;
+}
+
+.logoMark {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.logoMark img {
+  width: 170px;
+  height: 65px;
+  object-fit: contain;
+}
+
+.successIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 17px;
+  border-radius: 50%;
+  background: #183d2b;
+  color: #fff;
+  font-size: 34px;
+  font-weight: 800;
+  box-shadow: 0 12px 30px rgba(24, 61, 43, 0.2);
+}
+
+.eyebrow {
+  color: #ef8116;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 2px;
+}
+
+.card h1 {
+  margin: 10px 0 13px;
+  color: #183d2b;
+  font-size: clamp(27px, 5vw, 39px);
+  line-height: 1.2;
+}
+
+.description {
+  margin: 0 auto;
+  max-width: 500px;
+  color: #69776f;
+  font-size: 14px;
+  line-height: 1.9;
+}
+
+.orderNumberBox {
+  margin: 28px auto 0;
+  padding: 20px;
+  border: 1px solid #dce4de;
+  border-radius: 18px;
+  background: #f6f9f5;
+}
+
+.orderNumberBox span {
+  display: block;
+  margin-bottom: 7px;
+  color: #69776f;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.orderNumberBox strong {
+  color: #ef8116;
+  font-size: 35px;
+  letter-spacing: 4px;
+}
+
+.note {
+  margin: 13px 0 0;
+  color: #8b958e;
+  font-size: 11px;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.primaryButton,
+.secondaryButton {
+  display: flex;
+  min-height: 49px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 13px;
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+  transition: transform 0.2s ease;
+}
+
+.primaryButton {
+  background: #183d2b;
+  color: #fff;
+}
+
+.secondaryButton {
+  border: 1px solid #dce4de;
+  color: #315f2b;
+  background: #fff;
+}
+
+.primaryButton:hover,
+.secondaryButton:hover {
+  transform: translateY(-2px);
+}
+
+@media (max-width: 520px) {
+  .card {
+    padding: 32px 20px;
+    border-radius: 21px;
+  }
+
+  .actions {
+    grid-template-columns: 1fr;
+  }
+
+  .orderNumberBox strong {
+    font-size: 28px;
+  }
+}

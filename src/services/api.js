@@ -10,22 +10,68 @@ const apiRequest = async (
     body,
   } = {}
 ) => {
-  const response = await fetch(`${API_URL}${path}`, {
-    method,
-    headers: {
-      ...(body !== undefined
-        ? { "Content-Type": "application/json" }
-        : {}),
-      ...(token
-        ? { Authorization: `Bearer ${token}` }
-        : {}),
-    },
-    ...(body !== undefined
-      ? { body: JSON.stringify(body) }
-      : {}),
-  });
+  const response = await fetch(
+    `${API_URL}${path}`,
+    {
+      method,
 
-  const data = await response.json().catch(() => ({}));
+      headers: {
+        ...(body !== undefined
+          ? {
+              "Content-Type":
+                "application/json",
+            }
+          : {}),
+
+        ...(token
+          ? {
+              Authorization: `Bearer ${token}`,
+            }
+          : {}),
+      },
+
+      ...(body !== undefined
+        ? {
+            body: JSON.stringify(body),
+          }
+        : {}),
+    }
+  );
+
+  const data =
+    await response
+      .json()
+      .catch(() => ({}));
+
+  /*
+   * IMPORTANT:
+   *
+   * Only trigger session-expired
+   * when this request actually used
+   * an authentication token.
+   *
+   * This prevents normal login errors
+   * such as "Invalid email or password"
+   * from opening the expiration popup.
+   */
+  if (
+    response.status === 401 &&
+    token &&
+    typeof window !==
+      "undefined"
+  ) {
+    window.dispatchEvent(
+      new CustomEvent(
+        "touchwood-session-expired",
+        {
+          detail: {
+            reason:
+              "unauthorized",
+          },
+        }
+      )
+    );
+  }
 
   if (!response.ok) {
     throw new Error(

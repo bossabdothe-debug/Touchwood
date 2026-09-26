@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
 
+import AuthSessionManager from "@/components/auth/AuthSessionManager";
+
 const locales = ["ar", "en"];
 
 export function generateStaticParams() {
@@ -13,16 +15,28 @@ export default async function LocaleLayout({
   params,
 }: Readonly<{
   children: React.ReactNode;
-  params: Promise<{ locale: string }>;
+  params: Promise<{
+    locale: string;
+  }>;
 }>) {
-  const { locale } = await params;
+  const { locale } =
+    await params;
 
   if (!locales.includes(locale)) {
     notFound();
   }
 
   return (
-    <div lang={locale} dir={locale === "ar" ? "rtl" : "ltr"}>
+    <div
+      lang={locale}
+      dir={
+        locale === "ar"
+          ? "rtl"
+          : "ltr"
+      }
+    >
+      <AuthSessionManager />
+
       {children}
     </div>
   );

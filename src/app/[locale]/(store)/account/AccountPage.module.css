@@ -1,0 +1,284 @@
+.page {
+  min-height: 100vh;
+  padding: 42px 20px 90px;
+  background:
+    radial-gradient(
+      circle at 85% 5%,
+      rgba(239, 129, 22, 0.08),
+      transparent 25%
+    ),
+    #f7f8f5;
+}
+
+.container {
+  width: min(1050px, 100%);
+  margin: 0 auto;
+}
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 32px;
+  color: #8a8a8a;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.breadcrumb a {
+  color: #777;
+  text-decoration: none;
+}
+
+.breadcrumb a:hover {
+  color: #ef8116;
+}
+
+.breadcrumb strong {
+  color: #315f2b;
+}
+
+.header {
+  margin-bottom: 30px;
+}
+
+.eyebrow {
+  color: #ef8116;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 2px;
+}
+
+.header h1 {
+  margin: 9px 0 10px;
+  color: #183d2b;
+  font-size: clamp(30px, 5vw, 44px);
+}
+
+.header p {
+  margin: 0;
+  color: #69776f;
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.ordersList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.orderCard {
+  padding: 23px;
+  border: 1px solid #dce4de;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 12px 35px rgba(24, 61, 43, 0.06);
+}
+
+.orderTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #edf1ed;
+}
+
+.orderLabel {
+  display: block;
+  margin-bottom: 4px;
+  color: #8a958e;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.orderNumber {
+  color: #183d2b;
+  font-size: 22px;
+  letter-spacing: 1px;
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 13px;
+  border-radius: 20px;
+  background: #edf4ec;
+  color: #315f2b;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.statusCanceled {
+  background: #fff0ed;
+  color: #b34c36;
+}
+
+.statusDelivered {
+  background: #e8f5e8;
+  color: #267236;
+}
+
+.statusOutforDelivery {
+  background: #fff5e9;
+  color: #b5681c;
+}
+
+.orderBody {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  padding: 20px 0;
+}
+
+.orderBody > div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.orderBody span {
+  color: #8a958e;
+  font-size: 11px;
+}
+
+.orderBody strong {
+  overflow: hidden;
+  color: #315f2b;
+  font-size: 13px;
+  line-height: 1.5;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detailsButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  border-radius: 12px;
+  background: #183d2b;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: none;
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.detailsButton:hover {
+  background: #315f2b;
+  transform: translateY(-1px);
+}
+
+.empty {
+  padding: 65px 25px;
+  border: 1px solid #dce4de;
+  border-radius: 22px;
+  background: #fff;
+  text-align: center;
+}
+
+.emptyIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 65px;
+  height: 65px;
+  margin: 0 auto 18px;
+  border-radius: 18px;
+  background: #183d2b;
+  color: #fff;
+  font-size: 25px;
+  font-weight: 800;
+}
+
+.empty h2 {
+  margin: 0;
+  color: #183d2b;
+  font-size: 23px;
+}
+
+.empty p {
+  margin: 10px 0 22px;
+  color: #69776f;
+  font-size: 13px;
+}
+
+.primaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  padding: 0 20px;
+  border-radius: 12px;
+  background: #ef8116;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.loading {
+  min-height: 55vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 14px;
+  color: #69776f;
+}
+
+.spinner {
+  width: 38px;
+  height: 38px;
+  border: 3px solid rgba(49, 95, 43, 0.14);
+  border-top-color: #ef8116;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.error {
+  padding: 18px;
+  border: 1px solid #f0b9a8;
+  border-radius: 14px;
+  background: #fff5f1;
+  color: #a33e23;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 700px) {
+  .page {
+    padding: 28px 13px 70px;
+  }
+
+  .orderTop {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .orderBody {
+    grid-template-columns: 1fr;
+    gap: 13px;
+  }
+
+  .orderBody strong {
+    white-space: normal;
+  }
+
+  .orderCard {
+    padding: 18px;
+    border-radius: 17px;
+  }
+}

@@ -67,7 +67,7 @@ export default function LoginPage() {
 const isAdmin = data.user?.role === "admin";
 
 router.replace(
-  isAdmin ? `/${locale}/admin` : `/${locale}/shop`
+  isAdmin ? `/${locale}/admin` : `/${locale}/account`
 );    } catch (error) {
       console.error("Login error:", error);
 

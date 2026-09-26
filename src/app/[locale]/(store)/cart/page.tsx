@@ -489,14 +489,14 @@ export default function CartPage() {
                   </strong>
                 </div>
 
-                <button
-                  type="button"
-                  className={styles.checkoutButton}
-                >
-                  {isArabic
-                    ? "المتابعة إلى الدفع"
-                    : "Proceed to Checkout"}
-                </button>
+                <a
+  href={`/${locale}/checkout`}
+  className={styles.checkoutButton}
+>
+  {isArabic
+    ? "المتابعة إلى إتمام الطلب"
+    : "Proceed to Checkout"}
+</a>
 
                 <Link
                   href={`/${locale}/shop`}

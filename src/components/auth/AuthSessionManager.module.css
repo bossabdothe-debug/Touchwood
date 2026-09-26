@@ -1,0 +1,223 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 20px;
+
+  background: rgba(24, 61, 43, 0.58);
+
+  backdrop-filter: blur(7px);
+  -webkit-backdrop-filter: blur(7px);
+
+  animation: overlayEnter 0.25s ease both;
+}
+
+.popup {
+  position: relative;
+
+  width: min(470px, 100%);
+
+  padding: 36px 30px 30px;
+
+  border: 1px solid #dce4de;
+  border-radius: 25px;
+
+  background: #ffffff;
+
+  box-shadow:
+    0 30px 90px rgba(0, 0, 0, 0.2);
+
+  text-align: center;
+
+  animation: popupEnter 0.35s ease both;
+}
+
+.closeButton {
+  position: absolute;
+  top: 13px;
+  right: 14px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 35px;
+  height: 35px;
+
+  padding: 0;
+
+  border: 0;
+  border-radius: 50%;
+
+  background: #f4f6f3;
+  color: #69776f;
+
+  cursor: pointer;
+
+  font-size: 25px;
+  font-weight: 400;
+  line-height: 1;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.closeButton:hover {
+  background: #183d2b;
+  color: #ffffff;
+
+  transform: rotate(90deg);
+}
+
+.icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 68px;
+  height: 68px;
+
+  margin: 0 auto 17px;
+
+  border-radius: 50%;
+
+  background: #fff3e8;
+  color: #ef8116;
+
+  font-size: 32px;
+  font-weight: 900;
+
+  box-shadow:
+    inset 0 0 0 8px #fff9f4;
+}
+
+.eyebrow {
+  color: #ef8116;
+
+  font-size: 10px;
+  font-weight: 900;
+
+  letter-spacing: 2px;
+}
+
+.popup h2 {
+  margin: 9px 0 12px;
+
+  color: #183d2b;
+
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.popup p {
+  margin: 0 auto;
+
+  max-width: 390px;
+
+  color: #69776f;
+
+  font-size: 13px;
+  line-height: 1.9;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+
+  gap: 10px;
+
+  margin-top: 25px;
+}
+
+.loginButton,
+.laterButton {
+  width: 100%;
+  min-height: 49px;
+
+  border-radius: 13px;
+
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.loginButton {
+  border: 0;
+
+  background: #183d2b;
+  color: #ffffff;
+}
+
+.loginButton:hover {
+  background: #315f2b;
+  transform: translateY(-1px);
+}
+
+.laterButton {
+  border: 1px solid #dce4de;
+
+  background: #ffffff;
+  color: #69776f;
+}
+
+.laterButton:hover {
+  border-color: #315f2b;
+  color: #315f2b;
+}
+
+@keyframes overlayEnter {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes popupEnter {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (max-width: 520px) {
+  .overlay {
+    padding: 14px;
+  }
+
+  .popup {
+    padding: 34px 20px 22px;
+
+    border-radius: 20px;
+  }
+
+  .popup h2 {
+    font-size: 21px;
+  }
+
+  .popup p {
+    font-size: 12px;
+  }
+}
