@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import a from "next/a";
 import { useParams, useSearchParams } from "next/navigation";
 
 import styles from "./OrderSuccessPage.module.css";
@@ -111,7 +111,7 @@ export default function OrderSuccessPage() {
             styles.actions
           }
         >
-          <Link
+          <a
             href={`/${locale}`}
             className={
               styles.primaryButton
@@ -120,9 +120,9 @@ export default function OrderSuccessPage() {
             {isArabic
               ? "العودة للرئيسية"
               : "Back Home"}
-          </Link>
+          </a>
 
-          <Link
+          <a
             href={`/${locale}/shop`}
             className={
               styles.secondaryButton
@@ -131,7 +131,7 @@ export default function OrderSuccessPage() {
             {isArabic
               ? "متابعة التسوق"
               : "Continue Shopping"}
-          </Link>
+          </a>
         </div>
       </div>
     </main>

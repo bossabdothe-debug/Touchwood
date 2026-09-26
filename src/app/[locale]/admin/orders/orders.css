@@ -186,24 +186,73 @@
 
 .orders-status {
   min-width: 145px;
-  border: 1px solid #dce3da;
   border-radius: 8px;
   padding: 8px 10px;
-  background: #f8faf7;
-  color: #405d3a;
   font: inherit;
   font-weight: 700;
   outline: none;
+  cursor: pointer;
+  transition: 0.2s ease;
 }
 
-.orders-status-canceled {
-  color: #9a3d3d;
-  background: #fff5f5;
+.orders-status-pending {
+  color: #8a5a00;
+  background: #fff7df;
+  border: 1px solid #efd58a;
+}
+
+.orders-status-pending:hover,
+.orders-status-pending:focus {
+  background: #ffefbd;
+  border-color: #e5c76c;
+}
+
+.orders-status-processing {
+  color: #245c91;
+  background: #eaf4ff;
+  border: 1px solid #b9d7f3;
+}
+
+.orders-status-processing:hover,
+.orders-status-processing:focus {
+  background: #dcecff;
+  border-color: #9fc7ec;
+}
+
+.orders-status-out-for-delivery {
+  color: #68469a;
+  background: #f2eaff;
+  border: 1px solid #d3bced;
+}
+
+.orders-status-out-for-delivery:hover,
+.orders-status-out-for-delivery:focus {
+  background: #e8dcff;
+  border-color: #c2a5e5;
 }
 
 .orders-status-delivered {
-  color: #346b4b;
-  background: #f1faf4;
+  color: #2f6b3c;
+  background: #e8f5eb;
+  border: 1px solid #b7dbbe;
+}
+
+.orders-status-delivered:hover,
+.orders-status-delivered:focus {
+  background: #d9eedf;
+  border-color: #9fcaa8;
+}
+
+.orders-status-canceled {
+  color: #a33f3f;
+  background: #fff0f0;
+  border: 1px solid #edbcbc;
+}
+
+.orders-status-canceled:hover,
+.orders-status-canceled:focus {
+  background: #ffe1e1;
+  border-color: #e3a2a2;
 }
 
 .orders-actions {
@@ -221,6 +270,7 @@
   color: #52604f;
   border-radius: 8px;
   cursor: pointer;
+  transition: 0.2s ease;
 }
 
 .orders-actions button:hover {

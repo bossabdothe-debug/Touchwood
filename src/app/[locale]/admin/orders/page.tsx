@@ -175,6 +175,54 @@ const statusLabel = (
   );
 };
 
+const getEgyptDateKey = (
+  dateString: string
+) => {
+  const date = new Date(dateString);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  const formatter = new Intl.DateTimeFormat(
+    "en-CA",
+    {
+      timeZone: "Africa/Cairo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }
+  );
+
+  return formatter.format(date);
+};
+
+const formatOrderDate = (
+  dateString: string,
+  locale: Locale
+) => {
+  const date = new Date(dateString);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat(
+    locale === "ar"
+      ? "ar-EG"
+      : "en-EG",
+    {
+      timeZone: "Africa/Cairo",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: locale === "ar",
+    }
+  ).format(date);
+};
+
 const getInitialForm = (): {
   user: string;
   products: FormProduct[];
@@ -263,113 +311,134 @@ export default function OrdersPage() {
   const [error, setError] =
     useState("");
 
-  const loadData =
-    async () => {
-      if (!token) return;
+  const loadData = async () => {
+    if (!token) return;
 
-      setLoading(true);
-      setError("");
+    setLoading(true);
+    setError("");
 
-      try {
-        const [
-          ordersResponse,
-          productsResponse,
-          usersResponse,
-        ] = await Promise.all([
-          getAdminOrders(token),
-          getAdminProducts(token),
-          getAdminUsers(token),
-        ]);
+    try {
+      const [
+        ordersResponse,
+        productsResponse,
+        usersResponse,
+      ] = await Promise.all([
+        getAdminOrders(token),
+        getAdminProducts(token),
+        getAdminUsers(token),
+      ]);
 
-        setOrders(
-          ordersResponse?.orders || []
-        );
+      setOrders(
+        ordersResponse?.orders || []
+      );
 
-        setProducts(
-          productsResponse?.products ||
-            []
-        );
+      setProducts(
+        productsResponse?.products || []
+      );
 
-        setUsers(
-          usersResponse?.users || []
-        );
-      } catch (requestError) {
-        setError(
-          requestError instanceof Error
-            ? requestError.message
-            : text(
-                locale,
-                "تعذر تحميل البيانات",
-                "Unable to load data"
-              )
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
+      setUsers(
+        usersResponse?.users || []
+      );
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : text(
+              locale,
+              "تعذر تحميل البيانات",
+              "Unable to load data"
+            )
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     loadData();
   }, []);
 
-  const filteredOrders =
-    useMemo(() => {
-      const query =
-        search.trim().toLowerCase();
+  const filteredOrders = useMemo(() => {
+    const query =
+      search.trim().toLowerCase();
 
-      return orders.filter(
-        (order) => {
-          const phone =
-            order.shippingAddress?.phone ||
-            order.user?.phone ||
-            "";
+    return orders.filter(
+      (order) => {
+        const phone =
+          order.shippingAddress?.phone ||
+          order.user?.phone ||
+          "";
 
-          const number =
-            String(
-              order.orderNumber || ""
-            );
-
-          const matchesSearch =
-            !query ||
-            number
-              .toLowerCase()
-              .includes(query) ||
-            phone
-              .toLowerCase()
-              .includes(query);
-
-          const matchesStatus =
-            statusFilter === "all" ||
-            order.status ===
-              statusFilter;
-
-          const orderDate =
-            order.createdAt
-              ? new Date(
-                  order.createdAt
-                )
-                  .toISOString()
-                  .slice(0, 10)
-              : "";
-
-          const matchesDate =
-            !dateFilter ||
-            orderDate ===
-              dateFilter;
-
-          return (
-            matchesSearch &&
-            matchesStatus &&
-            matchesDate
+        const number =
+          String(
+            order.orderNumber || ""
           );
-        }
-      );
-    }, [
-      orders,
-      search,
-      statusFilter,
-      dateFilter,
-    ]);
+
+        const customerName =
+          `${order.shippingAddress?.firstName || ""} ${order.shippingAddress?.lastName || ""}`
+            .trim()
+            .toLowerCase();
+
+        const email =
+          order.shippingAddress?.email ||
+          order.user?.email ||
+          "";
+
+        const address =
+          order.shippingAddress?.address ||
+          "";
+
+        const paymentMethod =
+          order.paymentMethod || "";
+
+        const matchesSearch =
+          !query ||
+          number
+            .toLowerCase()
+            .includes(query) ||
+          phone
+            .toLowerCase()
+            .includes(query) ||
+          customerName.includes(query) ||
+          email
+            .toLowerCase()
+            .includes(query) ||
+          address
+            .toLowerCase()
+            .includes(query) ||
+          paymentMethod
+            .toLowerCase()
+            .includes(query);
+
+        const matchesStatus =
+          statusFilter === "all" ||
+          order.status ===
+            statusFilter;
+
+        const orderDate =
+          order.createdAt
+            ? getEgyptDateKey(
+                order.createdAt
+              )
+            : "";
+
+        const matchesDate =
+          !dateFilter ||
+          orderDate === dateFilter;
+
+        return (
+          matchesSearch &&
+          matchesStatus &&
+          matchesDate
+        );
+      }
+    );
+  }, [
+    orders,
+    search,
+    statusFilter,
+    dateFilter,
+  ]);
 
   const resetForm = () => {
     setForm(
@@ -461,7 +530,7 @@ export default function OrdersPage() {
                   ...item,
                   [key]: value,
                   ...(key ===
-                    "product"
+                  "product"
                     ? {
                         colorId:
                           "",
@@ -500,106 +569,105 @@ export default function OrdersPage() {
     }));
   };
 
-  const handleSave =
-    async (
-      event: React.FormEvent
-    ) => {
-      event.preventDefault();
+  const handleSave = async (
+    event: React.FormEvent
+  ) => {
+    event.preventDefault();
 
-      if (!token) return;
+    if (!token) return;
 
-      setSaving(true);
-      setError("");
+    setSaving(true);
+    setError("");
 
-      try {
-        const payload = {
-          user:
-            form.user || null,
-          products:
-            form.products.map(
-              (item) => ({
-                product:
-                  item.product,
-                colorId:
-                  item.colorId || null,
-                quantity:
-                  Number(
-                    item.quantity
-                  ),
-              })
-            ),
-          shippingAddress: {
-            firstName:
-              form.firstName,
-            lastName:
-              form.lastName,
-            phone:
-              form.phone,
-            email:
-              form.email,
-            address:
-              form.address,
-          },
-          paymentMethod:
-            form.paymentMethod,
-          shipping:
-            Number(form.shipping),
-          discount:
-            Number(form.discount),
-          status:
-            form.status,
-        };
+    try {
+      const payload = {
+        user:
+          form.user || null,
+        products:
+          form.products.map(
+            (item) => ({
+              product:
+                item.product,
+              colorId:
+                item.colorId || null,
+              quantity:
+                Number(
+                  item.quantity
+                ),
+            })
+          ),
+        shippingAddress: {
+          firstName:
+            form.firstName,
+          lastName:
+            form.lastName,
+          phone:
+            form.phone,
+          email:
+            form.email,
+          address:
+            form.address,
+        },
+        paymentMethod:
+          form.paymentMethod,
+        shipping:
+          Number(form.shipping),
+        discount:
+          Number(form.discount),
+        status:
+          form.status,
+      };
 
-        const response =
-          editingOrder
-            ? await updateAdminOrder(
-                token,
-                editingOrder._id,
-                payload
-              )
-            : await createAdminOrder(
-                token,
-                payload
-              );
+      const response =
+        editingOrder
+          ? await updateAdminOrder(
+              token,
+              editingOrder._id,
+              payload
+            )
+          : await createAdminOrder(
+              token,
+              payload
+            );
 
-        const savedOrder =
-          response?.order;
+      const savedOrder =
+        response?.order;
 
-        if (editingOrder) {
-          setOrders(
-            (current) =>
-              current.map(
-                (order) =>
-                  order._id ===
-                  editingOrder._id
-                    ? savedOrder
-                    : order
-              )
-          );
-        } else if (savedOrder) {
-          setOrders(
-            (current) => [
-              savedOrder,
-              ...current,
-            ]
-          );
-        }
-
-        closeEditor();
-      } catch (requestError) {
-        setError(
-          requestError instanceof Error
-            ? requestError.message
-            : text(
-                locale,
-                "تعذر حفظ الطلب",
-                "Unable to save order"
-              )
+      if (editingOrder) {
+        setOrders(
+          (current) =>
+            current.map(
+              (order) =>
+                order._id ===
+                editingOrder._id
+                  ? savedOrder
+                  : order
+            )
         );
-      } finally {
-        setSaving(false);
+      } else if (savedOrder) {
+        setOrders(
+          (current) => [
+            savedOrder,
+            ...current,
+          ]
+        );
       }
-    };
+
+      closeEditor();
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : text(
+              locale,
+              "تعذر حفظ الطلب",
+              "Unable to save order"
+            )
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handleStatusChange =
     async (
@@ -796,15 +864,24 @@ export default function OrdersPage() {
             )}
           </select>
 
-          <input
-            type="date"
-            value={dateFilter}
-            onChange={(event) =>
-              setDateFilter(
-                event.target.value
-              )
-            }
-          />
+          <div className="orders-date-filter">
+            <input
+              type="date"
+              value={dateFilter}
+              onChange={(event) =>
+                setDateFilter(
+                  event.target.value
+                )
+              }
+              lang="ar-EG"
+              dir="rtl"
+              aria-label={text(
+                locale,
+                "البحث بالتاريخ",
+                "Search by date"
+              )}
+            />
+          </div>
 
           <button
             type="button"
@@ -993,22 +1070,10 @@ export default function OrdersPage() {
                           }
                         </td>
 
-                        <td>
-                          {new Date(
-                            order.createdAt
-                          ).toLocaleString(
-                            locale ===
-                              "ar"
-                              ? "ar-EG"
-                              : "en-EG",
-                            {
-                              year: "numeric",
-                              month: "short",
-                              day: "numeric",
-                              hour: "2-digit",
-                              minute:
-                                "2-digit",
-                            }
+                        <td dir="ltr">
+                          {formatOrderDate(
+                            order.createdAt,
+                            locale
                           )}
                         </td>
 
@@ -1484,7 +1549,9 @@ export default function OrdersPage() {
 
                 <select
                   value={form.user}
-                  onChange={(event) =>
+                  onChange={(
+                    event
+                  ) =>
                     setForm(
                       (current) => ({
                         ...current,

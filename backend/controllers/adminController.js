@@ -1933,6 +1933,7 @@ export const updateAdminOrderStatus =
    USERS
 ========================================================= */
 
+
 export const getAdminUsers = async (
   req,
   res
@@ -1940,7 +1941,7 @@ export const getAdminUsers = async (
   try {
     const users = await User.find()
       .select(
-        "name email phone role"
+        "name email phone role createdAt"
       )
       .sort({ createdAt: -1 })
       .lean();
@@ -1960,3 +1961,4 @@ export const getAdminUsers = async (
     });
   }
 };
+
