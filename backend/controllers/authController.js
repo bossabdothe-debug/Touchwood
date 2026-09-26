@@ -371,7 +371,6 @@ const user = await User.findById(userId).select("+password");
     message: "Current password is incorrect",
   });
 }
-
     const hashedPassword = await bcrypt.hash(
       newPassword,
       12

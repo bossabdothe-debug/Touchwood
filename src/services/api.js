@@ -78,11 +78,13 @@ if (
 }
 
   if (!response.ok) {
-    throw new Error(
-      data.message ||
-        data.error ||
-        "حدث خطأ أثناء الاتصال بالخادم"
-    );
+   const error = new Error(
+  data?.message || "Request failed"
+);
+
+error.code = data?.code;
+
+throw error;
   }
 
   return data;
@@ -197,9 +199,13 @@ export const uploadImageToR2 = async (
   });
 
   if (!response.ok) {
-    throw new Error(
-      "Failed to upload image to storage"
-    );
+   const error = new Error(
+  data?.message || "Request failed"
+);
+
+error.code = data?.code;
+
+throw error;
   }
 };
 

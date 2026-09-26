@@ -141,6 +141,12 @@ const getOrderStatus = (
         "ملغي",
         "Canceled"
       );
+      case "Unauthorized":
+      return text(
+        locale,
+        "هعخسغب",
+        "Canceled"
+      );
 
     default:
       return (
@@ -697,16 +703,31 @@ const [loggingOut, setLoggingOut] = useState(false);
       )
     );
   } catch (requestError) {
+  if (
+    requestError instanceof Error &&
+    (requestError as Error & {
+      code?: string;
+    }).code === "CURRENT_PASSWORD_INVALID"
+  ) {
+    setError(
+      text(
+        locale,
+        "كلمة المرور الحالية غير صحيحة",
+        "The current password is incorrect"
+      )
+    );
+  } else {
     setError(
       requestError instanceof Error
         ? requestError.message
         : text(
             locale,
-            "كلمة السر الحالية غير صحيحة أو تعذر تغيير كلمة السر",
-            "The current password is incorrect or the password could not be changed"
+            "تعذر تغيير كلمة السر",
+            "Unable to change your password"
           )
     );
-  } finally {
+  }
+} finally {
     setPasswordSaving(false);
   }
 };
