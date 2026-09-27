@@ -789,4 +789,173 @@
   .dashboard-chart-bars {
     gap: 8px;
   }
+}.dashboard-period-filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.dashboard-period-filter button {
+  height: 36px;
+  padding: 0 13px;
+  border: 1px solid #e7e7e7;
+  background: #fff;
+  color: #777;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.dashboard-period-filter button:hover {
+  border-color: #cfcfcf;
+  color: #222;
+}
+
+.dashboard-period-filter button.active {
+  background: #111;
+  border-color: #111;
+  color: #fff;
+}
+
+.dashboard-date-filter {
+  height: 36px;
+  min-width: 142px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 10px;
+  border: 1px solid #e7e7e7;
+  background: #fff;
+  border-radius: 8px;
+  color: #777;
+}
+
+.dashboard-date-filter svg {
+  flex: 0 0 auto;
+}
+
+.dashboard-date-filter input {
+  width: 100%;
+  min-width: 0;
+  height: 34px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #222;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  direction: ltr;
+  text-align: center;
+}
+
+.dashboard-date-filter input::placeholder {
+  color: #aaa;
+  opacity: 1;
+}
+
+.dashboard-date-filter:focus-within {
+  border-color: #222;
+}
+
+.dashboard-date-clear {
+  width: 36px;
+  height: 36px;
+  padding: 0 !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e7e7e7 !important;
+  background: #fff !important;
+  color: #777 !important;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.dashboard-date-clear:hover {
+  border-color: #d2d2d2 !important;
+  background: #f7f7f7 !important;
+  color: #111 !important;
+}
+
+.dashboard-selected-date {
+  margin-top: 18px;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid #ececec;
+  background: #fafafa;
+  border-radius: 8px;
+  color: #777;
+  font-size: 12px;
+}
+
+.dashboard-selected-date svg {
+  flex: 0 0 auto;
+}
+
+.dashboard-selected-date strong {
+  color: #222;
+  font-weight: 600;
+}
+
+@media (max-width: 1100px) {
+  .dashboard-card-header {
+    gap: 16px;
+  }
+
+  .dashboard-period-filter {
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 760px) {
+  .dashboard-card-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dashboard-period-filter {
+    justify-content: flex-start;
+  }
+
+  .dashboard-period-filter button {
+    flex: 1;
+    min-width: 70px;
+  }
+
+  .dashboard-date-filter {
+    flex: 1 1 150px;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-period-filter {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .dashboard-period-filter button {
+    width: 100%;
+  }
+
+  .dashboard-date-filter {
+    width: 100%;
+    min-width: 0;
+    grid-column: 1 / -1;
+  }
+
+  .dashboard-date-clear {
+    width: 100%;
+  }
 }

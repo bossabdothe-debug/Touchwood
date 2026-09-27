@@ -126,7 +126,10 @@ export const getDashboardStats = async (
       Order.aggregate([
         {
           $match: {
-            status: "Delivered",
+            createdAt: {
+              $exists: true,
+              $ne: null,
+            },
           },
         },
         {
@@ -139,7 +142,23 @@ export const getDashboardStats = async (
               },
             },
             sales: {
-              $sum: "$totalPrice",
+              $sum: {
+                $cond: [
+                  {
+                    $eq: [
+                      "$status",
+                      "Delivered",
+                    ],
+                  },
+                  {
+                    $ifNull: [
+                      "$totalPrice",
+                      0,
+                    ],
+                  },
+                  0,
+                ],
+              },
             },
             orders: {
               $sum: 1,

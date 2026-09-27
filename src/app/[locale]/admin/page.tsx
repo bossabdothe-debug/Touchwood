@@ -7,7 +7,6 @@ import {
 } from "react";
 import { useParams } from "next/navigation";
 import {
-  BarChart3,
   Box,
   CalendarDays,
   CheckCircle2,
@@ -27,6 +26,16 @@ import {
 import "./dashboard.css";
 
 type Locale = "ar" | "en";
+
+type LocalizedValue =
+  | string
+  | number
+  | null
+  | undefined
+  | {
+      ar?: string | number | null;
+      en?: string | number | null;
+    };
 
 type SalesOverview = {
   date: string;
@@ -52,12 +61,12 @@ type DashboardStats = {
 
 type OrderProduct = {
   _id?: string;
-  name?: string;
+  name?: LocalizedValue;
   quantity?: number;
   price?: number;
   product?: {
     _id?: string;
-    name?: string;
+    name?: LocalizedValue;
     price?: number;
     images?: string[];
   };
@@ -65,26 +74,31 @@ type OrderProduct = {
 
 type OrderUser = {
   _id?: string;
-  name?: string;
-  email?: string;
-  phone?: string;
-  role?: string;
+  name?: LocalizedValue;
+  email?: LocalizedValue;
+  phone?: LocalizedValue;
+  role?: LocalizedValue;
+};
+
+type ShippingAddress = {
+  name?: LocalizedValue;
+  firstName?: LocalizedValue;
+  lastName?: LocalizedValue;
+  phone?: LocalizedValue;
+  email?: LocalizedValue;
+  address?: LocalizedValue;
+  city?: LocalizedValue;
 };
 
 type Order = {
   _id: string;
-  orderNumber?: string;
-  status?: string;
+  orderNumber?: LocalizedValue;
+  status?: LocalizedValue;
   totalPrice?: number;
   total?: number;
   createdAt: string;
-  paymentMethod?: string;
-  shippingAddress?: {
-    name?: string;
-    phone?: string;
-    address?: string;
-    city?: string;
-  };
+  paymentMethod?: LocalizedValue;
+  shippingAddress?: ShippingAddress;
   user?: OrderUser | null;
   products?: OrderProduct[];
   items?: OrderProduct[];
@@ -95,6 +109,42 @@ const text = (
   ar: string,
   en: string
 ) => (locale === "ar" ? ar : en);
+
+const displayValue = (
+  value: LocalizedValue,
+  locale: Locale,
+  fallback = "—"
+): string => {
+  if (
+    value === null ||
+    value === undefined ||
+    value === ""
+  ) {
+    return fallback;
+  }
+
+  if (
+    typeof value === "object" &&
+    !Array.isArray(value)
+  ) {
+    const localized =
+      value[locale] ??
+      value.en ??
+      value.ar;
+
+    if (
+      localized === null ||
+      localized === undefined ||
+      localized === ""
+    ) {
+      return fallback;
+    }
+
+    return String(localized);
+  }
+
+  return String(value);
+};
 
 const formatCurrency = (
   value: number,
@@ -185,9 +235,19 @@ const getEgyptDateKey = (
 };
 
 const getStatusLabel = (
-  status: string | undefined,
+  status: LocalizedValue,
   locale: Locale
 ) => {
+  if (
+    status &&
+    typeof status === "object"
+  ) {
+    return displayValue(
+      status,
+      locale
+    );
+  }
+
   const labels: Record<
     string,
     [string, string]
@@ -215,9 +275,9 @@ const getStatusLabel = (
   };
 
   const current =
-    labels[status || ""] || [
-      status || "—",
-      status || "—",
+    labels[String(status || "")] || [
+      String(status || "—"),
+      String(status || "—"),
     ];
 
   return locale === "ar"
@@ -226,9 +286,19 @@ const getStatusLabel = (
 };
 
 const getPaymentLabel = (
-  paymentMethod: string | undefined,
+  paymentMethod: LocalizedValue,
   locale: Locale
 ) => {
+  if (
+    paymentMethod &&
+    typeof paymentMethod === "object"
+  ) {
+    return displayValue(
+      paymentMethod,
+      locale
+    );
+  }
+
   const labels: Record<
     string,
     [string, string]
@@ -244,9 +314,11 @@ const getPaymentLabel = (
   };
 
   const current =
-    labels[paymentMethod || ""] || [
-      paymentMethod || "—",
-      paymentMethod || "—",
+    labels[
+      String(paymentMethod || "")
+    ] || [
+      String(paymentMethod || "—"),
+      String(paymentMethod || "—"),
     ];
 
   return locale === "ar"
@@ -384,6 +456,105 @@ const getTodayKey = () => {
   return `${year}-${month}-${day}`;
 };
 
+const formatEgyptInputDate = (
+  dateKey: string
+) => {
+  if (!dateKey) return "";
+
+  const {
+    year,
+    month,
+    day,
+  } = getDateParts(dateKey);
+
+  if (
+    !year ||
+    !month ||
+    !day
+  ) {
+    return "";
+  }
+
+  return `${String(day).padStart(
+    2,
+    "0"
+  )}/${String(month).padStart(
+    2,
+    "0"
+  )}/${year}`;
+};
+
+const parseEgyptInputDate = (
+  value: string
+) => {
+  const cleaned =
+    value.replace(
+      /\D/g,
+      ""
+    );
+
+  if (
+    cleaned.length !== 8
+  ) {
+    return "";
+  }
+
+  const day = Number(
+    cleaned.slice(0, 2)
+  );
+
+  const month = Number(
+    cleaned.slice(2, 4)
+  );
+
+  const year = Number(
+    cleaned.slice(4, 8)
+  );
+
+  if (
+    day < 1 ||
+    day > 31 ||
+    month < 1 ||
+    month > 12 ||
+    year < 2000
+  ) {
+    return "";
+  }
+
+  const date = new Date(
+    Date.UTC(
+      year,
+      month - 1,
+      day
+    )
+  );
+
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !==
+      month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return "";
+  }
+
+  const today =
+    getTodayKey();
+
+  const selected =
+    `${year}-${String(
+      month
+    ).padStart(2, "0")}-${String(
+      day
+    ).padStart(2, "0")}`;
+
+  if (selected > today) {
+    return "";
+  }
+
+  return selected;
+};
+
 export default function AdminDashboardPage() {
   const params = useParams<{
     locale?: string;
@@ -417,7 +588,22 @@ export default function AdminDashboardPage() {
   const [
     period,
     setPeriod,
-  ] = useState("30");
+  ] = useState<
+    "7" |
+    "month" |
+    "year" |
+    "all"
+  >("7");
+
+  const [
+    selectedDate,
+    setSelectedDate,
+  ] = useState("");
+
+  const [
+    selectedDateInput,
+    setSelectedDateInput,
+  ] = useState("");
 
   const [
     selectedOrder,
@@ -480,12 +666,38 @@ export default function AdminDashboardPage() {
     const today =
       getTodayKey();
 
+    if (selectedDate) {
+      const item =
+        source.find(
+          (entry) =>
+            entry.date ===
+            selectedDate
+        );
+
+      return [
+        {
+          key: selectedDate,
+          label:
+            formatDayLabel(
+              selectedDate,
+              locale
+            ),
+          orders:
+            item?.orders || 0,
+          sales:
+            item?.sales || 0,
+        },
+      ];
+    }
+
     if (
       period === "7" ||
-      period === "30"
+      period === "month"
     ) {
       const days =
-        Number(period);
+        period === "7"
+          ? 7
+          : 30;
 
       const startDate =
         shiftDate(
@@ -532,10 +744,78 @@ export default function AdminDashboardPage() {
       );
     }
 
-    const months =
-      period === "6"
-        ? 6
-        : 12;
+    if (period === "all") {
+      const grouped =
+        new Map<
+          string,
+          {
+            year: number;
+            month: number;
+            orders: number;
+            sales: number;
+          }
+        >();
+
+      source.forEach(
+        (item) => {
+          const {
+            year,
+            month,
+          } = getDateParts(
+            item.date
+          );
+
+          const key = `${year}-${String(
+            month
+          ).padStart(2, "0")}`;
+
+          const current =
+            grouped.get(key) || {
+              year,
+              month,
+              orders: 0,
+              sales: 0,
+            };
+
+          current.orders +=
+            item.orders || 0;
+
+          current.sales +=
+            item.sales || 0;
+
+          grouped.set(
+            key,
+            current
+          );
+        }
+      );
+
+      return Array.from(
+        grouped.values()
+      )
+        .sort(
+          (a, b) =>
+            a.year - b.year ||
+            a.month - b.month
+        )
+        .map(
+          (item) => ({
+            key: `${item.year}-${String(
+              item.month
+            ).padStart(2, "0")}`,
+            label:
+              formatMonthLabel(
+                item.year,
+                item.month,
+                locale
+              ),
+            orders:
+              item.orders,
+            sales:
+              item.sales,
+          })
+        );
+    }
 
     const grouped =
       new Map<
@@ -582,86 +862,35 @@ export default function AdminDashboardPage() {
       }
     );
 
-    const currentDate =
-      new Date();
-
-    const currentYear =
-      Number(
-        new Intl.DateTimeFormat(
-          "en-US",
-          {
-            timeZone:
-              "Africa/Cairo",
-            year: "numeric",
-          }
-        ).format(currentDate)
+    return Array.from(
+      grouped.values()
+    )
+      .sort(
+        (a, b) =>
+          a.year - b.year ||
+          a.month - b.month
+      )
+      .map(
+        (item) => ({
+          key: `${item.year}-${String(
+            item.month
+          ).padStart(2, "0")}`,
+          label:
+            formatMonthLabel(
+              item.year,
+              item.month,
+              locale
+            ),
+          orders:
+            item.orders,
+          sales:
+            item.sales,
+        })
       );
-
-    const currentMonth =
-      Number(
-        new Intl.DateTimeFormat(
-          "en-US",
-          {
-            timeZone:
-              "Africa/Cairo",
-            month: "numeric",
-          }
-        ).format(currentDate)
-      );
-
-    const result = [];
-
-    for (
-      let index = months - 1;
-      index >= 0;
-      index--
-    ) {
-      const date =
-        new Date(
-          Date.UTC(
-            currentYear,
-            currentMonth - 1,
-            1
-          )
-        );
-
-      date.setUTCMonth(
-        date.getUTCMonth() -
-          index
-      );
-
-      const year =
-        date.getUTCFullYear();
-
-      const month =
-        date.getUTCMonth() + 1;
-
-      const key = `${year}-${String(
-        month
-      ).padStart(2, "0")}`;
-
-      const item =
-        grouped.get(key);
-
-      result.push({
-        key,
-        label:
-          formatMonthLabel(
-            year,
-            month,
-            locale
-          ),
-        orders:
-          item?.orders || 0,
-        sales:
-          item?.sales || 0,
-      });
-    }
-
-    return result;
   }, [
     dashboard,
     period,
+    selectedDate,
     locale,
   ]);
 
@@ -968,11 +1197,17 @@ export default function AdminDashboardPage() {
                 </h2>
 
                 <p>
-                  {text(
-                    locale,
-                    "عدد الطلبات خلال الفترة المحددة",
-                    "Number of orders during the selected period"
-                  )}
+                  {selectedDate
+                    ? text(
+                        locale,
+                        "بيانات اليوم المحدد",
+                        "Data for the selected day"
+                      )
+                    : text(
+                        locale,
+                        "عدد الطلبات خلال الفترة المحددة",
+                        "Number of orders during the selected period"
+                      )}
                 </p>
               </div>
 
@@ -980,13 +1215,16 @@ export default function AdminDashboardPage() {
                 <button
                   type="button"
                   className={
-                    period === "7"
+                    period === "7" &&
+                    !selectedDate
                       ? "active"
                       : ""
                   }
-                  onClick={() =>
-                    setPeriod("7")
-                  }
+                  onClick={() => {
+                    setSelectedDate("");
+                    setSelectedDateInput("");
+                    setPeriod("7");
+                  }}
                 >
                   {text(
                     locale,
@@ -998,56 +1236,188 @@ export default function AdminDashboardPage() {
                 <button
                   type="button"
                   className={
-                    period === "30"
+                    period === "month" &&
+                    !selectedDate
                       ? "active"
                       : ""
                   }
-                  onClick={() =>
-                    setPeriod("30")
-                  }
+                  onClick={() => {
+                    setSelectedDate("");
+                    setSelectedDateInput("");
+                    setPeriod("month");
+                  }}
                 >
                   {text(
                     locale,
-                    "30 يومًا",
-                    "30 Days"
+                    "شهر",
+                    "Month"
                   )}
                 </button>
 
                 <button
                   type="button"
                   className={
-                    period === "6"
+                    period === "year" &&
+                    !selectedDate
                       ? "active"
                       : ""
                   }
-                  onClick={() =>
-                    setPeriod("6")
-                  }
+                  onClick={() => {
+                    setSelectedDate("");
+                    setSelectedDateInput("");
+                    setPeriod("year");
+                  }}
                 >
                   {text(
                     locale,
-                    "6 أشهر",
-                    "6 Months"
+                    "سنة",
+                    "Year"
                   )}
                 </button>
 
                 <button
                   type="button"
                   className={
-                    period === "12"
+                    period === "all" &&
+                    !selectedDate
                       ? "active"
                       : ""
                   }
-                  onClick={() =>
-                    setPeriod("12")
-                  }
+                  onClick={() => {
+                    setSelectedDate("");
+                    setSelectedDateInput("");
+                    setPeriod("all");
+                  }}
                 >
                   {text(
                     locale,
-                    "12 شهرًا",
-                    "12 Months"
+                    "الكل",
+                    "All"
                   )}
                 </button>
+
+                <div className="dashboard-date-filter">
+                  <CalendarDays size={16} />
+
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    placeholder={text(
+                      locale,
+                      "DD/MM/YYYY",
+                      "DD/MM/YYYY"
+                    )}
+                    value={
+                      selectedDateInput
+                    }
+                    maxLength={10}
+                    onChange={(event) => {
+                      let value =
+                        event.target.value.replace(
+                          /\D/g,
+                          ""
+                        );
+
+                      if (
+                        value.length >
+                        8
+                      ) {
+                        value =
+                          value.slice(
+                            0,
+                            8
+                          );
+                      }
+
+                      if (
+                        value.length >
+                        4
+                      ) {
+                        value = `${value.slice(
+                          0,
+                          2
+                        )}/${value.slice(
+                          2,
+                          4
+                        )}/${value.slice(
+                          4
+                        )}`;
+                      } else if (
+                        value.length >
+                        2
+                      ) {
+                        value = `${value.slice(
+                          0,
+                          2
+                        )}/${value.slice(
+                          2
+                        )}`;
+                      }
+
+                      setSelectedDateInput(
+                        value
+                      );
+
+                      if (
+                        value.length ===
+                        10
+                      ) {
+                        const parsed =
+                          parseEgyptInputDate(
+                            value
+                          );
+
+                        if (parsed) {
+                          setSelectedDate(
+                            parsed
+                          );
+                        } else {
+                          setSelectedDate(
+                            ""
+                          );
+                        }
+                      } else {
+                        setSelectedDate(
+                          ""
+                        );
+                      }
+                    }}
+                    onBlur={() => {
+                      if (
+                        selectedDate
+                      ) {
+                        setSelectedDateInput(
+                          formatEgyptInputDate(
+                            selectedDate
+                          )
+                        );
+                      }
+                    }}
+                    aria-label={text(
+                      locale,
+                      "اختيار التاريخ",
+                      "Select date"
+                    )}
+                  />
+                </div>
+
+                {selectedDate && (
+                  <button
+                    type="button"
+                    className="dashboard-date-clear"
+                    onClick={() => {
+                      setSelectedDate("");
+                      setSelectedDateInput("");
+                    }}
+                    aria-label={text(
+                      locale,
+                      "مسح التاريخ",
+                      "Clear date"
+                    )}
+                  >
+                    <X size={15} />
+                  </button>
+                )}
               </div>
             </div>
 
@@ -1103,6 +1473,39 @@ export default function AdminDashboardPage() {
                 </div>
               )}
             </div>
+
+            {selectedDate && (
+              <div className="dashboard-selected-date">
+                <CalendarDays size={15} />
+
+                <span>
+                  {text(
+                    locale,
+                    "التاريخ المحدد:",
+                    "Selected date:"
+                  )}
+                </span>
+
+                <strong>
+                  {new Intl.DateTimeFormat(
+                    locale === "ar"
+                      ? "ar-EG"
+                      : "en-US",
+                    {
+                      timeZone:
+                        "Africa/Cairo",
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    }
+                  ).format(
+                    new Date(
+                      `${selectedDate}T12:00:00`
+                    )
+                  )}
+                </strong>
+              </div>
+            )}
           </div>
 
           <div className="dashboard-recent-card">
@@ -1138,72 +1541,87 @@ export default function AdminDashboardPage() {
                 </div>
               ) : (
                 dashboard?.recentOrders?.map(
-                  (order) => (
-                    <button
-                      type="button"
-                      className="dashboard-order-row"
-                      key={order._id}
-                      onClick={() =>
-                        setSelectedOrder(
-                          order
+                  (order) => {
+                    const orderNumber =
+                      displayValue(
+                        order.orderNumber,
+                        locale,
+                        `#${order._id
+                          .slice(
+                            -6
+                          )
+                          .toUpperCase()}`
+                      );
+
+                    const customerName =
+                      displayValue(
+                        order.user?.name ||
+                          order.shippingAddress
+                            ?.name ||
+                          order.shippingAddress
+                            ?.firstName,
+                        locale,
+                        text(
+                          locale,
+                          "ضيف",
+                          "Guest"
                         )
-                      }
-                    >
-                      <div className="dashboard-order-main">
-                        <div className="dashboard-order-icon">
-                          <ShoppingBag
-                            size={17}
-                          />
+                      );
+
+                    return (
+                      <button
+                        type="button"
+                        className="dashboard-order-row"
+                        key={order._id}
+                        onClick={() =>
+                          setSelectedOrder(
+                            order
+                          )
+                        }
+                      >
+                        <div className="dashboard-order-main">
+                          <div className="dashboard-order-icon">
+                            <ShoppingBag
+                              size={17}
+                            />
+                          </div>
+
+                          <div>
+                            <strong>
+                              {orderNumber}
+                            </strong>
+
+                            <span>
+                              {customerName}
+                            </span>
+                          </div>
                         </div>
 
-                        <div>
+                        <div className="dashboard-order-side">
                           <strong>
-                            {order.orderNumber ||
-                              `#${order._id
-                                .slice(
-                                  -6
-                                )
-                                .toUpperCase()}`}
+                            {formatCurrency(
+                              getOrderTotal(
+                                order
+                              ),
+                              locale
+                            )}{" "}
+                            EGP
                           </strong>
 
                           <span>
-                            {order.user?.name ||
-                              order
-                                .shippingAddress
-                                ?.name ||
-                              text(
-                                locale,
-                                "ضيف",
-                                "Guest"
-                              )}
+                            {getEgyptDate(
+                              order.createdAt
+                            )}
                           </span>
                         </div>
-                      </div>
 
-                      <div className="dashboard-order-side">
-                        <strong>
-                          {formatCurrency(
-                            getOrderTotal(
-                              order
-                            ),
-                            locale
-                          )}{" "}
-                          EGP
-                        </strong>
-
-                        <span>
-                          {getEgyptDate(
-                            order.createdAt
-                          )}
-                        </span>
-                      </div>
-
-                      <Eye
-                        size={17}
-                        className="dashboard-order-eye"
-                      />
-                    </button>
-                  )
+                        <Eye
+                          size={17}
+                          className="dashboard-order-eye"
+                        />
+                      </button>
+                    );
+                  }
                 )
               )}
             </div>
@@ -1235,10 +1653,13 @@ export default function AdminDashboardPage() {
                 </span>
 
                 <h2>
-                  {selectedOrder.orderNumber ||
+                  {displayValue(
+                    selectedOrder.orderNumber,
+                    locale,
                     `#${selectedOrder._id
                       .slice(-6)
-                      .toUpperCase()}`}
+                      .toUpperCase()}`
+                  )}
                 </h2>
               </div>
 
@@ -1265,16 +1686,22 @@ export default function AdminDashboardPage() {
                   </span>
 
                   <strong>
-                    {selectedOrder.user
-                      ?.name ||
-                      selectedOrder
-                        .shippingAddress
+                    {displayValue(
+                      selectedOrder.user
                         ?.name ||
+                        selectedOrder
+                          .shippingAddress
+                          ?.name ||
+                        selectedOrder
+                          .shippingAddress
+                          ?.firstName,
+                      locale,
                       text(
                         locale,
                         "ضيف",
                         "Guest"
-                      )}
+                      )
+                    )}
                   </strong>
                 </div>
 
@@ -1288,12 +1715,14 @@ export default function AdminDashboardPage() {
                   </span>
 
                   <strong>
-                    {selectedOrder.user
-                      ?.phone ||
-                      selectedOrder
-                        .shippingAddress
+                    {displayValue(
+                      selectedOrder.user
                         ?.phone ||
-                      "—"}
+                        selectedOrder
+                          .shippingAddress
+                          ?.phone,
+                      locale
+                    )}
                   </strong>
                 </div>
 
@@ -1343,14 +1772,26 @@ export default function AdminDashboardPage() {
 
                 <strong>
                   {[
-                    selectedOrder
-                      .shippingAddress
-                      ?.address,
-                    selectedOrder
-                      .shippingAddress
-                      ?.city,
+                    displayValue(
+                      selectedOrder
+                        .shippingAddress
+                        ?.address,
+                      locale,
+                      ""
+                    ),
+                    displayValue(
+                      selectedOrder
+                        .shippingAddress
+                        ?.city,
+                      locale,
+                      ""
+                    ),
                   ]
-                    .filter(Boolean)
+                    .filter(
+                      (value) =>
+                        value &&
+                        value !== "—"
+                    )
                     .join(" - ") ||
                     "—"}
                 </strong>
@@ -1370,13 +1811,16 @@ export default function AdminDashboardPage() {
                 ).map(
                   (product, index) => {
                     const productName =
-                      product.name ||
-                      product.product
-                        ?.name ||
-                      text(
+                      displayValue(
+                        product.name ||
+                          product.product
+                            ?.name,
                         locale,
-                        "منتج",
-                        "Product"
+                        text(
+                          locale,
+                          "منتج",
+                          "Product"
+                        )
                       );
 
                     const productPrice =
@@ -1393,14 +1837,17 @@ export default function AdminDashboardPage() {
                           1
                       );
 
+                    const productKey =
+                      product._id ||
+                      product.product
+                        ?._id ||
+                      `${productName}-${index}`;
+
                     return (
                       <div
                         className="dashboard-modal-product"
                         key={
-                          product._id ||
-                          product.product
-                            ?._id ||
-                          `${productName}-${index}`
+                          productKey
                         }
                       >
                         <div>
