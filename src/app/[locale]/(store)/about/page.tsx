@@ -83,7 +83,7 @@ export default function AboutPage() {
           <h1>
             {t(
               locale,
-              "مساحتك تستحق أثاثًا يشبهها.",
+              "مساحتك تستحق اثاثًا يشبهها.",
               "Your space deserves furniture that feels like you."
             )}
           </h1>
@@ -98,7 +98,7 @@ export default function AboutPage() {
 
           <div className={styles.heroActions}>
             <Link
-              href={`/${locale}/products`}
+              href={`/${locale}/shop`}
               className={styles.primaryButton}
             >
               <span>
@@ -340,7 +340,7 @@ export default function AboutPage() {
         </div>
 
         <Link
-          href={`/${locale}/products`}
+          href={`/${locale}/shop`}
           className={styles.ctaButton}
         >
           <span>

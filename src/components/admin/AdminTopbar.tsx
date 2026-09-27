@@ -289,6 +289,56 @@ const getNotificationTypeLabel = (
   }
 };
 
+const getNotificationTone = (
+  notification: NotificationItem
+) => {
+  if (notification.type === "new_order") {
+    return "notificationToneSuccess";
+  }
+
+  if (notification.type === "order_status") {
+    switch (notification.order?.status) {
+      case "Delivered":
+        return "notificationToneDelivered";
+
+      case "Canceled":
+        return "notificationToneDanger";
+
+      case "Out for Delivery":
+        return "notificationToneWarning";
+
+      case "Processing":
+        return "notificationToneInfo";
+
+      case "Pending":
+        return "notificationToneWarning";
+
+      default:
+        return "notificationToneDefault";
+    }
+  }
+
+  if (notification.type === "low_stock") {
+    return "notificationToneWarning";
+  }
+
+  if (notification.type === "out_of_stock") {
+    return "notificationToneDanger";
+  }
+if (notification.type === "Delivered") {
+    return "notificationToneDelivered";
+  }
+  if (notification.type === "new_product") {
+    return "notificationToneSuccess";
+  }
+
+  if (notification.type === "new_user") {
+    return "notificationToneInfo";
+  }
+
+  return "notificationToneDefault";
+};
+
 const formatNotificationDate = (
   dateString: string | undefined,
   locale: "ar" | "en"
@@ -541,6 +591,9 @@ export default function AdminTopbar({
         currentLocaleTyped
       );
 
+    const notificationTone =
+      getNotificationTone(notification);
+
     const isOrder =
       notification.type === "new_order" ||
       notification.type === "order_status";
@@ -586,7 +639,9 @@ export default function AdminTopbar({
                 styles.detailsTitleWrapper
               }
             >
-              <div className={styles.detailsIcon}>
+              <div
+                className={`${styles.detailsIcon} ${styles[notificationTone]}`}
+              >
                 {getNotificationIcon(
                   notification.type
                 )}
@@ -1283,6 +1338,11 @@ export default function AdminTopbar({
                           currentLocaleTyped
                         );
 
+                      const notificationTone =
+                        getNotificationTone(
+                          notification
+                        );
+
                       return (
                         <button
                           type="button"
@@ -1301,9 +1361,7 @@ export default function AdminTopbar({
                           }
                         >
                           <div
-                            className={
-                              styles.notificationItemIcon
-                            }
+                            className={`${styles.notificationItemIcon} ${styles[notificationTone]}`}
                           >
                             {getNotificationIcon(
                               notification.type

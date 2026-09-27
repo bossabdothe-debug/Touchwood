@@ -1887,18 +1887,18 @@ export default function OrdersPage() {
                             </div>
 
                             <div className="orders-history-values">
-                              <div className="orders-history-value">
+                             <div className="orders-history-value orders-history-new">
                                 <span>
                                   {text(
                                     locale,
-                                    "قبل",
-                                    "Before"
+                                    "حالة الطلب الان",
+                                    "After"
                                   )}
                                 </span>
 
                                 <p>
                                   {getHistoryValue(
-                                    history.oldValue,
+                                    history.newValue,
                                     history.field,
                                     locale
                                   )}
@@ -1913,18 +1913,18 @@ export default function OrdersPage() {
                                 />
                               </div>
 
-                              <div className="orders-history-value orders-history-new">
+                               <div className="orders-history-value">
                                 <span>
                                   {text(
                                     locale,
-                                    "بعد",
-                                    "After"
+                                    "الحالة السابقة",
+                                    "Before"
                                   )}
                                 </span>
 
                                 <p>
                                   {getHistoryValue(
-                                    history.newValue,
+                                    history.oldValue,
                                     history.field,
                                     locale
                                   )}

@@ -229,11 +229,106 @@ export const register = async (userData) => {
   });
 };
 
-export const logIn = async (userData) => {
-  return apiRequest("/user/login", {
-    method: "POST",
-    body: userData,
-  });
+export const logIn = async (
+  userData,
+  locale = "en"
+) => {
+  try {
+    return await apiRequest("/user/login", {
+      method: "POST",
+      body: userData,
+    });
+  } catch (error) {
+    if (locale === "ar") {
+      const message =
+        error instanceof Error
+          ? error.message.trim().toLowerCase()
+          : "";
+
+      if (
+        message.includes("invalid email or password") ||
+        message.includes("invalid credentials") ||
+        message.includes("invalid email") ||
+        message.includes("invalid password") ||
+        message.includes("incorrect email or password") ||
+        message.includes("incorrect password") ||
+        message.includes("wrong email or password") ||
+        message.includes("wrong password") ||
+        message.includes("wrong email") ||
+        message.includes("authentication failed") ||
+        message.includes("unauthorized")
+      ) {
+        throw new Error(
+          "البريد الإلكتروني أو كلمة المرور غير صحيحة."
+        );
+      }
+
+      if (
+        message.includes("user not found") ||
+        message.includes("account not found") ||
+        message.includes("email not found")
+      ) {
+        throw new Error(
+          "لم يتم العثور على حساب بهذا البريد الإلكتروني."
+        );
+      }
+
+      if (
+        message.includes("email is required") ||
+        message.includes("email required")
+      ) {
+        throw new Error(
+          "البريد الإلكتروني مطلوب."
+        );
+      }
+
+      if (
+        message.includes("password is required") ||
+        message.includes("password required")
+      ) {
+        throw new Error(
+          "كلمة المرور مطلوبة."
+        );
+      }
+
+      if (
+        message.includes("too many requests") ||
+        message.includes("too many attempts")
+      ) {
+        throw new Error(
+          "تم تجاوز عدد محاولات تسجيل الدخول المسموح بها. حاول مرة أخرى لاحقًا."
+        );
+      }
+
+      if (
+        message.includes("network error") ||
+        message.includes("failed to fetch") ||
+        message.includes("fetch failed")
+      ) {
+        throw new Error(
+          "تعذر الاتصال بالخادم. تحقق من اتصال الإنترنت وحاول مرة أخرى."
+        );
+      }
+
+      if (
+        message.includes("server error") ||
+        message.includes("internal server error") ||
+        message.includes("500")
+      ) {
+        throw new Error(
+          "حدث خطأ في الخادم. حاول مرة أخرى لاحقًا."
+        );
+      }
+
+      if (/[a-zA-Z]/.test(message)) {
+        throw new Error(
+          "حدث خطأ أثناء تسجيل الدخول. حاول مرة أخرى."
+        );
+      }
+    }
+
+    throw error;
+  }
 };
 
 export const updateProfile = async (

@@ -10,7 +10,7 @@ import {
   Users,
   Settings,
   LogOut,
-  X,
+  X,Store 
 } from "lucide-react";
 
 type AdminSidebarProps = {
@@ -49,6 +49,10 @@ export default function AdminSidebar({
       label: isArabic ? "المستخدمون" : "Users",
       href: `/${locale}/admin/users`,
       icon: Users,
+    },{
+      label: isArabic ? "المتجر" : "store",
+      href: `/${locale}/shop`,
+      icon: Store,
     },
     {
       label: isArabic ? "الإعدادات" : "Settings",
@@ -71,7 +75,7 @@ export default function AdminSidebar({
 
     onClose();
 
-    router.replace(`/${locale}/login`);
+    router.replace(`/${locale}/`);
   };
 
   return (

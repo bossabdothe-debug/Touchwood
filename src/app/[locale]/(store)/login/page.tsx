@@ -1,4 +1,3 @@
-
 "use client";
 
 import Image from "next/image";
@@ -18,23 +17,137 @@ import { logIn } from "@/services/api";
 
 import "./login.css";
 
+const getLoginErrorMessage = (
+  error: unknown,
+  isArabic: boolean
+) => {
+  if (!isArabic) {
+    return error instanceof Error
+      ? error.message
+      : "Something went wrong. Please try again.";
+  }
+
+  const message =
+    error instanceof Error
+      ? error.message.trim()
+      : "";
+
+  const normalizedMessage = message.toLowerCase();
+
+  if (
+    normalizedMessage.includes("invalid email or password") ||
+    normalizedMessage.includes("invalid credentials") ||
+    normalizedMessage.includes("invalid email") ||
+    normalizedMessage.includes("invalid password") ||
+    normalizedMessage.includes("incorrect email or password") ||
+    normalizedMessage.includes("incorrect password") ||
+    normalizedMessage.includes("wrong email or password") ||
+    normalizedMessage.includes("wrong password") ||
+    normalizedMessage.includes("wrong email") ||
+    normalizedMessage.includes("authentication failed") ||
+    normalizedMessage.includes("unauthorized") ||
+    normalizedMessage.includes("401")
+  ) {
+    return "البريد الإلكتروني أو كلمة المرور غير صحيحة.";
+  }
+
+  if (
+    normalizedMessage.includes("user not found") ||
+    normalizedMessage.includes("account not found") ||
+    normalizedMessage.includes("email not found")
+  ) {
+    return "لم يتم العثور على حساب بهذا البريد الإلكتروني.";
+  }
+
+  if (
+    normalizedMessage.includes("email is required") ||
+    normalizedMessage.includes("email required")
+  ) {
+    return "البريد الإلكتروني مطلوب.";
+  }
+
+  if (
+    normalizedMessage.includes("password is required") ||
+    normalizedMessage.includes("password required")
+  ) {
+    return "كلمة المرور مطلوبة.";
+  }
+
+  if (
+    normalizedMessage.includes("too many requests") ||
+    normalizedMessage.includes("too many attempts")
+  ) {
+    return "تم تجاوز عدد محاولات تسجيل الدخول المسموح بها. حاول مرة أخرى لاحقًا.";
+  }
+
+  if (
+    normalizedMessage.includes("network error") ||
+    normalizedMessage.includes("failed to fetch") ||
+    normalizedMessage.includes("fetch failed") ||
+    normalizedMessage.includes("network request failed")
+  ) {
+    return "تعذر الاتصال بالخادم. تحقق من اتصال الإنترنت وحاول مرة أخرى.";
+  }
+
+  if (
+    normalizedMessage.includes("server error") ||
+    normalizedMessage.includes("internal server error") ||
+    normalizedMessage.includes("500")
+  ) {
+    return "حدث خطأ في الخادم. حاول مرة أخرى لاحقًا.";
+  }
+
+  if (
+    normalizedMessage.includes("not found") ||
+    normalizedMessage.includes("404")
+  ) {
+    return "تعذر العثور على الخدمة المطلوبة. حاول مرة أخرى.";
+  }
+
+  if (
+    normalizedMessage.includes("validation") ||
+    normalizedMessage.includes("invalid")
+  ) {
+    return "يرجى التأكد من صحة البيانات المدخلة.";
+  }
+
+  if (/[a-zA-Z]/.test(message)) {
+    return "حدث خطأ أثناء تسجيل الدخول. حاول مرة أخرى.";
+  }
+
+  if (message) {
+    return message;
+  }
+
+  return "حدث خطأ أثناء تسجيل الدخول. حاول مرة أخرى.";
+};
+
 export default function LoginPage() {
   const params = useParams();
   const router = useRouter();
 
-  const locale = params?.locale === "en" ? "en" : "ar";
+  const locale =
+    params?.locale === "en" ? "en" : "ar";
+
   const isArabic = locale === "ar";
 
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState("");
+  const [showPassword, setShowPassword] =
+    useState(false);
+
+  const [loading, setLoading] =
+    useState(false);
+
+  const [errorMessage, setErrorMessage] =
+    useState("");
 
   const [formData, setFormData] = useState({
     email: "",
     password: "",
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const { name, value } = e.target;
 
     setFormData((prev) => ({
@@ -47,36 +160,56 @@ export default function LoginPage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (
+    e: React.FormEvent<HTMLFormElement>
+  ) => {
     e.preventDefault();
 
-    if (loading) return;
+    if (loading) {
+      return;
+    }
 
     setLoading(true);
     setErrorMessage("");
 
     try {
-      const data = await logIn({
-        email: formData.email.trim(),
-        password: formData.password,
-      });
+   const data = await logIn(
+  {
+    email: formData.email.trim(),
+    password: formData.password,
+  },
+  locale
+);
 
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      localStorage.setItem(
+        "token",
+        data.token
+      );
 
-const isAdmin = data.user?.role === "admin";
+      localStorage.setItem(
+        "user",
+        JSON.stringify(data.user)
+      );
 
-router.replace(
-  isAdmin ? `/${locale}/admin` : `/${locale}/account`
-);    } catch (error) {
-      console.error("Login error:", error);
+      const isAdmin =
+        data.user?.role === "admin";
+
+      router.replace(
+        isAdmin
+          ? `/${locale}/admin`
+          : `/${locale}/account`
+      );
+    } catch (error) {
+      console.error(
+        "Login error:",
+        error
+      );
 
       setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : isArabic
-          ? "حدث خطأ أثناء تسجيل الدخول. حاول مرة أخرى."
-          : "Something went wrong. Please try again."
+        getLoginErrorMessage(
+          error,
+          isArabic
+        )
       );
     } finally {
       setLoading(false);
@@ -85,8 +218,16 @@ router.replace(
 
   return (
     <main
-      className={`login-page ${isArabic ? "login-ar" : "login-en"}`}
-      dir={isArabic ? "rtl" : "ltr"}
+      className={`login-page ${
+        isArabic
+          ? "login-ar"
+          : "login-en"
+      }`}
+      dir={
+        isArabic
+          ? "rtl"
+          : "ltr"
+      }
     >
       <div className="login-background">
         <div className="login-glow login-glow-one" />
@@ -124,7 +265,9 @@ router.replace(
 
             <div className="login-heading">
               <span className="login-eyebrow">
-                {isArabic ? "مرحبًا بعودتك" : "WELCOME BACK"}
+                {isArabic
+                  ? "مرحبًا بعودتك"
+                  : "WELCOME BACK"}
               </span>
 
               <h1>
@@ -140,14 +283,22 @@ router.replace(
               </p>
             </div>
 
-            <form className="login-form" onSubmit={handleSubmit}>
+            <form
+              className="login-form"
+              onSubmit={handleSubmit}
+            >
               <div className="login-field">
                 <label htmlFor="email">
-                  {isArabic ? "البريد الإلكتروني" : "Email Address"}
+                  {isArabic
+                    ? "البريد الإلكتروني"
+                    : "Email Address"}
                 </label>
 
                 <div className="login-input-wrapper">
-                  <Mail className="login-input-icon" size={19} />
+                  <Mail
+                    className="login-input-icon"
+                    size={19}
+                  />
 
                   <input
                     id="email"
@@ -169,16 +320,25 @@ router.replace(
 
               <div className="login-field">
                 <label htmlFor="password">
-                  {isArabic ? "كلمة المرور" : "Password"}
+                  {isArabic
+                    ? "كلمة المرور"
+                    : "Password"}
                 </label>
 
                 <div className="login-input-wrapper">
-                  <Lock className="login-input-icon" size={19} />
+                  <Lock
+                    className="login-input-icon"
+                    size={19}
+                  />
 
                   <input
                     id="password"
                     name="password"
-                    type={showPassword ? "text" : "password"}
+                    type={
+                      showPassword
+                        ? "text"
+                        : "password"
+                    }
                     value={formData.password}
                     onChange={handleChange}
                     placeholder={
@@ -194,7 +354,9 @@ router.replace(
                     type="button"
                     className="login-password-toggle"
                     onClick={() =>
-                      setShowPassword((prev) => !prev)
+                      setShowPassword(
+                        (prev) => !prev
+                      )
                     }
                     disabled={loading}
                     aria-label={
@@ -217,7 +379,10 @@ router.replace(
               </div>
 
               {errorMessage && (
-                <div className="login-message login-error" role="alert">
+                <div
+                  className="login-message login-error"
+                  role="alert"
+                >
                   {errorMessage}
                 </div>
               )}
@@ -243,7 +408,9 @@ router.replace(
                 ) : (
                   <>
                     <span>
-                      {isArabic ? "تسجيل الدخول" : "Sign In"}
+                      {isArabic
+                        ? "تسجيل الدخول"
+                        : "Sign In"}
                     </span>
 
                     {isArabic ? (
@@ -263,7 +430,9 @@ router.replace(
                   : "Don't have an account?"}
               </span>
 
-              <Link href={`/${locale}/register`}>
+              <Link
+                href={`/${locale}/register`}
+              >
                 {isArabic
                   ? "إنشاء حساب جديد"
                   : "Create an account"}
@@ -275,4 +444,3 @@ router.replace(
     </main>
   );
 }
-

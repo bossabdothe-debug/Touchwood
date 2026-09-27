@@ -336,8 +336,8 @@ case "Phone Number must be 11 numbers":
                     onChange={handleChange}
                     placeholder={
                       isArabic
-                        ? "أدخل رقم هاتفك"
-                        : "Enter your phone number"
+                        ? "01234567891"
+                        : "01234567891"
                     }
                     autoComplete="tel"
                     required
