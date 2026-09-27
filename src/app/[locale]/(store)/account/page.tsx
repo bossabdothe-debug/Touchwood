@@ -883,9 +883,7 @@ export default function AccountPage() {
           )
         );
 
-        router.replace(
-          `/${locale}/`
-        );
+      window.location.href = `/${locale}/`;
       }, 1000);
     };
 

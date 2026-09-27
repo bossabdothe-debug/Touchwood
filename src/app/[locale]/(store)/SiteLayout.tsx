@@ -1,6 +1,7 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import WhatsAppFloatingButton from "@/components/WhatsAppFloatingButton";
+import { useParams, usePathname } from "next/navigation";
 import SecondHero from "@/components/layout/SecondHero";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -10,13 +11,18 @@ import MobileBottomNavbar from "@/components/layout/MobileBottomNavbar";
 import Hero from "@/components/layout/Hero";
 import FeaturedProducts from "@/components/products/FeaturedProducts";
 
-
 export default function SiteLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const params = useParams();
+
+  const locale =
+    typeof params?.locale === "string"
+      ? params.locale
+      : "ar";
 
   const isAuthPage =
     pathname.endsWith("/login") ||
@@ -35,9 +41,14 @@ export default function SiteLayout({
           <MobileSearchNavbar />
 
           <Hero />
-<SecondHero/>
-<FeaturedProducts></FeaturedProducts>
+
+          <SecondHero />
+
+          <FeaturedProducts />
+
           {children}
+
+          <WhatsAppFloatingButton locale={locale} />
 
           <MobileBottomNavbar />
         </>

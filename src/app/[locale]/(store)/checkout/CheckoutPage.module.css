@@ -1,11 +1,16 @@
 .page {
   min-height: 100vh;
-  padding: 42px 20px 90px;
+  padding: 38px 24px 90px;
   background:
     radial-gradient(
-      circle at 8% 5%,
+      circle at 7% 3%,
       rgba(49, 95, 43, 0.08),
-      transparent 28%
+      transparent 27%
+    ),
+    radial-gradient(
+      circle at 96% 18%,
+      rgba(239, 129, 22, 0.045),
+      transparent 24%
     ),
     #f7f8f5;
   color: #183d2b;
@@ -20,14 +25,14 @@
   display: flex;
   align-items: center;
   gap: 9px;
-  margin-bottom: 30px;
-  color: #8a948e;
-  font-size: 12px;
+  margin-bottom: 31px;
+  color: #89938d;
+  font-size: 11px;
   font-weight: 600;
 }
 
 .breadcrumb a {
-  color: #777f7a;
+  color: #737d77;
   text-decoration: none;
   transition: color 0.2s ease;
 }
@@ -38,6 +43,7 @@
 
 .breadcrumb strong {
   color: #315f2b;
+  font-weight: 700;
 }
 
 .header {
@@ -47,18 +53,18 @@
 .eyebrow {
   display: inline-flex;
   align-items: center;
-  margin-bottom: 10px;
+  margin-bottom: 9px;
   color: #ef8116;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 800;
-  letter-spacing: 2.2px;
+  letter-spacing: 2.3px;
   text-transform: uppercase;
 }
 
 .header h1 {
   margin: 0;
   color: #183d2b;
-  font-size: clamp(30px, 4vw, 44px);
+  font-size: clamp(31px, 4vw, 44px);
   font-weight: 800;
   letter-spacing: -0.8px;
   line-height: 1.1;
@@ -68,7 +74,7 @@
   max-width: 680px;
   margin: 12px 0 0;
   color: #69776f;
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.8;
 }
 
@@ -81,24 +87,37 @@
 
 .formCard,
 .summaryCard {
-  background: #ffffff;
+  position: relative;
+  overflow: hidden;
   border: 1px solid #dfe6e1;
-  border-radius: 22px;
-  box-shadow: 0 16px 40px rgba(24, 61, 43, 0.055);
+  border-radius: 20px;
+  background: #ffffff;
+  box-shadow: 0 15px 38px rgba(24, 61, 43, 0.055);
 }
 
 .formCard {
-  padding: 30px;
+  padding: 29px;
+}
+
+.formCard::before,
+.summaryCard::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 4px;
+  background: #ef8116;
 }
 
 .summaryCard {
   position: sticky;
   top: 22px;
-  padding: 25px;
+  padding: 24px;
 }
 
 .cardHeader {
-  margin-bottom: 25px;
+  margin-bottom: 24px;
 }
 
 .cardHeader > div,
@@ -112,7 +131,7 @@
 .sectionTitle h2 {
   margin: 0;
   color: #183d2b;
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 800;
 }
 
@@ -120,71 +139,70 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  flex: 0 0 36px;
-  border-radius: 11px;
+  width: 35px;
+  height: 35px;
+  flex: 0 0 35px;
+  border-radius: 10px;
   background: #183d2b;
   color: #ffffff;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
 }
 
 .fieldsGrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 17px;
+  gap: 16px;
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 7px;
 }
 
 .field span {
   color: #315f2b;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
 }
 
 .field input,
 .field textarea {
   width: 100%;
-  border: 1px solid #dbe3dd;
-  border-radius: 12px;
+  box-sizing: border-box;
+  border: 1px solid #d9e2dc;
+  border-radius: 11px;
   outline: none;
   background: #fafcf9;
   color: #183d2b;
   font: inherit;
-  font-size: 13px;
+  font-size: 12px;
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease,
-    background 0.2s ease,
-    transform 0.2s ease;
-  box-sizing: border-box;
+    background 0.2s ease;
 }
 
 .field input {
-  height: 49px;
+  height: 48px;
   padding: 0 14px;
 }
 
 .field textarea {
-  min-height: 112px;
+  min-height: 108px;
   padding: 13px 14px;
   resize: vertical;
 }
 
 .field input::placeholder,
 .field textarea::placeholder {
-  color: #a6aea9;
+  color: #a5aea8;
 }
 
 .field input:hover,
 .field textarea:hover {
-  border-color: #c8d4cc;
+  border-color: #c7d4cc;
   background: #ffffff;
 }
 
@@ -192,7 +210,7 @@
 .field textarea:focus {
   border-color: #315f2b;
   background: #ffffff;
-  box-shadow: 0 0 0 4px rgba(49, 95, 43, 0.075);
+  box-shadow: 0 0 0 4px rgba(49, 95, 43, 0.07);
 }
 
 .fullField {
@@ -200,8 +218,8 @@
 }
 
 .paymentSection {
-  margin-top: 28px;
-  padding-top: 27px;
+  margin-top: 27px;
+  padding-top: 26px;
   border-top: 1px solid #edf1ed;
 }
 
@@ -213,15 +231,15 @@
   display: flex;
   align-items: center;
   gap: 11px;
-  margin-top: 11px;
-  padding: 14px 15px;
+  margin-top: 10px;
+  padding: 13px 14px;
   border: 1px solid #dbe3dd;
-  border-radius: 12px;
+  border-radius: 11px;
   background: #ffffff;
-  cursor: pointer;
   color: #315f2b;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
+  cursor: pointer;
   transition:
     border-color 0.2s ease,
     background 0.2s ease,
@@ -245,13 +263,13 @@
   display: flex;
   align-items: center;
   gap: 9px;
-  margin-top: 20px;
+  margin-top: 19px;
   padding: 12px 14px;
-  border: 1px solid #f0c0b0;
-  border-radius: 11px;
+  border: 1px solid #efc1b4;
+  border-radius: 10px;
   background: #fff6f2;
   color: #a33e23;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   line-height: 1.7;
 }
@@ -262,15 +280,15 @@
   justify-content: center;
   gap: 9px;
   width: 100%;
-  min-height: 53px;
-  margin-top: 22px;
+  min-height: 52px;
+  margin-top: 21px;
   border: 0;
-  border-radius: 13px;
+  border-radius: 12px;
   background: #183d2b;
   color: #ffffff;
   cursor: pointer;
   font: inherit;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
   transition:
     background 0.2s ease,
@@ -280,7 +298,7 @@
 
 .submitButton:hover:not(:disabled) {
   background: #315f2b;
-  box-shadow: 0 8px 20px rgba(24, 61, 43, 0.13);
+  box-shadow: 0 9px 22px rgba(24, 61, 43, 0.14);
   transform: translateY(-1px);
 }
 
@@ -294,9 +312,9 @@
 }
 
 .securityNote {
-  margin: 12px 0 0;
+  margin: 11px 0 0;
   color: #8a958e;
-  font-size: 10px;
+  font-size: 9px;
   line-height: 1.7;
   text-align: center;
 }
@@ -305,7 +323,7 @@
   display: flex;
   flex-direction: column;
   gap: 0;
-  margin-top: 22px;
+  margin-top: 21px;
 }
 
 .item {
@@ -313,13 +331,15 @@
   grid-template-columns: 56px minmax(0, 1fr) auto;
   gap: 11px;
   align-items: center;
-  padding: 0 0 14px;
-  margin-bottom: 14px;
+  padding: 0 0 13px;
+  margin-bottom: 13px;
   border-bottom: 1px solid #edf1ed;
 }
 
 .item:last-child {
   margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: 0;
 }
 
 .itemImage {
@@ -329,6 +349,7 @@
   width: 56px;
   height: 56px;
   overflow: hidden;
+  border: 1px solid #e4ebe5;
   border-radius: 11px;
   background: #f1f4f0;
   color: #8b958e;
@@ -343,16 +364,16 @@
 }
 
 .itemInfo {
-  min-width: 0;
   display: flex;
   flex-direction: column;
+  min-width: 0;
   gap: 4px;
 }
 
 .itemInfo strong {
   overflow: hidden;
   color: #183d2b;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
   line-height: 1.5;
   text-overflow: ellipsis;
@@ -361,7 +382,7 @@
 
 .itemInfo span {
   color: #879189;
-  font-size: 9px;
+  font-size: 8px;
   line-height: 1.5;
 }
 
@@ -375,8 +396,10 @@
 .summaryRows {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  margin-top: 22px;
+  gap: 11px;
+  margin-top: 21px;
+  padding-top: 18px;
+  border-top: 1px solid #edf1ed;
 }
 
 .summaryRows > div {
@@ -385,12 +408,12 @@
   justify-content: space-between;
   gap: 15px;
   color: #69776f;
-  font-size: 12px;
+  font-size: 11px;
 }
 
 .summaryRows strong {
   color: #315f2b;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
 }
 
@@ -399,8 +422,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 15px;
-  margin-top: 20px;
-  padding-top: 18px;
+  margin-top: 18px;
+  padding-top: 17px;
   border-top: 1px solid #dce4de;
 }
 
@@ -418,9 +441,9 @@
 
 .backToCart {
   display: block;
-  margin-top: 18px;
+  margin-top: 17px;
   color: #69776f;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   text-align: center;
   text-decoration: none;
@@ -432,14 +455,14 @@
 }
 
 .loading {
-  min-height: 70vh;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-direction: column;
+  min-height: 70vh;
   gap: 14px;
   color: #69776f;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .spinner,
@@ -451,8 +474,8 @@
 }
 
 .spinner {
-  width: 36px;
-  height: 36px;
+  width: 35px;
+  height: 35px;
 }
 
 .buttonSpinner {
@@ -475,22 +498,18 @@
     position: static;
   }
 
-  .summaryCard {
-    order: 2;
-  }
-
   .formCard {
     order: 1;
+  }
+
+  .summaryCard {
+    order: 2;
   }
 }
 
 @media (max-width: 650px) {
   .page {
-    padding: 28px 13px 65px;
-  }
-
-  .container {
-    width: 100%;
+    padding: 27px 13px 65px;
   }
 
   .breadcrumb {
@@ -508,13 +527,13 @@
   }
 
   .header p {
-    font-size: 13px;
+    font-size: 12px;
     line-height: 1.75;
   }
 
   .fieldsGrid {
     grid-template-columns: 1fr;
-    gap: 15px;
+    gap: 14px;
   }
 
   .fullField {
@@ -533,32 +552,32 @@
 
   .cardHeader h2,
   .sectionTitle h2 {
-    font-size: 16px;
+    font-size: 15px;
   }
 
   .step {
-    width: 34px;
-    height: 34px;
-    flex-basis: 34px;
-    border-radius: 10px;
+    width: 33px;
+    height: 33px;
+    flex-basis: 33px;
+    border-radius: 9px;
   }
 
   .field input {
-    height: 48px;
+    height: 47px;
   }
 
   .field textarea {
-    min-height: 105px;
+    min-height: 103px;
   }
 
   .paymentSection {
-    margin-top: 24px;
-    padding-top: 23px;
+    margin-top: 23px;
+    padding-top: 22px;
   }
 
   .paymentOption {
-    padding: 13px 14px;
-    font-size: 12px;
+    padding: 12px 13px;
+    font-size: 11px;
   }
 
   .submitButton {
@@ -576,7 +595,11 @@
   }
 
   .itemInfo strong {
-    font-size: 10px;
+    font-size: 9px;
+  }
+
+  .itemInfo span {
+    font-size: 8px;
   }
 
   .itemPrice {

@@ -251,7 +251,7 @@ export default function CartPage() {
             </p>
 
             <Link
-              href={`/${locale}/products`}
+              href={`/${locale}/shop`}
               className={styles.shopButton}
             >
               {isArabic ? "تصفح المنتجات" : "Browse Products"}

@@ -1,3 +1,4 @@
+import WhatsAppFloatingButton from "@/components/WhatsAppFloatingButton";
 
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
@@ -16,6 +17,7 @@ export default function ShopLayout({
       <MobileTopNavbar />
 <Hero></Hero>
       <main>{children}</main>
+<WhatsAppFloatingButton></WhatsAppFloatingButton>
 
       <MobileBottomNavbar />
 
