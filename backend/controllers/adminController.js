@@ -1803,85 +1803,169 @@ export const deleteAdminOrder =
     }
   };
 
-export const updateAdminOrderStatus = async (
-  req,
-  res
-) => {
-  try {
-    const { orderId } = req.params;
-    const { status } = req.body;
+export const updateAdminOrderStatus =
+  async (req, res) => {
+    const session =
+      await mongoose.startSession();
 
-    const allowedStatuses = [
-      "Pending",
-      "Processing",
-      "Out for Delivery",
-      "Delivered",
-      "Canceled",
-    ];
+    try {
+      const { id } =
+        req.params;
 
-    if (!allowedStatuses.includes(status)) {
-      return res.status(400).json({
-        message: "حالة الطلب غير صالحة",
+      const { status } =
+        req.body;
+
+      if (
+        !mongoose.Types.ObjectId.isValid(
+          id
+        )
+      ) {
+        return res.status(400).json({
+          message:
+            "Invalid order ID",
+        });
+      }
+
+      if (
+        !ORDER_STATUSES.includes(
+          status
+        )
+      ) {
+        return res.status(400).json({
+          message:
+            "Invalid order status",
+        });
+      }
+
+      session.startTransaction();
+
+      const order =
+        await Order.findById(id)
+          .session(session);
+
+      if (!order) {
+        await session.abortTransaction();
+
+        return res.status(404).json({
+          message:
+            "Order not found",
+        });
+      }
+
+      const previousStatus =
+        order.status;
+
+      if (
+        previousStatus === status
+      ) {
+        await session.commitTransaction();
+
+        const sameOrder =
+          await populateAdminOrder(
+            id
+          );
+
+        return res.status(200).json({
+          message:
+            "Order status is already up to date",
+          order: sameOrder,
+        });
+      }
+
+      const oldReserved =
+        RESERVED_ORDER_STATUSES.includes(
+          order.status
+        );
+
+      const newReserved =
+        RESERVED_ORDER_STATUSES.includes(
+          status
+        );
+
+      if (
+        oldReserved &&
+        !newReserved
+      ) {
+        await restoreOrderStock(
+          order,
+          session
+        );
+      }
+
+      if (
+        !oldReserved &&
+        newReserved
+      ) {
+        const result =
+          await reserveOrderStock(
+            order.products.map(
+              (item) => ({
+                product:
+                  item.product,
+                colorId:
+                  item.colorId,
+                quantity:
+                  item.quantity,
+              })
+            ),
+            session
+          );
+
+        order.products =
+          result.orderProducts;
+      }
+
+      order.status =
+        status;
+
+      await order.save({
+        session,
+        validateBeforeSave:
+          true,
       });
-    }
 
-    if (
-      !mongoose.Types.ObjectId.isValid(
-        orderId
-      )
-    ) {
-      return res.status(400).json({
-        message: "معرف الطلب غير صالح",
+      await session.commitTransaction();
+
+      await createNotification({
+        type: "order_status",
+        title:
+          "تم تحديث حالة الطلب",
+        message: `تم تغيير حالة الطلب #${order._id} من "${previousStatus}" إلى "${status}"`,
+        order: order._id,
       });
-    }
 
-    const order = await Order.findById(
-      orderId
-    );
+      const updatedOrder =
+        await populateAdminOrder(
+          id
+        );
 
-    if (!order) {
-      return res.status(404).json({
-        message: "الطلب غير موجود",
-      });
-    }
-
-    const previousStatus = order.status;
-
-    if (previousStatus === status) {
       return res.status(200).json({
-        message: "لم تتغير حالة الطلب",
-        order,
+        message:
+          "Order status updated successfully",
+        order:
+          updatedOrder,
       });
+    } catch (error) {
+      if (
+        session.inTransaction()
+      ) {
+        await session.abortTransaction();
+      }
+
+      console.error(
+        "Update admin order status error:",
+        error
+      );
+
+      return res.status(400).json({
+        message:
+          error.message ||
+          "Unable to update order status",
+      });
+    } finally {
+      await session.endSession();
     }
-
-    order.status = status;
-
-    await order.save();
-
-    await createNotification({
-      type: "order_status",
-      title: "تم تحديث حالة الطلب",
-      message: `تم تغيير حالة الطلب #${order._id} من "${previousStatus}" إلى "${status}"`,
-      order: order._id,
-    });
-
-    return res.status(200).json({
-      message:
-        "تم تحديث حالة الطلب بنجاح",
-      order,
-    });
-  } catch (error) {
-    console.error(
-      "Update admin order status error:",
-      error
-    );
-
-    return res.status(500).json({
-      message:
-        "حدث خطأ في الخادم، يرجى المحاولة مرة أخرى لاحقًا",
-    });
-  }
-};
+  };
 
 /* =========================================================
    USERS
