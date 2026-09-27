@@ -5,7 +5,6 @@ import mongoose from "mongoose";
 import createNotification from "../utils/createNotification.js";
 import bcrypt from "bcryptjs";
 
-
 const ALLOWED_STATUS_TRANSITIONS = {
   Pending: ["Processing", "Canceled"],
   Processing: ["Out for Delivery", "Canceled"],
@@ -55,14 +54,7 @@ const validationMessage = (error) => {
     .join(", ");
 };
 
-/* =========================================================
-   DASHBOARD
-========================================================= */
-
-export const getDashboardStats = async (
-  req,
-  res
-) => {
+export const getDashboardStats = async (req, res) => {
   try {
     const [
       totalOrders,
@@ -181,42 +173,33 @@ export const getDashboardStats = async (
       Canceled: 0,
     };
 
-    statusCountsResult.forEach(
-      (item) => {
-        if (
-          Object.prototype.hasOwnProperty.call(
-            orderStatusStats,
-            item._id
-          )
-        ) {
-          orderStatusStats[item._id] =
-            item.count;
-        }
+    statusCountsResult.forEach((item) => {
+      if (
+        Object.prototype.hasOwnProperty.call(
+          orderStatusStats,
+          item._id
+        )
+      ) {
+        orderStatusStats[item._id] =
+          item.count;
       }
-    );
+    });
 
     return res.status(200).json({
       totalSales:
         deliveredSalesResult[0]
           ?.totalSales || 0,
-
       totalOrders,
-
       totalUsers,
-
       totalProducts,
-
       recentOrders,
-
-      salesOverview:
-        salesOverview.map(
-          (item) => ({
-            date: item._id,
-            sales: item.sales,
-            orders: item.orders,
-          })
-        ),
-
+      salesOverview: salesOverview.map(
+        (item) => ({
+          date: item._id,
+          sales: item.sales,
+          orders: item.orders,
+        })
+      ),
       orderStatusStats,
     });
   } catch (error) {
@@ -232,14 +215,7 @@ export const getDashboardStats = async (
   }
 };
 
-/* =========================================================
-   PRODUCTS
-========================================================= */
-
-export const getAdminProducts = async (
-  req,
-  res
-) => {
+export const getAdminProducts = async (req, res) => {
   try {
     const products = await Product.find()
       .sort({ createdAt: -1 })
@@ -308,10 +284,6 @@ export const createAdminProduct = async (
       req.body
     );
 
-    /* =========================
-       NAME
-    ========================= */
-
     if (
       !productData.name ||
       typeof productData.name !== "object"
@@ -321,10 +293,6 @@ export const createAdminProduct = async (
           "Product name in Arabic and English is required",
       });
     }
-
-    /* =========================
-       DESCRIPTION
-    ========================= */
 
     if (
       !productData.description ||
@@ -336,21 +304,11 @@ export const createAdminProduct = async (
       });
     }
 
-    /* =========================
-       SLUG
-    ========================= */
-
     if (!productData.slug) {
       return res.status(400).json({
         message: "Product slug is required",
       });
     }
-
-    /* =========================
-       CATEGORY
-       Category is a String,
-       not an ObjectId
-    ========================= */
 
     if (
       !productData.category ||
@@ -362,13 +320,10 @@ export const createAdminProduct = async (
       });
     }
 
-    productData.category = productData.category
-      .trim()
-      .toLowerCase();
-
-    /* =========================
-       PRICE
-    ========================= */
+    productData.category =
+      productData.category
+        .trim()
+        .toLowerCase();
 
     if (
       productData.price === undefined ||
@@ -379,10 +334,6 @@ export const createAdminProduct = async (
         message: "Product price is required",
       });
     }
-
-    /* =========================
-       DUPLICATE CHECK
-    ========================= */
 
     const duplicateConditions = [
       {
@@ -395,9 +346,10 @@ export const createAdminProduct = async (
 
     if (productData.serialNumber) {
       duplicateConditions.push({
-        serialNumber: productData.serialNumber
-          .toString()
-          .trim(),
+        serialNumber:
+          productData.serialNumber
+            .toString()
+            .trim(),
       });
     }
 
@@ -413,14 +365,11 @@ export const createAdminProduct = async (
       });
     }
 
-    /* =========================
-       NORMALIZE DATA
-    ========================= */
-
-    productData.slug = productData.slug
-      .toString()
-      .trim()
-      .toLowerCase();
+    productData.slug =
+      productData.slug
+        .toString()
+        .trim()
+        .toLowerCase();
 
     if (productData.serialNumber) {
       productData.serialNumber =
@@ -429,16 +378,14 @@ export const createAdminProduct = async (
           .trim();
     }
 
-    /* =========================
-       CREATE PRODUCT
-    ========================= */
-
     const product = await Product.create(
       productData
     );
 
     const createdProduct =
-      await Product.findById(product._id).lean();
+      await Product.findById(
+        product._id
+      ).lean();
 
     return res.status(201).json({
       message:
@@ -451,9 +398,8 @@ export const createAdminProduct = async (
       error
     );
 
-    const message = validationMessage(
-      error
-    );
+    const message =
+      validationMessage(error);
 
     if (message) {
       return res.status(400).json({
@@ -510,10 +456,6 @@ export const updateAdminProduct = async (
       });
     }
 
-    /* =========================
-       CATEGORY
-    ========================= */
-
     if (productData.category !== undefined) {
       if (
         typeof productData.category !== "string" ||
@@ -529,10 +471,6 @@ export const updateAdminProduct = async (
           .trim()
           .toLowerCase();
     }
-
-    /* =========================
-       SLUG
-    ========================= */
 
     if (productData.slug) {
       productData.slug =
@@ -557,10 +495,6 @@ export const updateAdminProduct = async (
       }
     }
 
-    /* =========================
-       SERIAL NUMBER
-    ========================= */
-
     if (productData.serialNumber) {
       productData.serialNumber =
         productData.serialNumber
@@ -584,19 +518,11 @@ export const updateAdminProduct = async (
       }
     }
 
-    /* =========================
-       PREVIOUS STOCK
-    ========================= */
-
     const previousStock =
       Number(existingProduct.stock || 0);
 
     const previousColors =
       existingProduct.colors || [];
-
-    /* =========================
-       UPDATE PRODUCT
-    ========================= */
 
     const product =
       await Product.findByIdAndUpdate(
@@ -615,10 +541,6 @@ export const updateAdminProduct = async (
         message: "Product not found",
       });
     }
-
-    /* =========================
-       STOCK NOTIFICATIONS
-    ========================= */
 
     const newStock =
       Number(product.stock || 0);
@@ -650,10 +572,6 @@ export const updateAdminProduct = async (
         product: product._id,
       });
     }
-
-    /* =========================
-       COLOR STOCK NOTIFICATIONS
-    ========================= */
 
     const currentColors =
       product.colors || [];
@@ -729,9 +647,8 @@ export const updateAdminProduct = async (
       error
     );
 
-    const message = validationMessage(
-      error
-    );
+    const message =
+      validationMessage(error);
 
     if (message) {
       return res.status(400).json({
@@ -806,14 +723,6 @@ export const deleteAdminProduct = async (
   }
 };
 
-/* =========================================================
-   ORDERS
-========================================================= */
-
-/* =========================================================
-   ORDERS
-========================================================= */
-
 const ORDER_STATUSES = [
   "Pending",
   "Processing",
@@ -834,15 +743,28 @@ const RESERVED_ORDER_STATUSES = [
 ];
 
 const normalizeAddress = (address = {}) => ({
-  firstName: String(address.firstName || "").trim(),
-  lastName: String(address.lastName || "").trim(),
-  phone: String(address.phone || "").trim(),
-  email: String(address.email || "").trim().toLowerCase(),
-  address: String(address.address || "").trim(),
+  firstName: String(
+    address.firstName || ""
+  ).trim(),
+  lastName: String(
+    address.lastName || ""
+  ).trim(),
+  phone: String(
+    address.phone || ""
+  ).trim(),
+  email: String(
+    address.email || ""
+  )
+    .trim()
+    .toLowerCase(),
+  address: String(
+    address.address || ""
+  ).trim(),
 });
 
 const validateAddress = (address) => {
-  const normalized = normalizeAddress(address);
+  const normalized =
+    normalizeAddress(address);
 
   const fields = [
     "firstName",
@@ -861,8 +783,13 @@ const validateAddress = (address) => {
   return null;
 };
 
-const normalizeOrderProducts = (products) => {
-  if (!Array.isArray(products) || products.length === 0) {
+const normalizeOrderProducts = (
+  products
+) => {
+  if (
+    !Array.isArray(products) ||
+    products.length === 0
+  ) {
     return null;
   }
 
@@ -872,15 +799,26 @@ const normalizeOrderProducts = (products) => {
     if (
       !item ||
       !item.product ||
-      !mongoose.Types.ObjectId.isValid(item.product)
+      !mongoose.Types.ObjectId.isValid(
+        item.product
+      )
     ) {
-      throw new Error("Invalid product ID");
+      throw new Error(
+        "Invalid product ID"
+      );
     }
 
-    const quantity = Number(item.quantity);
+    const quantity = Number(
+      item.quantity
+    );
 
-    if (!Number.isInteger(quantity) || quantity < 1) {
-      throw new Error("Invalid product quantity");
+    if (
+      !Number.isInteger(quantity) ||
+      quantity < 1
+    ) {
+      throw new Error(
+        "Invalid product quantity"
+      );
     }
 
     let colorId = null;
@@ -890,8 +828,14 @@ const normalizeOrderProducts = (products) => {
       item.colorId !== null &&
       item.colorId !== ""
     ) {
-      if (!mongoose.Types.ObjectId.isValid(item.colorId)) {
-        throw new Error("Invalid color ID");
+      if (
+        !mongoose.Types.ObjectId.isValid(
+          item.colorId
+        )
+      ) {
+        throw new Error(
+          "Invalid color ID"
+        );
       }
 
       colorId = item.colorId;
@@ -920,7 +864,9 @@ const restoreOrderStock = async (
       continue;
     }
 
-    const quantity = Number(item.quantity || 0);
+    const quantity = Number(
+      item.quantity || 0
+    );
 
     if (item.colorId) {
       const color = product.colors.id(
@@ -988,7 +934,11 @@ const reserveOrderStock = async (
         item.quantity
       ) {
         throw new Error(
-          `Insufficient stock for ${product.name?.en || product.name?.ar || "product"}`
+          `Insufficient stock for ${
+            product.name?.en ||
+            product.name?.ar ||
+            "product"
+          }`
         );
       }
 
@@ -1000,7 +950,11 @@ const reserveOrderStock = async (
         item.quantity
       ) {
         throw new Error(
-          `Insufficient stock for ${product.name?.en || product.name?.ar || "product"}`
+          `Insufficient stock for ${
+            product.name?.en ||
+            product.name?.ar ||
+            "product"
+          }`
         );
       }
 
@@ -1062,12 +1016,11 @@ const generateOrderNumber = async (
           Math.random() * 900000
       );
 
-    exists =
-      Boolean(
-        await Order.findOne({
-          orderNumber,
-        }).session(session)
-      );
+    exists = Boolean(
+      await Order.findOne({
+        orderNumber,
+      }).session(session)
+    );
   }
 
   return orderNumber;
@@ -1085,7 +1038,114 @@ const populateAdminOrder = async (
       "products.product",
       "name slug price media stock colors"
     )
+    .populate(
+      "editHistory.admin",
+      "name email role"
+    )
     .lean();
+};
+
+const normalizeHistoryValue = (
+  value
+) => {
+  if (
+    value === undefined ||
+    value === null
+  ) {
+    return null;
+  }
+
+  if (
+    value instanceof
+    mongoose.Types.ObjectId
+  ) {
+    return value.toString();
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) =>
+      normalizeHistoryValue(item)
+    );
+  }
+
+  if (
+    typeof value === "object" &&
+    value !== null
+  ) {
+    const normalized = {};
+
+    for (const [key, item] of Object.entries(
+      value
+    )) {
+      normalized[key] =
+        normalizeHistoryValue(item);
+    }
+
+    return normalized;
+  }
+
+  return value;
+};
+
+const valuesAreEqual = (
+  oldValue,
+  newValue
+) => {
+  return (
+    JSON.stringify(
+      normalizeHistoryValue(
+        oldValue
+      )
+    ) ===
+    JSON.stringify(
+      normalizeHistoryValue(
+        newValue
+      )
+    )
+  );
+};
+
+const addOrderEditHistory = (
+  order,
+  adminId,
+  field,
+  oldValue,
+  newValue
+) => {
+  if (!adminId) {
+    return;
+  }
+
+  if (
+    valuesAreEqual(
+      oldValue,
+      newValue
+    )
+  ) {
+    return;
+  }
+
+  if (
+    !Array.isArray(
+      order.editHistory
+    )
+  ) {
+    order.editHistory = [];
+  }
+
+  order.editHistory.push({
+    field,
+    oldValue:
+      normalizeHistoryValue(
+        oldValue
+      ),
+    newValue:
+      normalizeHistoryValue(
+        newValue
+      ),
+    admin: adminId,
+    createdAt: new Date(),
+  });
 };
 
 export const getAdminOrders = async (
@@ -1102,6 +1162,10 @@ export const getAdminOrders = async (
         .populate(
           "products.product",
           "name slug price media stock colors"
+        )
+        .populate(
+          "editHistory.admin",
+          "name email role"
         )
         .sort({
           createdAt: -1,
@@ -1129,7 +1193,9 @@ export const getAdminOrderById =
     const { id } = req.params;
 
     if (
-      !mongoose.Types.ObjectId.isValid(id)
+      !mongoose.Types.ObjectId.isValid(
+        id
+      )
     ) {
       return res.status(400).json({
         message: "Invalid order ID",
@@ -1181,7 +1247,9 @@ export const createAdminOrder =
       if (
         user !== null &&
         user !== "" &&
-        !mongoose.Types.ObjectId.isValid(user)
+        !mongoose.Types.ObjectId.isValid(
+          user
+        )
       ) {
         return res.status(400).json({
           message: "Invalid user ID",
@@ -1194,15 +1262,19 @@ export const createAdminOrder =
         )
       ) {
         return res.status(400).json({
-          message: "Invalid payment method",
+          message:
+            "Invalid payment method",
         });
       }
 
       if (
-        !ORDER_STATUSES.includes(status)
+        !ORDER_STATUSES.includes(
+          status
+        )
       ) {
         return res.status(400).json({
-          message: "Invalid order status",
+          message:
+            "Invalid order status",
         });
       }
 
@@ -1252,9 +1324,7 @@ export const createAdminOrder =
       let orderProducts = [];
       let subtotal = 0;
 
-      if (
-        status !== "Canceled"
-      ) {
+      if (status !== "Canceled") {
         const result =
           await reserveOrderStock(
             products,
@@ -1453,7 +1523,9 @@ export const updateAdminOrder =
       if (
         user !== null &&
         user !== "" &&
-        !mongoose.Types.ObjectId.isValid(user)
+        !mongoose.Types.ObjectId.isValid(
+          user
+        )
       ) {
         return res.status(400).json({
           message: "Invalid user ID",
@@ -1489,8 +1561,7 @@ export const updateAdminOrder =
 
       if (addressError) {
         return res.status(400).json({
-          message:
-            addressError,
+          message: addressError,
         });
       }
 
@@ -1542,6 +1613,65 @@ export const updateAdminOrder =
       const oldStatus =
         order.status;
 
+      const oldUser =
+        order.user;
+
+      const oldProducts =
+        order.products.map(
+          (item) => ({
+            product:
+              item.product?.toString?.() ||
+              item.product,
+            colorId:
+              item.colorId?.toString?.() ||
+              item.colorId ||
+              null,
+            quantity:
+              Number(
+                item.quantity || 0
+              ),
+            priceAtPurchase:
+              Number(
+                item.priceAtPurchase ||
+                  0
+              ),
+            colorName:
+              item.colorName || {
+                ar: "",
+                en: "",
+              },
+            colorHex:
+              item.colorHex || "",
+          })
+        );
+
+      const oldShippingAddress = {
+        firstName:
+          order.shippingAddress
+            ?.firstName || "",
+        lastName:
+          order.shippingAddress
+            ?.lastName || "",
+        phone:
+          order.shippingAddress
+            ?.phone || "",
+        email:
+          order.shippingAddress
+            ?.email || "",
+        address:
+          order.shippingAddress
+            ?.address || "",
+      };
+
+      const oldPaymentMethod =
+        order.paymentMethod;
+
+      const oldShipping =
+        Number(order.shipping || 0);
+
+      const oldDiscount =
+        Number(order.discount || 0);
+
       if (
         RESERVED_ORDER_STATUSES.includes(
           oldStatus
@@ -1567,9 +1697,7 @@ export const updateAdminOrder =
       let orderProducts = [];
       let subtotal = 0;
 
-      if (
-        status !== "Canceled"
-      ) {
+      if (status !== "Canceled") {
         const result =
           await reserveOrderStock(
             normalized,
@@ -1657,6 +1785,9 @@ export const updateAdminOrder =
         );
       }
 
+      const adminId =
+        req.user?.id;
+
       order.user =
         user || null;
 
@@ -1686,6 +1817,64 @@ export const updateAdminOrder =
       order.status =
         status;
 
+      addOrderEditHistory(
+        order,
+        adminId,
+        "user",
+        oldUser,
+        user || null
+      );
+
+      addOrderEditHistory(
+        order,
+        adminId,
+        "products",
+        oldProducts,
+        orderProducts
+      );
+
+      addOrderEditHistory(
+        order,
+        adminId,
+        "shippingAddress",
+        oldShippingAddress,
+        normalizeAddress(
+          shippingAddress
+        )
+      );
+
+      addOrderEditHistory(
+        order,
+        adminId,
+        "paymentMethod",
+        oldPaymentMethod,
+        paymentMethod
+      );
+
+      addOrderEditHistory(
+        order,
+        adminId,
+        "shipping",
+        oldShipping,
+        shippingValue
+      );
+
+      addOrderEditHistory(
+        order,
+        adminId,
+        "discount",
+        oldDiscount,
+        discountValue
+      );
+
+      addOrderEditHistory(
+        order,
+        adminId,
+        "status",
+        oldStatus,
+        status
+      );
+
       await order.save({
         session,
         validateBeforeSave:
@@ -1698,6 +1887,18 @@ export const updateAdminOrder =
         await populateAdminOrder(
           order._id
         );
+
+      if (
+        oldStatus !== status
+      ) {
+        await createNotification({
+          type: "order_status",
+          title:
+            "تم تحديث حالة الطلب",
+          message: `تم تغيير حالة الطلب #${order._id} من "${oldStatus}" إلى "${status}"`,
+          order: order._id,
+        });
+      }
 
       return res.status(200).json({
         message:
@@ -1915,8 +2116,19 @@ export const updateAdminOrderStatus =
           result.orderProducts;
       }
 
+      const adminId =
+        req.user?.id;
+
       order.status =
         status;
+
+      addOrderEditHistory(
+        order,
+        adminId,
+        "status",
+        previousStatus,
+        status
+      );
 
       await order.save({
         session,
@@ -1967,11 +2179,6 @@ export const updateAdminOrderStatus =
     }
   };
 
-/* =========================================================
-   USERS
-========================================================= */
-
-
 export const getAdminUsers = async (
   req,
   res
@@ -2009,14 +2216,18 @@ export const getAdminSettings = async (
 
     if (
       !userId ||
-      !mongoose.Types.ObjectId.isValid(userId)
+      !mongoose.Types.ObjectId.isValid(
+        userId
+      )
     ) {
       return res.status(401).json({
         message: "Unauthorized",
       });
     }
 
-    const user = await User.findById(userId)
+    const user = await User.findById(
+      userId
+    )
       .select("name email role")
       .lean();
 
@@ -2051,7 +2262,9 @@ export const updateAdminSettings = async (
 
     if (
       !userId ||
-      !mongoose.Types.ObjectId.isValid(userId)
+      !mongoose.Types.ObjectId.isValid(
+        userId
+      )
     ) {
       return res.status(401).json({
         message: "Unauthorized",
@@ -2065,9 +2278,10 @@ export const updateAdminSettings = async (
       newPassword,
     } = req.body;
 
-    const user = await User.findById(userId).select(
-      "+password"
-    );
+    const user =
+      await User.findById(userId).select(
+        "+password"
+      );
 
     if (!user) {
       return res.status(404).json({
@@ -2075,10 +2289,9 @@ export const updateAdminSettings = async (
       });
     }
 
-    if (
-      name !== undefined
-    ) {
-      const normalizedName = String(name).trim();
+    if (name !== undefined) {
+      const normalizedName =
+        String(name).trim();
 
       if (
         normalizedName.length < 2 ||
@@ -2093,12 +2306,11 @@ export const updateAdminSettings = async (
       user.name = normalizedName;
     }
 
-    if (
-      email !== undefined
-    ) {
-      const normalizedEmail = String(email)
-        .trim()
-        .toLowerCase();
+    if (email !== undefined) {
+      const normalizedEmail =
+        String(email)
+          .trim()
+          .toLowerCase();
 
       if (
         normalizedEmail.length < 5 ||
@@ -2108,7 +2320,8 @@ export const updateAdminSettings = async (
         )
       ) {
         return res.status(400).json({
-          message: "Invalid email address",
+          message:
+            "Invalid email address",
         });
       }
 
@@ -2127,7 +2340,8 @@ export const updateAdminSettings = async (
         });
       }
 
-      user.email = normalizedEmail;
+      user.email =
+        normalizedEmail;
     }
 
     if (

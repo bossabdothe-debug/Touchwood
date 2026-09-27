@@ -50,14 +50,42 @@ const orderProductSchema = new Schema(
   }
 );
 
+const orderEditHistorySchema = new Schema(
+  {
+    field: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    oldValue: {
+      type: Schema.Types.Mixed,
+      default: null,
+    },
+
+    newValue: {
+      type: Schema.Types.Mixed,
+      default: null,
+    },
+
+    admin: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+
+    createdAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  {
+    _id: true,
+  }
+);
+
 const ordersSchema = new Schema(
   {
-    /*
-     * User ID:
-     *
-     * - Registered user => ObjectId
-     * - Guest => null
-     */
     user: {
       type: Schema.Types.ObjectId,
       ref: "User",
@@ -142,12 +170,6 @@ const ordersSchema = new Schema(
       },
     },
 
-    /*
-     * Human-readable unique order number.
-     *
-     * Example:
-     * 384921
-     */
     orderNumber: {
       type: Number,
       required: true,
@@ -174,6 +196,11 @@ const ordersSchema = new Schema(
         "Delivered",
       ],
       default: "Pending",
+    },
+
+    editHistory: {
+      type: [orderEditHistorySchema],
+      default: [],
     },
   },
   {

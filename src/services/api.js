@@ -390,7 +390,17 @@ export const getAdminDashboard = async (
     }
   );
 };
-
+export const getAdminOrder = async (
+  token,
+  orderId
+) => {
+  return apiRequest(
+    `/admin/orders/${orderId}`,
+    {
+      token,
+    }
+  );
+};
 export const getAdminOrders = async (token) => {
   return apiRequest("/admin/orders", { token });
 };

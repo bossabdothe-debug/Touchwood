@@ -73,6 +73,20 @@ type OrderProduct = {
   priceAtPurchase?: number;
 };
 
+type EditHistory = {
+  _id?: string;
+  field: string;
+  oldValue?: unknown;
+  newValue?: unknown;
+  admin?: {
+    _id?: string;
+    name?: string;
+    email?: string;
+    role?: string;
+  } | null;
+  createdAt: string;
+};
+
 type Order = {
   _id: string;
   orderNumber: number;
@@ -92,6 +106,7 @@ type Order = {
     address: string;
   };
   products: OrderProduct[];
+  editHistory?: EditHistory[];
 };
 
 type FormProduct = {
@@ -128,9 +143,7 @@ const money = (
   locale: Locale
 ) =>
   new Intl.NumberFormat(
-    locale === "ar"
-      ? "ar-EG"
-      : "en-EG",
+    locale === "ar" ? "ar-EG" : "en-EG",
     {
       style: "currency",
       currency: "EGP",
@@ -255,6 +268,253 @@ const getInitialForm = (): {
   address: "",
 });
 
+const getHistoryFieldLabel = (
+  field: string,
+  locale: Locale
+) => {
+  const values: Record<
+    string,
+    [string, string]
+  > = {
+    user: ["العميل", "Customer"],
+    products: ["المنتجات", "Products"],
+    shippingAddress: [
+      "عنوان الشحن",
+      "Shipping Address",
+    ],
+    paymentMethod: [
+      "طريقة الدفع",
+      "Payment Method",
+    ],
+    shipping: ["الشحن", "Shipping"],
+    discount: ["الخصم", "Discount"],
+    status: ["الحالة", "Status"],
+  };
+
+  return (
+    values[field]?.[
+      locale === "ar" ? 0 : 1
+    ] || field
+  );
+};
+
+const getPaymentLabel = (
+  value: unknown,
+  locale: Locale
+) => {
+  if (value === "Cash On Delivery") {
+    return text(
+      locale,
+      "الدفع عند الاستلام",
+      "Cash On Delivery"
+    );
+  }
+
+  if (value === "Vodafone Cash") {
+    return "Vodafone Cash";
+  }
+
+  if (
+    value === null ||
+    value === undefined ||
+    value === ""
+  ) {
+    return text(
+      locale,
+      "غير محدد",
+      "Not specified"
+    );
+  }
+
+  return String(value);
+};
+
+const getHistoryValue = (
+  value: unknown,
+  field: string,
+  locale: Locale
+): string => {
+  if (
+    value === null ||
+    value === undefined ||
+    value === ""
+  ) {
+    return text(
+      locale,
+      "غير محدد",
+      "Not specified"
+    );
+  }
+
+  if (field === "status") {
+    return statusLabel(
+      String(value),
+      locale
+    );
+  }
+
+  if (field === "paymentMethod") {
+    return getPaymentLabel(
+      value,
+      locale
+    );
+  }
+
+  if (field === "shipping") {
+    return money(
+      Number(value) || 0,
+      locale
+    );
+  }
+
+  if (field === "discount") {
+    return money(
+      Number(value) || 0,
+      locale
+    );
+  }
+
+  if (
+    field === "user" &&
+    typeof value === "object" &&
+    value !== null
+  ) {
+    const user =
+      value as User;
+
+    return (
+      user.name ||
+      user.email ||
+      user.phone ||
+      String(
+        user._id || ""
+      ) ||
+      text(
+        locale,
+        "غير محدد",
+        "Not specified"
+      )
+    );
+  }
+
+  if (
+    field === "shippingAddress" &&
+    typeof value === "object" &&
+    value !== null
+  ) {
+    const address =
+      value as {
+        firstName?: string;
+        lastName?: string;
+        phone?: string;
+        email?: string;
+        address?: string;
+      };
+
+    const parts = [
+      `${address.firstName || ""} ${
+        address.lastName || ""
+      }`.trim(),
+      address.phone || "",
+      address.email || "",
+      address.address || "",
+    ].filter(Boolean);
+
+    return (
+      parts.join(" — ") ||
+      text(
+        locale,
+        "غير محدد",
+        "Not specified"
+      )
+    );
+  }
+
+  if (
+    field === "products" &&
+    Array.isArray(value)
+  ) {
+    return value
+      .map((item, index) => {
+        if (
+          typeof item !==
+            "object" ||
+          item === null
+        ) {
+          return `${index + 1}. ${String(
+            item
+          )}`;
+        }
+
+        const product =
+          item as {
+            product?: unknown;
+            quantity?: number;
+            colorId?: string | null;
+          };
+
+        const productValue =
+          typeof product.product ===
+            "object" &&
+          product.product !== null
+            ? (
+                product.product as {
+                  name?: Localized;
+                  _id?: string;
+                }
+              ).name?.[locale] ||
+              (
+                product.product as {
+                  name?: Localized;
+                  _id?: string;
+                }
+              ).name?.ar ||
+              (
+                product.product as {
+                  name?: Localized;
+                  _id?: string;
+                }
+              ).name?.en ||
+              (
+                product.product as {
+                  name?: Localized;
+                  _id?: string;
+                }
+              )._id
+            : String(
+                product.product ||
+                  ""
+              );
+
+        return `${productValue} × ${
+          product.quantity || 1
+        }`;
+      })
+      .join("، ");
+  }
+
+  if (
+    typeof value === "object" &&
+    value !== null
+  ) {
+    try {
+      return JSON.stringify(
+        value,
+        null,
+        2
+      );
+    } catch {
+      return text(
+        locale,
+        "قيمة غير قابلة للعرض",
+        "Value unavailable"
+      );
+    }
+  }
+
+  return String(value);
+};
+
 export default function OrdersPage() {
   const locale: Locale =
     typeof window !== "undefined" &&
@@ -304,6 +564,14 @@ export default function OrdersPage() {
 
   const [deleteTarget, setDeleteTarget] =
     useState<Order | null>(null);
+
+  const [
+    statusChangeTarget,
+    setStatusChangeTarget,
+  ] = useState<{
+    order: Order;
+    status: string;
+  } | null>(null);
 
   const [form, setForm] =
     useState(getInitialForm());
@@ -669,12 +937,38 @@ export default function OrdersPage() {
     }
   };
 
-  const handleStatusChange =
-    async (
-      order: Order,
-      status: string
-    ) => {
-      if (!token) return;
+  const requestStatusChange = (
+    order: Order,
+    status: string
+  ) => {
+    if (
+      status === order.status
+    ) {
+      return;
+    }
+
+    setStatusChangeTarget({
+      order,
+      status,
+    });
+  };
+
+  const confirmStatusChange =
+    async () => {
+      if (
+        !token ||
+        !statusChangeTarget
+      ) {
+        return;
+      }
+
+      setSaving(true);
+      setError("");
+
+      const {
+        order,
+        status,
+      } = statusChangeTarget;
 
       try {
         const response =
@@ -695,7 +989,19 @@ export default function OrdersPage() {
                     : item
               )
           );
+
+          setDetailsOrder(
+            (current) =>
+              current?._id ===
+              order._id
+                ? response.order
+                : current
+          );
         }
+
+        setStatusChangeTarget(
+          null
+        );
       } catch (requestError) {
         setError(
           requestError instanceof Error
@@ -706,6 +1012,8 @@ export default function OrdersPage() {
                 "Unable to update order status"
               )
         );
+      } finally {
+        setSaving(false);
       }
     };
 
@@ -1106,7 +1414,7 @@ export default function OrdersPage() {
                             onChange={(
                               event
                             ) =>
-                              handleStatusChange(
+                              requestStatusChange(
                                 order,
                                 event
                                   .target
@@ -1317,9 +1625,10 @@ export default function OrdersPage() {
                 </span>
 
                 <strong>
-                  {
-                    detailsOrder.paymentMethod
-                  }
+                  {getPaymentLabel(
+                    detailsOrder.paymentMethod,
+                    locale
+                  )}
                 </strong>
               </div>
 
@@ -1470,6 +1779,164 @@ export default function OrdersPage() {
                   )}
                 </strong>
               </div>
+            </div>
+
+            <div className="orders-history-section">
+              <div className="orders-history-header">
+                <div>
+                  <span>
+                    {text(
+                      locale,
+                      "سجل الطلب",
+                      "Order History"
+                    )}
+                  </span>
+
+                  <h3>
+                    {text(
+                      locale,
+                      "سجل التعديلات",
+                      "Edit History"
+                    )}
+                  </h3>
+                </div>
+
+                <span className="orders-history-count">
+                  {
+                    detailsOrder.editHistory
+                      ?.length || 0
+                  }
+                </span>
+              </div>
+
+              {!detailsOrder.editHistory ||
+              detailsOrder.editHistory.length ===
+                0 ? (
+                <div className="orders-history-empty">
+                  {text(
+                    locale,
+                    "لا توجد تعديلات مسجلة على هذا الطلب.",
+                    "No changes have been recorded for this order."
+                  )}
+                </div>
+              ) : (
+                <div className="orders-history-list">
+                  {[
+                    ...detailsOrder.editHistory,
+                  ]
+                    .sort(
+                      (a, b) =>
+                        new Date(
+                          b.createdAt
+                        ).getTime() -
+                        new Date(
+                          a.createdAt
+                        ).getTime()
+                    )
+                    .map(
+                      (
+                        history,
+                        index
+                      ) => (
+                        <div
+                          className="orders-history-item"
+                          key={
+                            history._id ||
+                            `${history.createdAt}-${history.field}-${index}`
+                          }
+                        >
+                          <div className="orders-history-marker">
+                            <span />
+                          </div>
+
+                          <div className="orders-history-content">
+                            <div className="orders-history-top">
+                              <strong>
+                                {getHistoryFieldLabel(
+                                  history.field,
+                                  locale
+                                )}
+                              </strong>
+
+                              <time dir="ltr">
+                                {formatOrderDate(
+                                  history.createdAt,
+                                  locale
+                                )}
+                              </time>
+                            </div>
+
+                            <div className="orders-history-admin">
+                              <span>
+                                {text(
+                                  locale,
+                                  "تم بواسطة",
+                                  "Changed by"
+                                )}
+                              </span>
+
+                              <strong>
+                                {history.admin?.name ||
+                                  history.admin?.email ||
+                                  text(
+                                    locale,
+                                    "أدمن",
+                                    "Admin"
+                                  )}
+                              </strong>
+                            </div>
+
+                            <div className="orders-history-values">
+                              <div className="orders-history-value">
+                                <span>
+                                  {text(
+                                    locale,
+                                    "قبل",
+                                    "Before"
+                                  )}
+                                </span>
+
+                                <p>
+                                  {getHistoryValue(
+                                    history.oldValue,
+                                    history.field,
+                                    locale
+                                  )}
+                                </p>
+                              </div>
+
+                              <div className="orders-history-arrow">
+                                <ChevronDown
+                                  size={
+                                    18
+                                  }
+                                />
+                              </div>
+
+                              <div className="orders-history-value orders-history-new">
+                                <span>
+                                  {text(
+                                    locale,
+                                    "بعد",
+                                    "After"
+                                  )}
+                                </span>
+
+                                <p>
+                                  {getHistoryValue(
+                                    history.newValue,
+                                    history.field,
+                                    locale
+                                  )}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -2129,6 +2596,105 @@ export default function OrdersPage() {
               </button>
             </div>
           </form>
+        </div>
+      )}
+
+      {statusChangeTarget && (
+        <div
+          className="orders-modal-overlay"
+          onMouseDown={() =>
+            !saving &&
+            setStatusChangeTarget(
+              null
+            )
+          }
+        >
+          <div
+            className="orders-confirm-modal orders-status-confirm-modal"
+            onMouseDown={(
+              event
+            ) =>
+              event.stopPropagation()
+            }
+          >
+            <div className="orders-confirm-icon">
+              <RefreshCw size={24} />
+            </div>
+
+            <h2>
+              {text(
+                locale,
+                "تأكيد تغيير الحالة",
+                "Confirm Status Change"
+              )}
+            </h2>
+
+            <p>
+              {text(
+                locale,
+                `هل أنت متأكد من تغيير حالة الطلب #${statusChangeTarget.order.orderNumber} من "${statusLabel(
+                  statusChangeTarget.order.status,
+                  locale
+                )}" إلى "${statusLabel(
+                  statusChangeTarget.status,
+                  locale
+                )}"؟`,
+                `Are you sure you want to change order #${statusChangeTarget.order.orderNumber} from "${statusLabel(
+                  statusChangeTarget.order.status,
+                  locale
+                )}" to "${statusLabel(
+                  statusChangeTarget.status,
+                  locale
+                )}"?`
+              )}
+            </p>
+
+            <div className="orders-confirm-actions">
+              <button
+                type="button"
+                onClick={() =>
+                  setStatusChangeTarget(
+                    null
+                  )
+                }
+                disabled={saving}
+              >
+                {text(
+                  locale,
+                  "إلغاء",
+                  "Cancel"
+                )}
+              </button>
+
+              <button
+                type="button"
+                className="orders-primary-button"
+                onClick={
+                  confirmStatusChange
+                }
+                disabled={saving}
+              >
+                {saving ? (
+                  <Loader2
+                    size={17}
+                    className="orders-spin"
+                  />
+                ) : null}
+
+                {saving
+                  ? text(
+                      locale,
+                      "جاري التحديث...",
+                      "Updating..."
+                    )
+                  : text(
+                      locale,
+                      "تأكيد التغيير",
+                      "Confirm Change"
+                    )}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
