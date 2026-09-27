@@ -43,48 +43,38 @@ const apiRequest = async (
       .json()
       .catch(() => ({}));
 
-  /*
-   * IMPORTANT:
-   *
-   * Only trigger session-expired
-   * when this request actually used
-   * an authentication token.
-   *
-   * This prevents normal login errors
-   * such as "Invalid email or password"
-   * from opening the expiration popup.
-   */
-if (
-  response.status === 401 &&
-  token &&
-  typeof window !== "undefined"
-) {
-  const shouldLogout =
-    data?.code === "AUTH_TOKEN_INVALID" ||
-    data?.code === "AUTH_TOKEN_EXPIRED";
+  if (
+    response.status === 401 &&
+    token &&
+    typeof window !== "undefined"
+  ) {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
 
-  if (shouldLogout) {
     window.dispatchEvent(
-      new CustomEvent("touchwood-session-expired", {
-        detail: {
-          reason:
-            data?.code === "AUTH_TOKEN_EXPIRED"
-              ? "expired"
-              : "unauthorized",
-        },
-      })
+      new CustomEvent(
+        "touchwood-session-expired",
+        {
+          detail: {
+            reason:
+              data?.code ===
+              "AUTH_TOKEN_EXPIRED"
+                ? "expired"
+                : "unauthorized",
+          },
+        }
+      )
     );
   }
-}
 
   if (!response.ok) {
-   const error = new Error(
-  data?.message || "Request failed"
-);
+    const error = new Error(
+      data?.message || "Request failed"
+    );
 
-error.code = data?.code;
+    error.code = data?.code;
 
-throw error;
+    throw error;
   }
 
   return data;

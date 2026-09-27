@@ -125,7 +125,7 @@ export default function AdminSidebar({
           const active = isActive(item.href);
 
           return (
-            <Link
+            <a
               key={item.href}
               href={item.href}
               onClick={onClose}
@@ -138,7 +138,7 @@ export default function AdminSidebar({
               <Icon size={20} strokeWidth={1.9} />
 
               <span>{item.label}</span>
-            </Link>
+            </a>
           );
         })}
       </nav>

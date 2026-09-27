@@ -27,7 +27,7 @@ import {
   createProduct,
   createUploadUrl,
   deleteProduct,
-  getProducts,
+  getAdminProducts,
   updateProduct,
   uploadImageToR2,
 } from "@/services/api";
@@ -162,89 +162,49 @@ function generateSlug(value: string) {
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
-
   const [form, setForm] = useState(emptyForm());
-
   const [editingProduct, setEditingProduct] =
     useState<Product | null>(null);
-
   const [primaryImage, setPrimaryImage] =
     useState<Media | null>(null);
-
   const [galleryImages, setGalleryImages] =
     useState<Media[]>([]);
-
   const [colors, setColors] =
     useState<ProductColor[]>([]);
-
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] =
     useState("all");
-
   const [stockFilter, setStockFilter] =
     useState<StockFilter>("all");
-
   const [featuredFilter, setFeaturedFilter] =
     useState<FeaturedFilter>("all");
-
   const [showForm, setShowForm] =
     useState(false);
-
   const [deleteTarget, setDeleteTarget] =
     useState<Product | null>(null);
-
   const [loading, setLoading] =
     useState(true);
-
   const [saving, setSaving] =
     useState(false);
-
   const [uploading, setUploading] =
     useState(false);
-
   const [deleting, setDeleting] =
     useState(false);
-
   const [selectedProducts, setSelectedProducts] =
     useState<string[]>([]);
-
   const [bulkDeleteOpen, setBulkDeleteOpen] =
     useState(false);
-
   const [bulkDeleting, setBulkDeleting] =
     useState(false);
-
-  /*
-   * الرسالة العامة:
-   * تستخدم للنجاح والحذف والعمليات خارج الفورم.
-   */
   const [message, setMessage] =
     useState("");
-
   const [messageType, setMessageType] =
     useState<"error" | "success">("error");
-
-  /*
-   * رسالة خطأ خاصة بفورم المنتج.
-   *
-   * هذه الرسالة تظهر داخل الـ Modal
-   * مباشرة أسفل عنوان الفورم.
-   */
   const [formError, setFormError] =
     useState("");
-
-  /*
-   * مرجع لجسم الـ Modal.
-   *
-   * نستخدمه لإرجاع الـ scroll إلى الأعلى
-   * عندما يظهر خطأ أثناء الحفظ.
-   */
   const modalBodyRef =
     useRef<HTMLDivElement | null>(null);
 
-  /*
-   * إجمالي مخزون جميع الألوان
-   */
   const colorsStockTotal = useMemo(() => {
     return colors.reduce(
       (total, color) =>
@@ -275,10 +235,6 @@ export default function ProductsPage() {
     };
   }, [showForm, deleteTarget]);
 
-  /*
-   * عند وجود ألوان:
-   * نحسب المخزون تلقائيًا ونضعه في form.stock.
-   */
   useEffect(() => {
     if (colors.length === 0) {
       return;
@@ -299,11 +255,6 @@ export default function ProductsPage() {
     });
   }, [colorsStockTotal, colors.length]);
 
-  /*
-   * عند ظهور خطأ داخل الفورم:
-   * نرجع الـ Modal إلى أعلى الصفحة الداخلية
-   * حتى تكون الرسالة ظاهرة للمستخدم.
-   */
   useEffect(() => {
     if (!formError) {
       return;
@@ -317,16 +268,62 @@ export default function ProductsPage() {
     });
   }, [formError]);
 
+  const handleSessionExpired = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    window.dispatchEvent(
+      new Event("touchwood-auth-change")
+    );
+    window.location.href = "/ar/login";
+  };
+
+  const isUnauthorizedError = (
+    error: unknown
+  ) => {
+    if (!(error instanceof Error)) {
+      return false;
+    }
+
+    const message =
+      error.message.toLowerCase();
+
+    return (
+      message.includes("unauthorized") ||
+      message.includes("token") ||
+      message.includes("expired") ||
+      message.includes("authentication") ||
+      message.includes("jwt") ||
+      message.includes("غير مصرح") ||
+      message.includes("انتهت صلاحية") ||
+      message.includes("تسجيل الدخول")
+    );
+  };
+
   const loadProducts = async () => {
     try {
       setLoading(true);
 
-      const data = await getProducts();
+      const token =
+        localStorage.getItem("token");
 
-      setProducts(
-        Array.isArray(data) ? data : []
-      );
-    } catch (error) {
+      if (!token) {
+        handleSessionExpired();
+        return;
+      }
+
+const data =
+  await getAdminProducts(token);
+
+setProducts(
+  Array.isArray(data)
+    ? data
+    : data?.products || []
+);} catch (error) {
+      if (isUnauthorizedError(error)) {
+        handleSessionExpired();
+        return;
+      }
+
       showMessage(
         error instanceof Error
           ? error.message
@@ -338,12 +335,6 @@ export default function ProductsPage() {
     }
   };
 
-  /*
-   * عرض الرسائل العامة.
-   *
-   * إذا كان الخطأ متعلقًا بالفورم،
-   * يتم وضع نسخة منه داخل الفورم أيضًا.
-   */
   const showMessage = (
     text: string,
     type: "error" | "success" = "error"
@@ -356,14 +347,10 @@ export default function ProductsPage() {
     }
   };
 
-  /*
-   * عرض خطأ داخل فورم المنتج فقط.
-   */
   const showFormError = (
     text: string
   ) => {
     setFormError(text);
-
     setMessage("");
   };
 
@@ -432,10 +419,8 @@ export default function ProductsPage() {
     setPrimaryImage(null);
     setGalleryImages([]);
     setColors([]);
-
     setMessage("");
     setFormError("");
-
     setShowForm(true);
   };
 
@@ -454,40 +439,31 @@ export default function ProductsPage() {
       name:
         product.name ||
         emptyLocalized(),
-
       description:
         product.description ||
         emptyLocalized(),
-
       slug: product.slug || "",
-
       category:
         product.category || "",
-
       price:
         product.price !== undefined &&
         product.price !== null
           ? String(product.price)
           : "",
-
       oldPrice:
         product.oldPrice === null ||
         product.oldPrice === undefined
           ? ""
           : String(product.oldPrice),
-
       serialNumber:
         product.serialNumber || "",
-
       stock:
         product.stock !== undefined &&
         product.stock !== null
           ? String(product.stock)
           : "0",
-
       featured:
         Boolean(product.featured),
-
       active:
         product.active !== false,
     });
@@ -510,7 +486,6 @@ export default function ProductsPage() {
 
     setMessage("");
     setFormError("");
-
     setShowForm(true);
   };
 
@@ -522,8 +497,9 @@ export default function ProductsPage() {
       localStorage.getItem("token");
 
     if (!token) {
+      handleSessionExpired();
       throw new Error(
-        "يرجى تسجيل الدخول كمسؤول أولًا"
+        "انتهت جلسة تسجيل الدخول"
       );
     }
 
@@ -544,32 +520,40 @@ export default function ProductsPage() {
       );
     }
 
-    const upload =
-      await createUploadUrl(
-        token,
-        file.name,
-        file.type,
-        "products/gallery"
+    try {
+      const upload =
+        await createUploadUrl(
+          token,
+          file.name,
+          file.type,
+          "products/gallery"
+        );
+
+      await uploadImageToR2(
+        upload.uploadUrl,
+        file
       );
 
-    await uploadImageToR2(
-      upload.uploadUrl,
-      file
-    );
+      return {
+        type: "image" as const,
+        url: upload.publicUrl,
+        storageKey: upload.key,
+        thumbnail:
+          upload.publicUrl,
+        alt: {
+          ar: form.name.ar,
+          en: form.name.en,
+        },
+        sortOrder: 0,
+        isPrimary,
+      };
+    } catch (error) {
+      if (isUnauthorizedError(error)) {
+        handleSessionExpired();
+      }
 
-    return {
-      type: "image" as const,
-      url: upload.publicUrl,
-      storageKey: upload.key,
-      thumbnail:
-        upload.publicUrl,
-      alt: {
-        ar: form.name.ar,
-        en: form.name.en,
-      },
-      sortOrder: 0,
-      isPrimary,
-    };
+      throw error;
+    }
   };
 
   const handleImageUpload = async (
@@ -613,9 +597,7 @@ export default function ProductsPage() {
           setGalleryImages(
             (current) => [
               ...current,
-              ...uploadedImages.slice(
-                1
-              ),
+              ...uploadedImages.slice(1),
             ]
           );
         }
@@ -633,6 +615,11 @@ export default function ProductsPage() {
         "success"
       );
     } catch (error) {
+      if (isUnauthorizedError(error)) {
+        handleSessionExpired();
+        return;
+      }
+
       showFormError(
         error instanceof Error
           ? error.message
@@ -649,24 +636,16 @@ export default function ProductsPage() {
   ) => {
     event.preventDefault();
 
-    /*
-     * إزالة الخطأ السابق بمجرد محاولة الحفظ
-     */
     clearFormError();
 
     const token =
       localStorage.getItem("token");
 
     if (!token) {
-      showFormError(
-        "يرجى تسجيل الدخول كمسؤول أولًا"
-      );
+      handleSessionExpired();
       return;
     }
 
-    /*
-     * التحقق من الحقول الأساسية
-     */
     if (
       !form.name.ar.trim() ||
       !form.name.en.trim() ||
@@ -683,15 +662,9 @@ export default function ProductsPage() {
       return;
     }
 
-    /*
-     * المخزون الذي أدخله المستخدم
-     */
     const enteredStock =
       Number(form.stock);
 
-    /*
-     * التأكد أن قيمة المخزون رقم صحيح
-     */
     if (
       !Number.isFinite(
         enteredStock
@@ -707,12 +680,6 @@ export default function ProductsPage() {
       return;
     }
 
-    /*
-     * إذا كان هناك ألوان:
-     *
-     * مخزون المنتج =
-     * مجموع مخزون جميع الألوان
-     */
     if (colors.length > 0) {
       const calculatedStock =
         colors.reduce(
@@ -734,9 +701,6 @@ export default function ProductsPage() {
       }
     }
 
-    /*
-     * التأكد من أن كل لون لديه اسم
-     */
     if (colors.length > 0) {
       const invalidColor =
         colors.some(
@@ -753,9 +717,6 @@ export default function ProductsPage() {
       }
     }
 
-    /*
-     * التأكد أن مخزون كل لون صحيح
-     */
     if (colors.length > 0) {
       const invalidColorStock =
         colors.some(
@@ -801,7 +762,6 @@ export default function ProductsPage() {
         ar:
           image.alt?.ar ||
           form.name.ar,
-
         en:
           image.alt?.en ||
           form.name.en,
@@ -810,54 +770,38 @@ export default function ProductsPage() {
 
     const productData = {
       name: form.name,
-
       description:
         form.description,
-
       slug: generatedSlug,
-
       category:
         form.category,
-
       price:
         Number(form.price),
-
       oldPrice:
         form.oldPrice
-          ? Number(
-              form.oldPrice
-            )
+          ? Number(form.oldPrice)
           : null,
-
       serialNumber:
         form.serialNumber.trim(),
-
       stock:
         enteredStock,
-
       featured:
         form.featured,
-
       active:
         form.active,
-
       media,
-
       colors: colors.map(
         (color) => ({
           ...color,
-
           stock:
             Number(
               color.stock
             ) || 0,
-
           serialNumber:
             color.serialNumber?.trim() ||
             "",
         })
       ),
-
       specifications: [],
     };
 
@@ -896,11 +840,11 @@ export default function ProductsPage() {
 
       await loadProducts();
     } catch (error) {
-      /*
-       * مهم:
-       * خطأ الـ API يظهر داخل نافذة الفورم
-       * بدل أن يختفي خلف الـ Modal.
-       */
+      if (isUnauthorizedError(error)) {
+        handleSessionExpired();
+        return;
+      }
+
       showFormError(
         error instanceof Error
           ? error.message
@@ -965,29 +909,45 @@ export default function ProductsPage() {
       localStorage.getItem("token");
 
     if (!token) {
-      showMessage(
-        "يرجى تسجيل الدخول كمسؤول أولًا",
-        "error"
-      );
+      handleSessionExpired();
       return;
     }
 
     try {
       setBulkDeleting(true);
 
-      const results = await Promise.allSettled(
-        selectedProducts.map((productId) =>
-          deleteProduct(
-            token,
-            productId
+      const results =
+        await Promise.allSettled(
+          selectedProducts.map(
+            (productId) =>
+              deleteProduct(
+                token,
+                productId
+              )
           )
-        )
-      );
+        );
 
-      const deletedIds = selectedProducts.filter(
-        (_, index) =>
-          results[index].status === "fulfilled"
-      );
+      const unauthorized =
+        results.some(
+          (result) =>
+            result.status ===
+              "rejected" &&
+            isUnauthorizedError(
+              result.reason
+            )
+        );
+
+      if (unauthorized) {
+        handleSessionExpired();
+        return;
+      }
+
+      const deletedIds =
+        selectedProducts.filter(
+          (_, index) =>
+            results[index].status ===
+            "fulfilled"
+        );
 
       setProducts((current) =>
         current.filter(
@@ -1015,7 +975,9 @@ export default function ProductsPage() {
           "تم حذف المنتجات المحددة بنجاح",
           "success"
         );
-      } else if (deletedIds.length > 0) {
+      } else if (
+        deletedIds.length > 0
+      ) {
         showMessage(
           `تم حذف ${deletedIds.length} من أصل ${selectedProducts.length} منتجات، وتعذر حذف بعض المنتجات`,
           "error"
@@ -1027,6 +989,11 @@ export default function ProductsPage() {
         );
       }
     } catch (error) {
+      if (isUnauthorizedError(error)) {
+        handleSessionExpired();
+        return;
+      }
+
       showMessage(
         error instanceof Error
           ? error.message
@@ -1047,9 +1014,7 @@ export default function ProductsPage() {
       localStorage.getItem("token");
 
     if (!token) {
-      showMessage(
-        "يرجى تسجيل الدخول كمسؤول أولًا"
-      );
+      handleSessionExpired();
       return;
     }
 
@@ -1084,6 +1049,11 @@ export default function ProductsPage() {
         "success"
       );
     } catch (error) {
+      if (isUnauthorizedError(error)) {
+        handleSessionExpired();
+        return;
+      }
+
       showMessage(
         error instanceof Error
           ? error.message
@@ -1139,9 +1109,6 @@ export default function ProductsPage() {
       dir="rtl"
     >
       <div className="products-container">
-
-        {/* Header */}
-
         <header className="products-header">
           <div>
             <span className="products-eyebrow">
@@ -1151,7 +1118,9 @@ export default function ProductsPage() {
             <h1>
               إدارة المنتجات
             </h1>
-<br />
+
+            <br />
+
             <p>
               إدارة المنتجات والصور
               والألوان والمخزون من
@@ -1166,12 +1135,9 @@ export default function ProductsPage() {
             }
           >
             <Plus size={19} />
-
             إضافة منتج
           </button>
         </header>
-
-        {/* Global Message */}
 
         {message && (
           <div
@@ -1206,10 +1172,7 @@ export default function ProductsPage() {
           </div>
         )}
 
-        {/* Filters */}
-
         <section className="products-toolbar">
-
           <div className="products-search">
             <Search size={19} />
 
@@ -1322,7 +1285,8 @@ export default function ProductsPage() {
                 value={featuredFilter}
                 onChange={(event) =>
                   setFeaturedFilter(
-                    event.target.value as FeaturedFilter
+                    event.target
+                      .value as FeaturedFilter
                   )
                 }
               >
@@ -1388,15 +1352,12 @@ export default function ProductsPage() {
                   }
                 >
                   <Trash2 size={17} />
-
                   حذف المحدد
                 </button>
               </div>
             )}
           </div>
         )}
-
-        {/* Product Cards */}
 
         {filteredProducts.length ? (
           <section className="products-grid">
@@ -1491,7 +1452,6 @@ export default function ProductsPage() {
                     </div>
 
                     <div className="product-card-body">
-
                       <div className="product-card-heading">
                         <div>
                           <h2>
@@ -1535,7 +1495,6 @@ export default function ProductsPage() {
                       </div>
 
                       <div className="product-card-info">
-
                         <div className="product-info-item">
                           <span>
                             السعر
@@ -1563,7 +1522,6 @@ export default function ProductsPage() {
                             }
                           </strong>
                         </div>
-
                       </div>
 
                       <div className="product-stock-row">
@@ -1588,7 +1546,6 @@ export default function ProductsPage() {
                       </div>
 
                       <div className="product-card-actions">
-
                         <button
                           className="product-edit-button"
                           onClick={() =>
@@ -1618,7 +1575,6 @@ export default function ProductsPage() {
 
                           حذف
                         </button>
-
                       </div>
                     </div>
                   </article>
@@ -1661,11 +1617,8 @@ export default function ProductsPage() {
         )}
       </div>
 
-      {/* Product Form Modal */}
-
       {showForm && (
         <div className="product-modal-layer">
-
           <div
             className="product-modal-backdrop"
             onClick={() => {
@@ -1685,7 +1638,6 @@ export default function ProductsPage() {
             }
           >
             <header className="product-modal-header">
-
               <div>
                 <span>
                   إدارة المنتجات
@@ -1717,12 +1669,7 @@ export default function ProductsPage() {
               >
                 <X size={22} />
               </button>
-
             </header>
-
-            {/* =====================================================
-                Form Error
-                ===================================================== */}
 
             {formError && (
               <div
@@ -1760,11 +1707,7 @@ export default function ProductsPage() {
               className="product-modal-body"
               ref={modalBodyRef}
             >
-
-              {/* Basic Information */}
-
               <section className="product-form-section">
-
                 <div className="product-section-heading">
                   <div>
                     <span>
@@ -1786,7 +1729,6 @@ export default function ProductsPage() {
                 </div>
 
                 <div className="product-form-grid">
-
                   <Field
                     label="اسم المنتج بالعربية"
                     required
@@ -2052,8 +1994,6 @@ export default function ProductsPage() {
                     </div>
                   </Field>
 
-                  {/* Stock */}
-
                   <Field label="المخزون">
                     <div className="product-stock-field">
                       <input
@@ -2118,14 +2058,10 @@ export default function ProductsPage() {
                       </small>
                     )}
                   </Field>
-
                 </div>
               </section>
 
-              {/* Images */}
-
               <section className="product-form-section">
-
                 <div className="product-section-heading">
                   <div>
                     <span>
@@ -2146,11 +2082,7 @@ export default function ProductsPage() {
                 </div>
 
                 <div className="product-images-layout">
-
-                  {/* Primary */}
-
                   <div className="product-primary-image-panel">
-
                     <div className="image-panel-title">
                       <div>
                         <h4>
@@ -2171,7 +2103,6 @@ export default function ProductsPage() {
 
                     {primaryImage ? (
                       <div className="primary-image-preview">
-
                         <img
                           src={
                             primaryImage.url
@@ -2197,11 +2128,9 @@ export default function ProductsPage() {
                             إزالة
                           </button>
                         </div>
-
                       </div>
                     ) : (
                       <label className="main-upload-zone">
-
                         <div className="upload-icon">
                           <ImagePlus
                             size={27}
@@ -2238,10 +2167,7 @@ export default function ProductsPage() {
                     )}
                   </div>
 
-                  {/* Gallery */}
-
                   <div className="product-gallery-panel">
-
                     <div className="image-panel-title">
                       <div>
                         <h4>
@@ -2255,7 +2181,6 @@ export default function ProductsPage() {
                       </div>
 
                       <label className="gallery-add-button">
-
                         <Plus
                           size={17}
                         />
@@ -2364,16 +2289,11 @@ export default function ProductsPage() {
                         />
                       </label>
                     )}
-
                   </div>
-
                 </div>
               </section>
 
-              {/* Colors */}
-
               <section className="product-form-section">
-
                 <div className="product-section-heading product-colors-heading">
                   <div>
                     <span>
@@ -2414,21 +2334,20 @@ export default function ProductsPage() {
                   </button>
                 </div>
 
-                {/* Total Colors Stock */}
-
                 {colors.length >
                   0 && (
                   <div className="colors-stock-summary">
                     <div>
                       <span>
-                        إجمالي المخزون 
-                        يتم حسابه تلقائيًا
-                        من مخزون كل لون من الألوان
+                        إجمالي المخزون يتم
+                        حسابه تلقائيًا من
+                        مخزون كل لون من
+                        الألوان
                       </span>
-<br />
-                      <small>
-                       
-                      </small>
+
+                      <br />
+
+                      <small />
                     </div>
 
                     <strong>
@@ -2444,7 +2363,6 @@ export default function ProductsPage() {
 
                 {colors.length ? (
                   <div className="colors-list">
-
                     {colors.map(
                       (
                         color,
@@ -2454,7 +2372,6 @@ export default function ProductsPage() {
                           className="color-item"
                           key={index}
                         >
-
                           <div className="color-preview">
                             <input
                               type="color"
@@ -2598,11 +2515,9 @@ export default function ProductsPage() {
                               size={17}
                             />
                           </button>
-
                         </div>
                       )
                     )}
-
                   </div>
                 ) : (
                   <div className="colors-empty">
@@ -2642,10 +2557,7 @@ export default function ProductsPage() {
                 )}
               </section>
 
-              {/* Options */}
-
               <section className="product-form-section product-options-section">
-
                 <label className="product-switch">
                   <input
                     type="checkbox"
@@ -2715,15 +2627,10 @@ export default function ProductsPage() {
                     </small>
                   </div>
                 </label>
-
               </section>
-
             </div>
 
-            {/* Modal Footer */}
-
             <footer className="product-modal-footer">
-
               <button
                 type="button"
                 className="product-cancel-button"
@@ -2767,17 +2674,13 @@ export default function ProductsPage() {
                   </>
                 )}
               </button>
-
             </footer>
           </form>
         </div>
       )}
 
-      {/* Delete Confirmation */}
-
       {deleteTarget && (
         <div className="delete-modal-layer">
-
           <div
             className="delete-modal-backdrop"
             onClick={() =>
@@ -2787,7 +2690,6 @@ export default function ProductsPage() {
           />
 
           <div className="delete-modal">
-
             <div className="delete-icon">
               <Trash2
                 size={25}
@@ -2817,7 +2719,6 @@ export default function ProductsPage() {
             </span>
 
             <div className="delete-modal-actions">
-
               <button
                 type="button"
                 className="delete-cancel"
@@ -2862,9 +2763,7 @@ export default function ProductsPage() {
                   </>
                 )}
               </button>
-
             </div>
-
           </div>
         </div>
       )}
@@ -2894,7 +2793,9 @@ export default function ProductsPage() {
             </p>
 
             <strong>
-              تم تحديد {selectedProducts.length} منتج
+              تم تحديد{" "}
+              {selectedProducts.length}{" "}
+              منتج
             </strong>
 
             <span>
